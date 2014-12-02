@@ -158,7 +158,6 @@ class Query(object):
             
                 self.add_edge(out_v, in_v, data, gremlin)
         else:
-            print 'updating', model
             self.update(model, immutable, gremlin)
             
         return self

@@ -1,5 +1,5 @@
 import unittest
-from random import randrange
+from random import randrange, random
 from collections import OrderedDict
 from gizmo.mapper import Mapper, Vertex, Edge
 from gizmo.request import _Request
@@ -28,6 +28,24 @@ class MapperTests(unittest.TestCase):
         self.gremlin = Gremlin()
         self.request = _Request('localhost', 'x', 'x')
         self.mapper = Mapper(self.request, self.gremlin)
+    
+    def get_model_data(self, data, id=None, edge=False):
+        seed = random()
+        d = {
+            GIZMO_MODEL     : 'some_model_%s' % seed,
+            GIZMO_CREATED   : 'some_created_%s' % seed,
+            GIZMO_MODIFIED  : 'some_mod_%s' % seed,
+            GIZMO_NODE_TYPE : 'some_node_type_%s' % seed,
+            GIZMO_TYPE      : 'edge' if edge is not False else 'vertex'
+        }
+        
+        if edge:
+            d[GIZMO_LABEL] = 'some_label_%s' % seed
+        
+        if id is not None:
+            d[GIZMO_ID] = id
+            
+        return OrderedDict(sorted(d.items()))
 
     def test_mapper_instance(self):
         m = Mapper(self.gremlin, self.request)
@@ -56,18 +74,11 @@ class MapperTests(unittest.TestCase):
         
     def test_can_update_existing_vertex(self):
         vid = 1111
-        d = {
+        d = self.get_model_data({
             'name': 'mark', 
-            'sex': 'male', 
-            GIZMO_MODEL     : 'some_model',
-            GIZMO_CREATED   : 'some_created',
-            GIZMO_MODIFIED  : 'some_mod',
-            GIZMO_NODE_TYPE : 'some_node_type',
-            GIZMO_TYPE      : 'some_type',
-            GIZMO_ID        : vid,
-        }
+            'sex': 'male'
+        }, vid)
         v = self.mapper.create_model(d, TestVertex)
-        d = OrderedDict(sorted(d.items()))
         
         self.mapper.save(v)._build_queries()
 
@@ -87,6 +98,31 @@ class MapperTests(unittest.TestCase):
         expected = "%s = g.v(%s)%s" % params
         
         self.assertEqual(expected, self.mapper.queries[0])
+        self.assertTrue(len(d), len(self.mapper.params))
+
+    def test_can_queue_save_vertex_with_two_params_query(self):
+        d = self.get_model_data({
+            'name': 'mark', 
+            'sex': 'male'
+        })
+        v = self.mapper.create_model(d, TestVertex)
+
+        self.mapper.save(v)._build_queries()
+
+        params = self.mapper.params
+        immutable = v._immutable
+        props = []
+        entry_v1 = get_element_entry(self.mapper.models, v)
+        
+        for k,v in d.iteritems():
+            if k not in immutable:
+                prop = "'%s': %s" % (k, get_dict_key(params, v))
+                props.append(prop)
+                
+        expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
+        
+        self.assertEqual(expected, self.mapper.queries[0])
+        self.assertTrue(len(d), len(self.mapper.params))
 
 
 if __name__ == '__main__':
