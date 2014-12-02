@@ -3,13 +3,21 @@ from element import Edge, Vertex, General
 from gremlinpy.gremlin import Function
 
 class Query(object):
+    QUERY_VAR = 'query_var'
+    
     def __init__(self, gremlin):
         self.gremlin = gremlin
         self.fields  = []
         self.queries = []
+        self.count   = -1
         
     def reset(self):
         self.fields = []
+        
+    def next_var(self):
+        self.count += 1
+        
+        return '%s_%s' % (self.QUERY_VAR, self.count)
         
     def add_query(self, script, params=None, model=None):
         if params is None:
@@ -70,7 +78,7 @@ class Query(object):
         
         return ','.join(gmap)
         
-    def add_vertex(self, model, gremlin=None):
+    def add_vertex(self, model, gremlin=None, set_variable=False):
         if model['_type'] is None:
             raise Exception('Models need to have a type defined')
         
@@ -81,7 +89,7 @@ class Query(object):
         
         self.build_fields(model.data, IMMUTABLE['vertex'], gremlin)
         
-        script = 'g.addVertex([%s])' % ', '.join(self.fields)
+        script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
 
@@ -92,22 +100,23 @@ class Query(object):
         
         return self.add_query(script, params, model)
         
-    def add_edge(self, model, gremlin=None):
+    def add_edge(self, model, gremlin=None, set_variable=False):
         if model['_label'] is None:
             raise Exception('The edge must have a label before saving')
         
         if gremlin is None:
             gremlin = self.gremlin
         
-        label_bound = gremlin.bind_param(model['_label'])
-        edge_fields = ''
+        out_v_id, in_v_id = self._get_or_create_edge_vertices(model)
+        label_bound       = gremlin.bind_param(model['_label'])
+        edge_fields       = ''
         
         self.build_fields(model.data, IMMUTABLE['edge'], gremlin)
         
         if len(fields) > 0:
             edge_fields = ', [%s]' % ', '.join(fields)
 
-        script = 'g.addEdge(%s, %s, %s%s)' % (out_v_id, in_v_id, label_bound[0], edge_fields)
+        script = '%s.addEdge(%s, %s, %s%s)' % (gremlin.gv, out_v_id, in_v_id, label_bound[0], edge_fields)
         
         gremlin.set_graph_variable('').raw(script)
         
@@ -202,8 +211,11 @@ class Query(object):
         # return self
 
     def _get_or_create_edge_vertices(self, edge):
-        out_v = edge.out_v
-        in_v  = edge.in_v
+        out_v     = edge.out_v
+        out_v_ref = self.next_var()
+        in_v      = edge.in_v
+        in_v_ref  = self.next_var()
+
         
         if out_v is None or in_v is None:
             error = 'Both out and in vertices must be set before saving \
@@ -212,28 +224,22 @@ class Query(object):
             raise Exception(error)
         
         if out_v['_id'] is None:
-            self.save(out_v)
-            
-            out_v_id = self.capture_variable(False)
+            self.save(out_v, out_v_ref)
         else:
             gremlin = Gremlin().v(out_v['_id'])
+            gremlin.return_var = out_v_ref
             
-            self.enque_script(gremlin, out_v, False)
-            
-            out_v_id = self.scripts[-1]
+            self.add_query(str(gremlin), gremlin.bound_params, out_v)
             
         if in_v['_id'] is None:
-            self.save(in_v)
-            
-            in_v_id = self.capture_variable(False)
+            self.save(in_v, in_v_ref)
         else:
             gremlin = Gremlin().v(in_v['_id'])
+            gremlin.return_var = in_v_ref
             
-            self.enque_script(gremlin, in_v, False)
+            self.add_query(str(gremlin), gremlin.bound_params, out_v)
             
-            in_v_id = self.scripts[-1]
-            
-        return out_v_id, in_v_id
+        return out_v_ref, in_v_ref
 
     def delete(self, model, gremlin=None):
         id = model['_id']

@@ -6,12 +6,17 @@ from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, G
 class _RootElement(type):
     def __new__(cls, name, bases, attrs):
         # ensure a unique _Fields object is set with each instance
-        # call the old __init__ method
-        old = None
-        
+        # call the old __init__ method chain
+        old = []
+
+        for base in bases:
+            print type(base)
+            if type(base) != type and hasattr(base, '__init__'):
+                old.append(getattr(base, '__init__'))
+        print old, bases
         if '__init__' in attrs:
-            old = attrs['__init__']
-        
+            old.append(attrs['__init__'])
+
         def __init_wraper(self, *args, **kwargs):
             data = {}
             
@@ -33,11 +38,11 @@ class _RootElement(type):
                 GIZMO_ID        : String(),
             })
             
-            if old is not None:
-                old(self, *args, **kwargs)
+            for init in old:
+                init(self, *args, **kwargs)
 
             self.hydrate(data)
-        
+
             if data is not None and GIZMO_ID in data:
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
             
@@ -115,31 +120,33 @@ class General(Vertex):
 
 
 class Edge(_BaseElement):
-    def __init__(self, data=None):
+    def __init__(self, data=None, label=None):
+        if data is None:
+            data = {}
+        print '(((((((((())))))))))'
+        print data
         self._immutable = IMMUTABLE['edge']
-        
-        self.fields.append({
-            GIZMO_LABEL : String(),
+        self.out_v = None
+        self.in_v = None
+
+        self.fields.update({
+            GIZMO_LABEL : String(label),
         })
         
         if GIZMO_LABEL in data:
             self.fields[GIZMO_LABEL].field_value = data[GIZMO_LABEL]
+            
+        if 'out_v' in data:
+            self.out_v = data['out_v']
+
+        if 'in_v' in data:
+            self.in_v = data['in_v']
 
         super(Edge, self).__init__(self, data)
 
     @property
     def _type(self):
         return 'edge'
-        
-    def set_out(self, out_v):
-        self._out_v = out_v
-        
-        return self
-    
-    def set_in(self, in_v):
-        self._in_v = in_v
-        
-        return self
 
 
 class Collection(dict):

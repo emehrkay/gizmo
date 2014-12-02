@@ -86,19 +86,25 @@ class MapperTests(unittest.TestCase):
         immutable = v._immutable
         query_ps = []
         entry_v1 = get_element_entry(self.mapper.models, v)
-        
+        print '*'*90
+        print v.data
+
+        print '*'*90
+        print params
         for k, v in d.iteritems():
             if k not in immutable:
                 prop = "it.setProperty('%s', %s)" % (k, get_dict_key(params, v))
                 query_ps.append(prop)
 
+        print '*'*90
+        print query_ps
         propv    = get_dict_key(params, vid)
         close    = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
         params   = (entry_v1.keys()[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
         
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertTrue(len(d), len(self.mapper.params))
+        self.assertEqual(len(query_ps), len(self.mapper.params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = self.get_model_data({
@@ -122,8 +128,19 @@ class MapperTests(unittest.TestCase):
         expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
         
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertTrue(len(d), len(self.mapper.params))
+        self.assertEqual(len(query_ps), len(self.mapper.params))
 
-
+    def test_can_create_edge_with_existing_vertices(self):
+        v1 = self.get_model_data({}, id=15)
+        v2 = self.get_model_data({}, id=10)
+        out_v = self.mapper.create_model(v1, TestVertex)
+        in_v = self.mapper.create_model(v2, TestVertex)
+        ed = {'out_v': out_v, 'in_v': in_v}
+        edge = self.mapper.create_model(ed, TestEdge)
+        
+        self.assertTrue(isinstance(edge, Edge))
+        self.assertTrue(isinstance(edge.out_v, TestVertex))
+        self.assertTrue(isinstance(edge.in_v, TestVertex))
+        
 if __name__ == '__main__':
     unittest.main()
