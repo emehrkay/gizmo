@@ -1,5 +1,5 @@
 from utils import gizmo_import, IMMUTABLE
-from element import GIZMO_MODEL, Edge, Vertex, General
+from element import Edge, Vertex, General
 from gremlinpy.gremlin import Function
 
 class Query(object):
@@ -84,8 +84,13 @@ class Query(object):
         script = 'g.addVertex([%s])' % ', '.join(self.fields)
 
         gremlin.set_graph_variable('').raw(script)
+
+        script = str(gremlin)
+        params = gremlin.bound_params
         
-        return self.add_query(str(gremlin), gremlin.bound_params, model)
+        gremlin.reset()
+        
+        return self.add_query(script, params, model)
         
     def add_edge(self, model, gremlin=None):
         if model['_label'] is None:
@@ -97,7 +102,7 @@ class Query(object):
         label_bound = gremlin.bind_param(model['_label'])
         edge_fields = ''
         
-        build_fields(data)
+        self.build_fields(model.data, IMMUTABLE['edge'], gremlin)
         
         if len(fields) > 0:
             edge_fields = ', [%s]' % ', '.join(fields)
@@ -117,17 +122,24 @@ class Query(object):
             
         if gremlin is None:
             gremlin = self.gremlin
-
+        
+        model.fields.data_type = 'graph'
+        
         model_type = 'e' if model['_type'] == 'edge' else 'v'
         
-        self.update_fields(model.data, immutable, gremlin)
+        self.update_fields(model.data, model._immutable, gremlin)
 
         next_func = Function(gremlin, 'next')
         
         getattr(gremlin, model_type)(model['_id'])._().sideEffect.close('; '.join(self.fields)).add_token(next_func)
+        
+        script = str(gremlin)
+        params = gremlin.bound_params
+        
+        gremlin.reset()
+        
+        return self.add_query(script, params, model)
 
-        return self.add_query(str(gremlin), gremlin.bound_params, model)
-    
     def save(self, model, gremlin=None):
         if model['_type'] is None:
             raise Exception('The model does not have a _type defined')
@@ -245,14 +257,16 @@ class Query(object):
 
 class Mapper(object):
     VARIABLE = 'gizmo_var'
+    registrations = {}
     
-    def __init__(self, request, gremlin=None):
+    def __init__(self, request, gremlin=None, auto_commit=False):
         if gremlin is None:
             gremlin = Gremlin()
 
-        self.count   = -1
+        self.count = -1
         self.request = request
         self.gremlin = gremlin
+        self.auto_commit = auto_commit
         self.reset()
         
     def reset(self):
@@ -277,20 +291,20 @@ class Mapper(object):
         
         return self
         
-    def save(self, model, bind_return=True):
+    def save(self, model, bind_return=True, lookup=True):
         query = Query(self.gremlin)
         query.save(model)
         
         return self.enqueue(query, bind_return)
     
-    def delete(self, model):
+    def delete(self, model, lookup=True):
         query = Query(self.gremlin)
         
         query.delete(model)
         
         return self.enqueue(query, False)
 
-    def create_model(self, data=None, model_class=None):
+    def create_model(self, data=None, model_class=None, lookup=True):
         """
         Method used to create a new model based on the data that is passed in.
         If the kwagrg model_class is passed in, it will be used to create the model
@@ -322,19 +336,31 @@ class Mapper(object):
         return model
         
     def _build_queries(self):
+        if self.auto_commit is False:
+            commit = '.'.join([self.gremlin.gv, 'commit()'])
+            
+            self.queries.append(commit)
+            
         if len(self.models) > 0:
-            ret = '[%s]' % ','.join(self.models.keys())
+            returns = []
+            
+            for k in self.models.keys():
+                returns.append("'%s': %s" % (k ,k))
+
+            ret = '[%s]' % ','.join(returns)
             
             self.queries.append(ret)
         
-        return '; '.join(self.queries)
+        return self
         
     def send(self, script=None, params=None, gremlin=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
         elif script is None:
-            script = self._build_queries()
+            self._build_queries()
+            
+            script = ';'.join(self.queries)
             params = self.params
 
         if script is None:
@@ -342,8 +368,12 @@ class Mapper(object):
             
         if params is None:
             params = {}
-        print '>>>>>>>>>>>>>>', self.count, script, params
+
         response = self.request.send(script, params)
+        
+        if len(self.models) > 0:
+            response.update_models(self.models)
+        
         print response
 
 

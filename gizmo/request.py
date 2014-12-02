@@ -31,11 +31,19 @@ class _Response(object):
         
         
         return val
+    
+    def update_models(self, mappings):
+        for var, model in mappings.iteritems():
+            if var in self.data:
+                model.hydrate(self.data[var])
+        
+        return self
         
     def __setitem__(self, key, val):
         self.data[key] = val
         
         return self
+
 
 class Binary(_Request):
     def __init__(self, uri, graph, port=8184, username=None, password=None):
@@ -46,29 +54,15 @@ class Binary(_Request):
     def send(self, script=None, params=None):
         if params is None:
             params = {}
-        print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-        print script
-        print params
-        print "\n\n"
+
         resp = self.connection.execute(script, params)
 
         return BinaryResponse(resp)
 
+
 class BinaryResponse(_Response):
     def __init__(self, data=None, response=None):
-        """
-        move _property member to the rest of the data
-        """
-        cleaned = []
-        print '[[[[[[[[[[[[[[[[[[[[[', 
-        print data, type(data)
-        for key, full in data.items():
-            data_set = copy.deepcopy(full.copy())
-            
-            if '_properties' in data_set:
-                del(data_set['_properties'])
-                data_set.update(full['_properties'])
+        self.data = data
+        self.response = response
 
-            cleaned.append(data_set)
-            
-        super(Response, self).__init__(cleaned, response)
+

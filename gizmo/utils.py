@@ -1,11 +1,16 @@
-VERTEX = 'vertex'
-EDGE = 'edge'
-TYPES = {VERTEX: VERTEX, EDGE: EDGE}
-IMMUTABLE = {
-    VERTEX: ['_id', '_type'],
-}
-
+GIZMO_MODEL     = '__gizmo_model'
+GIZMO_CREATED   = '__gizmo_created'
+GIZMO_MODIFIED  = '__gizmo_modified'
+GIZMO_NODE_TYPE = '__gizmo_node_type'
+GIZMO_TYPE      = '_type'
+GIZMO_ID        = '_id'
+GIZMO_LABEL     = '_label'
+VERTEX          = 'vertex'
+EDGE            = 'edge'
+TYPES           = {VERTEX: VERTEX, EDGE: EDGE}
+IMMUTABLE       = {VERTEX: ['_id', '_type']}
 IMMUTABLE[EDGE] = IMMUTABLE[VERTEX].append('_label')
+
 
 def get_object_items(obj):
     return [a for a in dir(obj) if not a.startswith('__') and not callable(getattr(obj, a))]

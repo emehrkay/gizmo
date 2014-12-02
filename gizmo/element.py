@@ -1,24 +1,26 @@
 from field import String, DateTime, Boolean, List, Map, _Fields
 from utils import get_qualified_name, TYPES, IMMUTABLE
-
-GIZMO_MODEL     = '__gizmo_model'
-GIZMO_CREATED   = '__gizmo_created'
-GIZMO_MODIFIED  = '__gizmo_modified'
-GIZMO_NODE_TYPE = '__gizmo_node_type'
-GIZMO_TYPE      = '_type'
-GIZMO_ID        = '_id'
-GIZMO_LABEL     = '_label'
+from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 
 
 class _RootElement(type):
     def __new__(cls, name, bases, attrs):
+        # ensure a unique _Fields object is set with each instance
+        # call the old __init__ method
         old = None
         
         if '__init__' in attrs:
             old = attrs['__init__']
+        
+        def __init_wraper(self, *args, **kwargs):
+            data = {}
             
-        #ensure a unique _Fields object is set with each instance
-        def __init_wraper(self, data):
+            try:
+                data = args[0]
+            except:
+                if 'data' in kwargs:
+                    data = kwargs['data']
+
             self.data_type = 'python'
             self.allow_undefined = True
             self._immutable = IMMUTABLE['vertex']
@@ -32,7 +34,7 @@ class _RootElement(type):
             })
             
             if old is not None:
-                old(self, data)
+                old(self, *args, **kwargs)
 
             self.hydrate(data)
         
@@ -52,8 +54,7 @@ class _BaseElement(object):
             data = {}
         
         for field, value in data.iteritems():
-            if field in self.fields:
-                self[field] = value
+            self[field] = value
         
         return self
     
@@ -94,12 +95,18 @@ class _BaseElement(object):
     @property
     def data(self):
         return self.fields.data
+        
+    def get_rep(self):
+        element = 'e' if self['_type'] == 'edge' else 'v'
+        
+        return element, self['_id']
 
 
 class Vertex(_BaseElement):
     @property
     def _type(self):
         return 'vertex'
+
 
 class General(Vertex):
     @property
@@ -112,7 +119,7 @@ class Edge(_BaseElement):
         self._immutable = IMMUTABLE['edge']
         
         self.fields.append({
-            GIZMO_LABEL : String(self._label),
+            GIZMO_LABEL : String(),
         })
         
         if GIZMO_LABEL in data:
@@ -124,15 +131,15 @@ class Edge(_BaseElement):
     def _type(self):
         return 'edge'
         
-    @property
-    def _label(self):
-        raise NotImplementedError('Edges need a _label defined')
-        
     def set_out(self, out_v):
         self._out_v = out_v
+        
+        return self
     
     def set_in(self, in_v):
         self._in_v = in_v
+        
+        return self
 
 
 class Collection(dict):

@@ -1,0 +1,3 @@
+* Fix map/list binding for adding nodes, works for updating
+* add cutsom mappers to mapper.Mapper
+    * augment methods to allow for custom mapping

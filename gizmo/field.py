@@ -1,4 +1,4 @@
-
+from collections import OrderedDict
 
 
 class _Fields(dict):
@@ -27,7 +27,9 @@ class _Fields(dict):
             field.data_type = self.data_type
             data[name] = field.value
         
-        return data
+        # sorting field names do not matter
+        # this is done for testing purposes
+        return OrderedDict(sorted(data.items()))
 
 
 class Field(object):
