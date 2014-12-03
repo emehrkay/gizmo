@@ -13,8 +13,8 @@ class _Request(object):
     def reset(self):
         pass
         
-    def send(script=None, params=None):
-        pass
+    def send(self, script=None, params=None):
+        return _Response()
 
 
 class _Response(object):
@@ -33,6 +33,7 @@ class _Response(object):
         return val
     
     def update_models(self, mappings):
+        print '>>>>>>>>>>', self.data
         for var, model in mappings.iteritems():
             if var in self.data:
                 model.hydrate(self.data[var])

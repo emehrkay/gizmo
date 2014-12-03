@@ -58,7 +58,6 @@ class Field(object):
 class String(Field):
     pass
 
-
 class Integer(Field):
     pass
 
