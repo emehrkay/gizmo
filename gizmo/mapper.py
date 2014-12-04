@@ -24,7 +24,7 @@ class _RootMapper(type):
 class _GenericMapper(object):
     __metaclass__ = _RootMapper
     
-    def __init__(self, request, gremlin=None):
+    def __init__(self, gremlin=None):
         self.gremlin = gremlin
         self.queries = []
         self.models  = {}
@@ -120,7 +120,7 @@ class Mapper(object):
         if name not in _MAPPER_MAP:
             name = GENERIC_MAPPER
             
-        return _MAPPER_MAP[name](self.request, self.gremlin)
+        return _MAPPER_MAP[name](self.gremlin)
         
     def _enqueue_mapper(self, mapper):
         self.queries = mapper.queries
