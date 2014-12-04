@@ -18,12 +18,41 @@ class _Request(object):
 
 
 class _Response(object):
-    def __init__(self, data=None, response=None):
-        if data is None:
-            data = {}
+    def __init__(self, data=None, update_models=None):
+        self.original_data = data
+        self.update_models = update_models
+        self.data = self._fix_data(data)
+        
+    def _fix_data(self, arg):
+        def fix_properties(data_set):
+            if isinstance(data_set, dict) and '_properties' in data_set:
+                prop = data_set['_properties']
+                del data_set['_properties']
+                data_set.update(prop)
             
-        self.data = data
-        self.resonse = response
+            return data_set
+            
+        if not hasattr(arg, '__iter__'):
+            data = [{'response': arg}]
+        elif isinstance(arg, dict):
+            if len(self.update_models) > 0:
+                data = []
+            
+                for k, model in self.update_models.iteritems():
+                    val = fix_properties(arg.get(k, None))
+                
+                    if isinstance(val, dict):
+                        model.hydrate(val)
+                        data.append(val)
+                        del arg[k]
+            
+                data.append(arg)
+            else:
+                data = [fix_properties(arg)]
+        else:
+            data = map(fix_properties, arg)
+        
+        return data
         
     def __getitem__(self, key):
         val = None
@@ -70,18 +99,19 @@ class Binary(_Request):
         
         self.connection = RexProConnection(uri, port, graph)
     
-    def send(self, script=None, params=None):
+    def send(self, script=None, params=None, update_models=None):
         if params is None:
             params = {}
 
+        if update_models is None:
+            update_models = {}
+
         resp = self.connection.execute(script, params)
 
-        return BinaryResponse(resp)
+        return BinaryResponse(resp, update_models)
 
 
 class BinaryResponse(_Response):
-    def __init__(self, data=None, response=None):
-        self.data = data
-        self.response = response
+    pass
 
 

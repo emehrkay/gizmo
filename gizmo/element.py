@@ -24,7 +24,10 @@ class _BaseElement(object):
     def __init__(self, data=None):
         self.data_type = 'python'
         self.allow_undefined = True
-        self._immutable = IMMUTABLE['vertex']
+        
+        if not hasattr(self, '_immutable'):
+            self._immutable = IMMUTABLE['vertex']
+
         self.fields = _Fields({
             GIZMO_MODEL     : String(get_qualified_instance_name(self)),
             GIZMO_CREATED   : DateTime(),
@@ -114,17 +117,29 @@ class Edge(_BaseElement):
             del data['out_v']
         else:
             self.out_v = None
+            
+        if '_outV' in data:
+            self.outV = data['_outV']
+            
+            del data['_outV']
+        else:
+            self.outV = None
 
         if 'in_v' in data:
             self.in_v = data['in_v']
             
             del data['in_v']
-        else:
-            self.in_v = None
 
-        super(Edge, self).__init__(data)
+        if '_inV' in data:
+            self.inV = data['_inV']
+            
+            del data['_inV']
+        else:
+            self.inV = None
 
         self._immutable = IMMUTABLE['edge']
+        
+        super(Edge, self).__init__(data)
 
         self.fields.update({
             GIZMO_LABEL : String(label),

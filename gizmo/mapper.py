@@ -1,5 +1,5 @@
-from utils import gizmo_import, get_qualified_name, IMMUTABLE, GIZMO_MODEL
-from element import Edge, Vertex, General, _MAP
+from utils import gizmo_import, get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
+from element import Edge, Vertex, General, _MAP, _BaseElement
 from gremlinpy.gremlin import Gremlin, Function
 
 
@@ -23,12 +23,14 @@ class _RootMapper(type):
         
 class _GenericMapper(object):
     __metaclass__ = _RootMapper
+    VARIABLE = 'gizmo_var'
     
     def __init__(self, gremlin=None):
         self.gremlin = gremlin
         self.queries = []
         self.models  = {}
         self.params  = {}
+        self.count   = -1
 
     def enqueue(self, query, bind_return=True):
         for entry in query.queries:
@@ -96,7 +98,6 @@ class Mapper(object):
     __metaclass__ = _RootMapper
     
     VARIABLE = 'gizmo_var'
-    registrations = {}
     
     def __init__(self, request, gremlin=None, auto_commit=False):
         if gremlin is None:
@@ -114,8 +115,14 @@ class Mapper(object):
         self.params  = {}
         
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
+        import inspect
+        
         if model is not None:
-            name = get_qualified_name(model)
+            #if inspect.isclass(model):
+            if isinstance(model, _BaseElement):
+                name = get_qualified_instance_name(model)
+            else:
+                name = get_qualified_name(model)
 
         if name not in _MAPPER_MAP:
             name = GENERIC_MAPPER
@@ -146,27 +153,27 @@ class Mapper(object):
         
         return self
     
-    def _save(self, model, bind_return=True):
+    def save(self, model, bind_return=True):
         mapper = self._get_mapper(model)
         
         mapper.save(model, bind_return)
         
         return self._enqueue_mapper(mapper)
     
-    def save(self, model, bind_return=True, lookup=True):
+    def _save(self, model, bind_return=True, lookup=True):
         query = Query(self.gremlin)
         query.save(model)
         
         return self.enqueue(query, bind_return)
     
-    def _delete(self, model):
+    def delete(self, model):
         mapper = self._get_mapper(model)
         
         mapper.delete(model)
         
         return self.enqueue(mapper)
     
-    def delete(self, model, lookup=True):
+    def _delete(self, model, lookup=True):
         query = Query(self.gremlin)
         
         query.delete(model)
@@ -274,12 +281,10 @@ class Mapper(object):
             
         if params is None:
             params = {}
-
-        response = self.request.send(script, params)
-        
-        if len(self.models) > 0:
-            response.update_models(self.models)
-        
+        print script
+        print params
+        response = self.request.send(script, params, self.models)
+        self.reset()
         return Collection(self, response)
 
 
@@ -512,6 +517,10 @@ class Collection(object):
         self.response = response
         self._models = {}
         self._index = 0
+        
+    @property
+    def data(self):
+        return [x for x in self.response.data]
     
     def __getitem__(self, key):
         model = self._models.get(key, None)
