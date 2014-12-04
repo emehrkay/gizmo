@@ -8,8 +8,7 @@ GIZMO_LABEL     = '_label'
 VERTEX          = 'vertex'
 EDGE            = 'edge'
 TYPES           = {VERTEX: VERTEX, EDGE: EDGE}
-IMMUTABLE       = {VERTEX: ['_id', '_type']}
-IMMUTABLE[EDGE] = IMMUTABLE[VERTEX].append('_label')
+IMMUTABLE       = {VERTEX: [GIZMO_ID, GIZMO_TYPE], EDGE: [GIZMO_ID, GIZMO_TYPE, GIZMO_LABEL]}
 
 
 def get_object_items(obj):

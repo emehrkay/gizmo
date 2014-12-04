@@ -13,8 +13,8 @@ class _Request(object):
     def reset(self):
         pass
         
-    def send(script=None, params=None):
-        pass
+    def send(self, script=None, params=None):
+        return _Response()
 
 
 class _Response(object):
@@ -28,14 +28,33 @@ class _Response(object):
     def __getitem__(self, key):
         val = None
         
-        
+        try:
+            data = self.data[key]
+            val  = copy.deepcopy(data)
+            
+            if '_properties' in data:
+                del val['_properties']
+                val.update(data['_properties'])
+        except:
+            pass
         
         return val
     
     def update_models(self, mappings):
+        fixed = copy.deepcopy(self.data)
+        
         for var, model in mappings.iteritems():
             if var in self.data:
                 model.hydrate(self.data[var])
+                
+                try:
+                    del fixed[var]
+                except:
+                    pass
+                
+                fixed.update(self.data[var])
+                
+        self.data = fixed
         
         return self
         

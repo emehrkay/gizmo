@@ -27,7 +27,7 @@ class ElementTests(unittest.TestCase):
         v = TestVertex()
 
         self.assertTrue(isinstance(v, Vertex))
-        self.assertEqual(v['_type'], 'vertex')
+        self.assertEqual(v._type, 'vertex')
         
     def test_can_create_vertex_with_data(self):
         d = {'one': 1, 'two': 2, 'three': 3}
@@ -48,7 +48,7 @@ class ElementTests(unittest.TestCase):
         d = {'one': 1, 'two': 2, 'three': 3}
         e = TestEdge(d)
         data = e.data
-        print data
+
         for k, v in d.iteritems():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])

@@ -2,57 +2,39 @@ from field import String, DateTime, Boolean, List, Map, _Fields
 from utils import get_qualified_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 
+_MAP = {}
 
 class _RootElement(type):
+    """
+    maps all models during definition to their object so that it can be
+    loaded later
+    """
     def __new__(cls, name, bases, attrs):
-        # ensure a unique _Fields object is set with each instance
-        # call the old __init__ method chain
-        old = []
-
-        for base in bases:
-            print type(base)
-            if type(base) != type and hasattr(base, '__init__'):
-                old.append(getattr(base, '__init__'))
-        print old, bases
-        if '__init__' in attrs:
-            old.append(attrs['__init__'])
-
-        def __init_wraper(self, *args, **kwargs):
-            data = {}
-            
-            try:
-                data = args[0]
-            except:
-                if 'data' in kwargs:
-                    data = kwargs['data']
-
-            self.data_type = 'python'
-            self.allow_undefined = True
-            self._immutable = IMMUTABLE['vertex']
-            self.fields = _Fields({
-                GIZMO_MODEL     : String(get_qualified_name(self)),
-                GIZMO_CREATED   : DateTime(),
-                GIZMO_MODIFIED  : DateTime(),
-                GIZMO_NODE_TYPE : String(self._node_type),
-                GIZMO_TYPE      : String(self._type),
-                GIZMO_ID        : String(),
-            })
-            
-            for init in old:
-                init(self, *args, **kwargs)
-
-            self.hydrate(data)
-
-            if data is not None and GIZMO_ID in data:
-                self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
-            
-        attrs['__init__'] = __init_wraper
-        
-        return super(_RootElement, cls).__new__(cls, name, bases, attrs)
+        cls = super(_RootElement, cls).__new__(cls, name, bases, attrs)
+        map_name = '%s.%s' % (cls.__module__, cls.__name__)
+        _MAP[map_name] = cls
+        return cls
 
 
 class _BaseElement(object):
     __metaclass__ = _RootElement
+    
+    def __init__(self, data=None):
+        self.data_type = 'python'
+        self.allow_undefined = True
+        self._immutable = IMMUTABLE['vertex']
+        self.fields = _Fields({
+            GIZMO_MODEL     : String(get_qualified_name(self)),
+            GIZMO_CREATED   : DateTime(),
+            GIZMO_MODIFIED  : DateTime(),
+            GIZMO_NODE_TYPE : String(self._node_type),
+            GIZMO_ID        : String(),
+        })
+            
+        self.hydrate(data)
+        
+        if data is not None and GIZMO_ID in data:
+            self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
     
     def hydrate(self, data=None):
         if data is None:
@@ -102,7 +84,7 @@ class _BaseElement(object):
         return self.fields.data
         
     def get_rep(self):
-        element = 'e' if self['_type'] == 'edge' else 'v'
+        element = 'e' if self._type == 'edge' else 'v'
         
         return element, self['_id']
 
@@ -115,7 +97,7 @@ class Vertex(_BaseElement):
 
 class General(Vertex):
     @property
-    def node_type(self):
+    def _node_type(self):
         return 'General'
 
 
@@ -123,11 +105,24 @@ class Edge(_BaseElement):
     def __init__(self, data=None, label=None):
         if data is None:
             data = {}
-        print '(((((((((())))))))))'
-        print data
+            
+        if 'out_v' in data:
+            self.out_v = data['out_v']
+            
+            del data['out_v']
+        else:
+            self.out_v = None
+
+        if 'in_v' in data:
+            self.in_v = data['in_v']
+            
+            del data['in_v']
+        else:
+            self.in_v = None
+
+        super(Edge, self).__init__(data)
+
         self._immutable = IMMUTABLE['edge']
-        self.out_v = None
-        self.in_v = None
 
         self.fields.update({
             GIZMO_LABEL : String(label),
@@ -136,32 +131,9 @@ class Edge(_BaseElement):
         if GIZMO_LABEL in data:
             self.fields[GIZMO_LABEL].field_value = data[GIZMO_LABEL]
             
-        if 'out_v' in data:
-            self.out_v = data['out_v']
-
-        if 'in_v' in data:
-            self.in_v = data['in_v']
-
-        super(Edge, self).__init__(self, data)
+        self.hydrate(data)
 
     @property
     def _type(self):
         return 'edge'
 
-
-class Collection(dict):
-    def __init__(self, *args, **kwargs):
-        self.update(*args, **kwargs)
-        self.elements = []
-    
-    def __getitem__(self, field):
-        data = dict.__getitem__(self, field)
-        
-        return obj
-    
-    def __setitem__(self, field, value):
-        dict.__setitem__(self, field, value)
-    
-    def update(self, *args, **kwargs):
-        for field, obj in dict(*args, **kwargs).iteritems():
-            self[field] = obj

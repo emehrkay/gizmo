@@ -7,6 +7,7 @@ from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_T
 from gremlinpy.gremlin import Gremlin
 from element import TestVertex, TestEdge
 
+
 def get_dict_key(dict, value):
     for k, v in dict.iteritems():
         if v == value:
@@ -36,7 +37,6 @@ class MapperTests(unittest.TestCase):
             GIZMO_CREATED   : 'some_created_%s' % seed,
             GIZMO_MODIFIED  : 'some_mod_%s' % seed,
             GIZMO_NODE_TYPE : 'some_node_type_%s' % seed,
-            GIZMO_TYPE      : 'edge' if edge is not False else 'vertex'
         }
         
         if edge:
@@ -56,7 +56,7 @@ class MapperTests(unittest.TestCase):
         v = self.mapper.create_model(model_class=TestVertex)
 
         self.assertTrue(isinstance(v, Vertex))
-        self.assertTrue(v.data['_type'] == 'vertex')
+        self.assertTrue(v._type == 'vertex')
         
     def test_can_create_vertex_with_data(self):
         d  = {'name': 'mark', 'sex': 'male'}
@@ -82,29 +82,24 @@ class MapperTests(unittest.TestCase):
         
         self.mapper.save(v)._build_queries()
 
-        params   = self.mapper.params
+        params = self.mapper.params
         immutable = v._immutable
         query_ps = []
         entry_v1 = get_element_entry(self.mapper.models, v)
-        print '*'*90
-        print v.data
-
-        print '*'*90
-        print params
+        
         for k, v in d.iteritems():
             if k not in immutable:
                 prop = "it.setProperty('%s', %s)" % (k, get_dict_key(params, v))
                 query_ps.append(prop)
 
-        print '*'*90
-        print query_ps
+
         propv    = get_dict_key(params, vid)
         close    = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
         params   = (entry_v1.keys()[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
         
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(query_ps), len(self.mapper.params))
+        self.assertEqual(len(d), len(self.mapper.params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = self.get_model_data({
@@ -128,7 +123,7 @@ class MapperTests(unittest.TestCase):
         expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
         
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(query_ps), len(self.mapper.params))
+        self.assertEqual(len(d), len(self.mapper.params))
 
     def test_can_create_edge_with_existing_vertices(self):
         v1 = self.get_model_data({}, id=15)
@@ -141,6 +136,18 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(isinstance(edge, Edge))
         self.assertTrue(isinstance(edge.out_v, TestVertex))
         self.assertTrue(isinstance(edge.in_v, TestVertex))
+
+    def test_can_queue_save_edge_with_existing_vertices(self):
+        v1 = self.get_model_data({}, id=15)
+        v2 = self.get_model_data({}, id=10)
+        out_v = self.mapper.create_model(v1, TestVertex)
+        in_v = self.mapper.create_model(v2, TestVertex)
+        ed = {'out_v': out_v, 'in_v': in_v, '_label': 'knows'}
+        edge = self.mapper.create_model(ed, TestEdge)
+        
+        self.mapper.save(edge)._build_queries()
+
+        print self.mapper.queries
         
 if __name__ == '__main__':
     unittest.main()

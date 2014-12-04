@@ -1,6 +1,6 @@
-from utils import gizmo_import, IMMUTABLE
-from element import Edge, Vertex, General
-from gremlinpy.gremlin import Function
+from utils import gizmo_import, IMMUTABLE, GIZMO_MODEL
+from element import Edge, Vertex, General, _MAP
+from gremlinpy.gremlin import Gremlin, Function
 
 class Query(object):
     QUERY_VAR = 'query_var'
@@ -13,6 +13,10 @@ class Query(object):
         
     def reset(self):
         self.fields = []
+
+        self.gremlin.reset()
+        
+        return self
         
     def next_var(self):
         self.count += 1
@@ -31,12 +35,22 @@ class Query(object):
         
         return self
         
-    def build_fields(self, data, immutable, gremlin):
+    def add_gremlin_query(self, model=None):
+        script = str(self.gremlin)
+        params = self.gremlin.bound_params
+        
+        self.add_query(script, params, model)
+        
+        return self.reset()
+        
+    def build_fields(self, data, immutable):
+        gremlin = self.gremlin
+        
         for key, val in data.iteritems():
             if key not in immutable:
                 value = val
                 if type(val) is dict or type(val) is list:
-                    listed = self.iterable_to_map(val, gremlin)
+                    listed = self.iterable_to_map(val)
                     value  = "[%s]" % listed
                     
                     self.fields.append(value)
@@ -47,11 +61,13 @@ class Query(object):
         
         return self
         
-    def update_fields(self, data, immutable, gremlin):
+    def update_fields(self, data, immutable):
+        gremlin = self.gremlin
+        
         for k, v in data.iteritems():
             if k not in immutable:
                 if type(v) is dict or type(v) is list:
-                    gmap  = self.iterable_to_map(v, gremlin)
+                    gmap  = self.iterable_to_map(v)
                     entry = "it.setProperty('%s', %s)" % (k, gmap)
                 else:
                     bound = self.gremlin.bind_param(v)
@@ -61,15 +77,13 @@ class Query(object):
                 
         return self
         
-    def iterable_to_map(self, iterable, gremlin):
-        if gremlin is None:
-            gremlin = self.gremlin
-            
+    def iterable_to_map(self, iterable):
+        gremlin = self.gremlin
         gmap = []
         
         for k, v in enumerate(iterable):
             if type(v) is dict or type(v) is list:
-                gmap.append(self.iterable_to_map(v, gremlin))
+                gmap.append(self.iterable_to_map(v))
             else:
                 bound = gremlin.bind_param(v)
                 entry = "'%s': %s" % (k, bound[0])
@@ -78,144 +92,53 @@ class Query(object):
         
         return ','.join(gmap)
         
-    def add_vertex(self, model, gremlin=None, set_variable=False):
-        if model['_type'] is None:
+    def add_vertex(self, model, set_variable=False):
+        if model._type is None:
             raise Exception('Models need to have a type defined')
         
         model.fields.data_type = 'graph'
+        gremlin = self.gremlin
         
-        if gremlin is None:
-            gremlin = self.gremlin
+        if set_variable:
+            gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.data, IMMUTABLE['vertex'], gremlin)
+        self.build_fields(model.data, IMMUTABLE['vertex'])
         
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
-
-        script = str(gremlin)
-        params = gremlin.bound_params
         
-        gremlin.reset()
+        return self.add_gremlin_query(model)
         
-        return self.add_query(script, params, model)
-        
-    def add_edge(self, model, gremlin=None, set_variable=False):
+    def add_edge(self, model, set_variable=False):
         if model['_label'] is None:
             raise Exception('The edge must have a label before saving')
         
-        if gremlin is None:
-            gremlin = self.gremlin
+        model.fields.data_type = 'graph'
+        gremlin     = self.gremlin
+        out_v, in_v = self._get_or_create_edge_vertices(model)
+        label_bound = gremlin.bind_param(model['_label'])
+        edge_fields = ''
         
-        out_v_id, in_v_id = self._get_or_create_edge_vertices(model)
-        label_bound       = gremlin.bind_param(model['_label'])
-        edge_fields       = ''
+        if set_variable:
+            gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.data, IMMUTABLE['edge'], gremlin)
+        self.build_fields(model.data, IMMUTABLE['edge'])
         
-        if len(fields) > 0:
-            edge_fields = ', [%s]' % ', '.join(fields)
+        if len(self.fields) > 0:
+            edge_fields = ', [%s]' % ', '.join(self.fields)
 
-        script = '%s.addEdge(%s, %s, %s%s)' % (gremlin.gv, out_v_id, in_v_id, label_bound[0], edge_fields)
+        script = '%s.addEdge(%s, %s, %s%s)' % (gremlin.gv, out_v, in_v, label_bound[0], edge_fields)
         
         gremlin.set_graph_variable('').raw(script)
         
-        return self
-    
-    def update(self, model, immutable, gremlin=None):
-        if model['_type'] is None:
-            raise Exception()
-            
-        if model['_id'] is None:
-            raise Exception()
-            
-        if gremlin is None:
-            gremlin = self.gremlin
-        
-        model.fields.data_type = 'graph'
-        
-        model_type = 'e' if model['_type'] == 'edge' else 'v'
-        
-        self.update_fields(model.data, model._immutable, gremlin)
-
-        next_func = Function(gremlin, 'next')
-        
-        getattr(gremlin, model_type)(model['_id'])._().sideEffect.close('; '.join(self.fields)).add_token(next_func)
-        
-        script = str(gremlin)
-        params = gremlin.bound_params
-        
-        gremlin.reset()
-        
-        return self.add_query(script, params, model)
-
-    def save(self, model, gremlin=None):
-        if model['_type'] is None:
-            raise Exception('The model does not have a _type defined')
-            
-        if gremlin is None:
-            gremlin = self.gremlin
-        
-        id        = model['_id']
-        immutable = model._immutable
-
-        if id is None:
-            if model['_type'] == 'vertex':
-                self.add_vertex(model, gremlin)
-            else:
-                out_v_id, in_v_id = self._get_or_create_edge_vertices(model)
-            
-                self.add_edge(out_v, in_v, data, gremlin)
-        else:
-            self.update(model, immutable, gremlin)
-            
-        return self
-        
-        # model_type = 'e' if model['_type'] == 'edge' else 'v'
-        # create     = 'addEdge' if model['_type'] == 'e' else 'addVertex'
-        # data       = model.data
-        # immutable  = model._immutable
-        # fields     = []
-        #
-        # def build_fields(data):
-        #     for key, val in data.iteritems():
-        #         if key not in immutable:
-        #             value = val
-        #             bound = gremlin.bind_param(value)
-        #
-        #             fields.append("'%s': %s" % (key, bound[0]))
-        #
-        # if(model_type == 'v'):
-        #     build_fields(data)
-        #
-        #     script = 'g.addVertex([%s])' % ', '.join(fields)
-        #
-        #     gremlin.set_graph_variable('').raw(script)
-        # else:
-        #     if model['_label'] is None:
-        #         raise Exception('The edge must have a label before saving')
-        #
-        #     out_v_id, in_v_id = self._get_or_create_edge_vertices(model)
-        #     label_bound       = gremlin.bind_param(model['_label'])
-        #     edge_fields       = ''
-        #
-        #     build_fields(data)
-        #
-        #     if len(fields) > 0:
-        #         edge_fields = ', [%s]' % ', '.join(fields)
-        #
-        #     script = 'g.addEdge(%s, %s, %s%s)' % (out_v_id, in_v_id, label_bound[0], edge_fields)
-        #
-        #     gremlin.set_graph_variable('').raw(script)
-        #
-        # return self
+        return self.add_gremlin_query(model)
 
     def _get_or_create_edge_vertices(self, edge):
         out_v     = edge.out_v
         out_v_ref = self.next_var()
         in_v      = edge.in_v
         in_v_ref  = self.next_var()
-
         
         if out_v is None or in_v is None:
             error = 'Both out and in vertices must be set before saving \
@@ -223,38 +146,65 @@ class Query(object):
                 
             raise Exception(error)
         
-        if out_v['_id'] is None:
-            self.save(out_v, out_v_ref)
-        else:
-            gremlin = Gremlin().v(out_v['_id'])
-            gremlin.return_var = out_v_ref
-            
-            self.add_query(str(gremlin), gremlin.bound_params, out_v)
-            
-        if in_v['_id'] is None:
-            self.save(in_v, in_v_ref)
-        else:
-            gremlin = Gremlin().v(in_v['_id'])
-            gremlin.return_var = in_v_ref
-            
-            self.add_query(str(gremlin), gremlin.bound_params, out_v)
-            
+        self.save(out_v, out_v_ref)
+        self.save(in_v, in_v_ref)
+        
         return out_v_ref, in_v_ref
+    
+    def update(self, model, set_variable=False):
+        if model._type is None:
+            raise Exception()
+            
+        if model['_id'] is None:
+            raise Exception()
+            
+        gremlin = self.gremlin
+        model.fields.data_type = 'graph'
+        model_type = 'e' if model._type == 'edge' else 'v'
+        
+        if set_variable:
+            gremlin.set_ret_variable(set_variable)
+            
+        self.update_fields(model.data, model._immutable)
 
-    def delete(self, model, gremlin=None):
+        next_func = Function(gremlin, 'next')
+        
+        getattr(gremlin, model_type)(model['_id'])._().sideEffect.close('; '.join(self.fields)).add_token(next_func)
+
+        model.fields.data_type = 'python'
+        
+        return self.add_gremlin_query(model)
+
+    def save(self, model, set_variable=False):
+        if model._type is None:
+            raise Exception('The model does not have a _type defined')
+        
+        id        = model['_id']
+        immutable = model._immutable
+
+        if id is None:
+            if model._type == 'vertex':
+                self.add_vertex(model, set_variable)
+            else:
+                self.add_edge(model, set_variable)
+        else:
+            self.update(model, set_variable)
+            
+        return self
+
+    def delete(self, model):
+        gremlin = self.gremlin
+
         id = model['_id']
         
         if id is None:
             raise Exception('Models must have an _id before they are deleted')
             
-        if model['_type'] is None:
+        if model._type is None:
             raise Exception('Models need to have a type defined')
         
-        if gremlin is None:
-            gremlin = self.gremlin
-        
-        element = 'e' if model['_type'] == 'edge' else 'v'
-        
+        element = 'e' if model._type == 'edge' else 'v'
+
         getattr(gremlin, element)(id).remove()
         
         return self.add_query(str(gremlin), gremlin.bound_params, model)
@@ -327,12 +277,13 @@ class Mapper(object):
                 model = model_class(data)
                 check = False
             except Exception as e:
-                check = True
+                pass
 
         if check:
             try:
                 if GIZMO_MODEL in data:
-                    model = gizmo_import(data[PYGWAI_MODEL])(data)
+                    name  = data[GIZMO_MODEL]
+                    model = _MAP[name](data)
                 else:
                     raise
             except Exception as e:
@@ -358,6 +309,14 @@ class Mapper(object):
         
         return self
         
+    def start(self, model):
+        return Traversal(mapper, model)
+        
+    def apply_statement(self, statement):
+        self.gremlin.apply_statement(statement)
+        
+        return self
+        
     def send(self, script=None, params=None, gremlin=None):
         if gremlin is not None:
             script = str(gremlin)
@@ -365,7 +324,7 @@ class Mapper(object):
         elif script is None:
             self._build_queries()
             
-            script = ';'.join(self.queries)
+            script = ";\n".join(self.queries)
             params = self.params
 
         if script is None:
@@ -379,13 +338,51 @@ class Mapper(object):
         if len(self.models) > 0:
             response.update_models(self.models)
         
-        print response
+        return Collection(self, response)
 
 
+class Traversal(Gremlin):
+    """
+    class used to start a traversal query based on a given model
+    
+    example:
+        
+    """
+    
+    def __init__(self, mapper, model, graph_variable='G'):
+        super(Traversal, self).__init__(graph_variable)
+        self._mapper = mapper
+        self._model = model
 
 
-
-
-
-
+class Collection(object):
+    def __init__(self, mapper, response):
+        self.mapper = mapper
+        self.response = response
+        self._models = {}
+        self._index = 0
+    
+    def __getitem__(self, key):
+        model = self._models.get(key, None)
+        
+        if model is None:
+            try:
+                data = self.response[key]
+                
+                if data is not None:
+                    model = self.mapper.create_model(data=data)
+                    self._models[key] = model
+                else:
+                    raise
+            except:
+                raise StopIteration()
+        
+        return model
+    
+    def __setitem__(self, key, value):
+        self._models[key] = value
+    
+    def __delitem__(self, key):
+        if key in self._models:
+            del self._models[key]
 
