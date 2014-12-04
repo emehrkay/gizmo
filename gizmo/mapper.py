@@ -115,10 +115,7 @@ class Mapper(object):
         self.params  = {}
         
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
-        import inspect
-        
         if model is not None:
-            #if inspect.isclass(model):
             if isinstance(model, _BaseElement):
                 name = get_qualified_instance_name(model)
             else:
@@ -135,51 +132,21 @@ class Mapper(object):
         self.params.update(mapper.params)
         
         return self
-        
-    def enqueue(self, query, bind_return=True):
-        for entry in query.queries:
-            self.count += 1
-            script = entry['script']
-            
-            if bind_return:
-                variable = '%s_%s' % (self.VARIABLE, self.count)
-                script   = '%s = %s' % (variable, script)
-                
-                if 'model' in entry:
-                    self.models[variable] = entry['model']
-            
-            self.queries.append(script)
-            self.params.update(entry['params'])
-        
-        return self
-    
+
     def save(self, model, bind_return=True):
         mapper = self._get_mapper(model)
         
         mapper.save(model, bind_return)
         
         return self._enqueue_mapper(mapper)
-    
-    def _save(self, model, bind_return=True, lookup=True):
-        query = Query(self.gremlin)
-        query.save(model)
         
-        return self.enqueue(query, bind_return)
-    
     def delete(self, model):
         mapper = self._get_mapper(model)
         
         mapper.delete(model)
         
         return self.enqueue(mapper)
-    
-    def _delete(self, model, lookup=True):
-        query = Query(self.gremlin)
         
-        query.delete(model)
-        
-        return self.enqueue(query, False)
-
     def create_model(self, data=None, model_class=None):
         if data is None:
             data = {}
@@ -196,49 +163,6 @@ class Mapper(object):
             args = args + (model_class,)
         
         return mapper.create_model(*args)
-
-    def _create_model(self, data=None, model_class=None):
-        """
-        Method used to create a new model based on the data that is passed in.
-        If the kwagrg model_class is passed in, it will be used to create the model
-        else if pygwai.element.PYGWAI_MODEL is in data, that will be used
-        finally, pygwai.model.element.General will be used to construct the model
-        
-        """
-        check = True
-        
-        if data is None:
-            data = {}
-
-        if model_class is not None:
-            name = get_qualified_name(model_class)
-            
-            if name in _MAPPER_MAP:
-                try:
-                    mapper = _MAPPER_MAP[name](self.request, self.gremlin)
-                    model = mapper._create_model(data)
-                    check = False
-                except Exception, e:
-                    pass
-            
-            if check:
-                try:
-                    model = model_class(data)
-                    check = False
-                except Exception as e:
-                    pass
-
-        if check:
-            try:
-                if GIZMO_MODEL in data:
-                    name  = data[GIZMO_MODEL]
-                    model = _MAP[name](data)
-                else:
-                    raise
-            except Exception as e:
-                model = General(data)
-
-        return model
         
     def _build_queries(self):
         if self.auto_commit is False:
