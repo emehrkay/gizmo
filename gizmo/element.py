@@ -2,6 +2,7 @@ from field import String, DateTime, Boolean, List, Map, _Fields
 from utils import get_qualified_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 
+#Holds the model->object mappings
 _MAP = {}
 
 class _RootElement(type):
