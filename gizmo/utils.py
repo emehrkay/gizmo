@@ -16,8 +16,11 @@ def get_object_items(obj):
 
 
 def get_qualified_name(obj):
-    return '%s.%s' % (obj.__class__.__module__, obj.__class__.__name__)
+    return '%s.%s' % (obj.__module__, obj.__name__)
 
+
+def get_qualified_instance_name(obj):
+    return '%s.%s' % (obj.__class__.__module__, obj.__class__.__name__)
 
 def gizmo_import(name):
     parts = name.split('.')

@@ -1,5 +1,5 @@
 from field import String, DateTime, Boolean, List, Map, _Fields
-from utils import get_qualified_name, TYPES, IMMUTABLE
+from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 
 #Holds the model->object mappings
@@ -14,6 +14,7 @@ class _RootElement(type):
         cls = super(_RootElement, cls).__new__(cls, name, bases, attrs)
         map_name = '%s.%s' % (cls.__module__, cls.__name__)
         _MAP[map_name] = cls
+        
         return cls
 
 
@@ -25,7 +26,7 @@ class _BaseElement(object):
         self.allow_undefined = True
         self._immutable = IMMUTABLE['vertex']
         self.fields = _Fields({
-            GIZMO_MODEL     : String(get_qualified_name(self)),
+            GIZMO_MODEL     : String(get_qualified_instance_name(self)),
             GIZMO_CREATED   : DateTime(),
             GIZMO_MODIFIED  : DateTime(),
             GIZMO_NODE_TYPE : String(self._node_type),

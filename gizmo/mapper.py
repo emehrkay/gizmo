@@ -1,6 +1,288 @@
-from utils import gizmo_import, IMMUTABLE, GIZMO_MODEL
+from utils import gizmo_import, get_qualified_name, IMMUTABLE, GIZMO_MODEL
 from element import Edge, Vertex, General, _MAP
 from gremlinpy.gremlin import Gremlin, Function
+
+
+_MAPPER_MAP = {}
+GENERIC_MAPPER = 'generic.mapper'
+
+
+class _RootMapper(type):
+    def __new__(cls, name, bases, attrs):
+        cls = super(_RootMapper, cls).__new__(cls, name, bases, attrs)
+        
+        model = attrs.pop('model', None)
+        
+        if model:
+            map_name = '%s.%s' % (model.__module__, model.__name__)
+            _MAPPER_MAP[map_name] = cls
+        elif name == '_GenericMapper':
+            _MAPPER_MAP[GENERIC_MAPPER] = cls
+        
+        return cls
+        
+class _GenericMapper(object):
+    __metaclass__ = _RootMapper
+    
+    def __init__(self, request, gremlin=None):
+        self.gremlin = gremlin
+        self.queries = []
+        self.models  = {}
+        self.params  = {}
+
+    def enqueue(self, query, bind_return=True):
+        for entry in query.queries:
+            self.count += 1
+            script = entry['script']
+            
+            if bind_return:
+                variable = '%s_%s' % (self.VARIABLE, self.count)
+                script   = '%s = %s' % (variable, script)
+                
+                if 'model' in entry:
+                    self.models[variable] = entry['model']
+            
+            self.queries.append(script)
+            self.params.update(entry['params'])
+        
+        return self
+        
+    def save(self, model, bind_return=True, lookup=True):
+        query = Query(self.gremlin)
+        query.save(model)
+        
+        return self.enqueue(query, bind_return)
+    
+    def delete(self, model, lookup=True):
+        query = Query(self.gremlin)
+        
+        query.delete(model)
+        
+        return self.enqueue(query, False)
+        
+    def create_model(self, data=None, model_class=None):
+        """
+        Method used to create a new model based on the data that is passed in.
+        If the kwagrg model_class is passed in, it will be used to create the model
+        else if pygwai.element.PYGWAI_MODEL is in data, that will be used
+        finally, pygwai.model.element.General will be used to construct the model
+        
+        """
+        check = True
+        
+        if data is None:
+            data = {}
+
+        if model_class is not None:
+            try:
+                model = model_class(data)
+                check = False
+            except Exception as e:
+                pass
+
+        if check:
+            try:
+                if GIZMO_MODEL in data:
+                    name  = data[GIZMO_MODEL]
+                    model = _MAP[name](data)
+                else:
+                    raise
+            except Exception as e:
+                model = General(data)
+
+        return model
+
+class Mapper(object):
+    __metaclass__ = _RootMapper
+    
+    VARIABLE = 'gizmo_var'
+    registrations = {}
+    
+    def __init__(self, request, gremlin=None, auto_commit=False):
+        if gremlin is None:
+            gremlin = Gremlin()
+
+        self.count = -1
+        self.request = request
+        self.gremlin = gremlin
+        self.auto_commit = auto_commit
+        self.reset()
+        
+    def reset(self):
+        self.queries = []
+        self.models  = {}
+        self.params  = {}
+        
+    def _get_mapper(self, model=None, name=GENERIC_MAPPER):
+        if model is not None:
+            name = get_qualified_name(model)
+
+        if name not in _MAPPER_MAP:
+            name = GENERIC_MAPPER
+            
+        return _MAPPER_MAP[name](self.request, self.gremlin)
+        
+    def _enqueue_mapper(self, mapper):
+        self.queries = mapper.queries
+        self.models.update(mapper.models)
+        self.params.update(mapper.params)
+        
+        return self
+        
+    def enqueue(self, query, bind_return=True):
+        for entry in query.queries:
+            self.count += 1
+            script = entry['script']
+            
+            if bind_return:
+                variable = '%s_%s' % (self.VARIABLE, self.count)
+                script   = '%s = %s' % (variable, script)
+                
+                if 'model' in entry:
+                    self.models[variable] = entry['model']
+            
+            self.queries.append(script)
+            self.params.update(entry['params'])
+        
+        return self
+    
+    def _save(self, model, bind_return=True):
+        mapper = self._get_mapper(model)
+        
+        mapper.save(model, bind_return)
+        
+        return self._enqueue_mapper(mapper)
+    
+    def save(self, model, bind_return=True, lookup=True):
+        query = Query(self.gremlin)
+        query.save(model)
+        
+        return self.enqueue(query, bind_return)
+    
+    def _delete(self, model):
+        mapper = self._get_mapper(model)
+        
+        mapper.delete(model)
+        
+        return self.enqueue(mapper)
+    
+    def delete(self, model, lookup=True):
+        query = Query(self.gremlin)
+        
+        query.delete(model)
+        
+        return self.enqueue(query, False)
+
+    def create_model(self, data=None, model_class=None):
+        if data is None:
+            data = {}
+        
+        if model_class:
+            mapper = self._get_mapper(model_class)
+        else:
+            name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
+            mapper = self._get_mapper(name=name)
+
+        args = (data,)
+        
+        if type(mapper) == _GenericMapper:
+            args = args + (model_class,)
+        
+        return mapper.create_model(*args)
+
+    def _create_model(self, data=None, model_class=None):
+        """
+        Method used to create a new model based on the data that is passed in.
+        If the kwagrg model_class is passed in, it will be used to create the model
+        else if pygwai.element.PYGWAI_MODEL is in data, that will be used
+        finally, pygwai.model.element.General will be used to construct the model
+        
+        """
+        check = True
+        
+        if data is None:
+            data = {}
+
+        if model_class is not None:
+            name = get_qualified_name(model_class)
+            
+            if name in _MAPPER_MAP:
+                try:
+                    mapper = _MAPPER_MAP[name](self.request, self.gremlin)
+                    model = mapper._create_model(data)
+                    check = False
+                except Exception, e:
+                    pass
+            
+            if check:
+                try:
+                    model = model_class(data)
+                    check = False
+                except Exception as e:
+                    pass
+
+        if check:
+            try:
+                if GIZMO_MODEL in data:
+                    name  = data[GIZMO_MODEL]
+                    model = _MAP[name](data)
+                else:
+                    raise
+            except Exception as e:
+                model = General(data)
+
+        return model
+        
+    def _build_queries(self):
+        if self.auto_commit is False:
+            commit = '.'.join([self.gremlin.gv, 'commit()'])
+            
+            self.queries.append(commit)
+            
+        if len(self.models) > 0:
+            returns = []
+            
+            for k in self.models.keys():
+                returns.append("'%s': %s" % (k ,k))
+
+            ret = '[%s]' % ','.join(returns)
+            
+            self.queries.append(ret)
+        
+        return self
+        
+    def start(self, model):
+        return Traversal(mapper, model)
+        
+    def apply_statement(self, statement):
+        self.gremlin.apply_statement(statement)
+        
+        return self
+        
+    def send(self, script=None, params=None, gremlin=None):
+        if gremlin is not None:
+            script = str(gremlin)
+            params = gremlin.bound_params
+        elif script is None:
+            self._build_queries()
+            
+            script = ";\n".join(self.queries)
+            params = self.params
+
+        if script is None:
+            script = ''
+            
+        if params is None:
+            params = {}
+
+        response = self.request.send(script, params)
+        
+        if len(self.models) > 0:
+            response.update_models(self.models)
+        
+        return Collection(self, response)
+
+
 
 class Query(object):
     QUERY_VAR = 'query_var'
@@ -208,137 +490,6 @@ class Query(object):
         getattr(gremlin, element)(id).remove()
         
         return self.add_query(str(gremlin), gremlin.bound_params, model)
-
-
-class Mapper(object):
-    VARIABLE = 'gizmo_var'
-    registrations = {}
-    
-    def __init__(self, request, gremlin=None, auto_commit=False):
-        if gremlin is None:
-            gremlin = Gremlin()
-
-        self.count = -1
-        self.request = request
-        self.gremlin = gremlin
-        self.auto_commit = auto_commit
-        self.reset()
-        
-    def reset(self):
-        self.queries = []
-        self.models  = {}
-        self.params  = {}
-        
-    def enqueue(self, query, bind_return=True):
-        for entry in query.queries:
-            self.count += 1
-            script = entry['script']
-            
-            if bind_return:
-                variable = '%s_%s' % (self.VARIABLE, self.count)
-                script   = '%s = %s' % (variable, script)
-                
-                if 'model' in entry:
-                    self.models[variable] = entry['model']
-            
-            self.queries.append(script)
-            self.params.update(entry['params'])
-        
-        return self
-        
-    def save(self, model, bind_return=True, lookup=True):
-        query = Query(self.gremlin)
-        query.save(model)
-        
-        return self.enqueue(query, bind_return)
-    
-    def delete(self, model, lookup=True):
-        query = Query(self.gremlin)
-        
-        query.delete(model)
-        
-        return self.enqueue(query, False)
-
-    def create_model(self, data=None, model_class=None, lookup=True):
-        """
-        Method used to create a new model based on the data that is passed in.
-        If the kwagrg model_class is passed in, it will be used to create the model
-        else if pygwai.element.PYGWAI_MODEL is in data, that will be used
-        finally, pygwai.model.element.General will be used to construct the model
-        
-        """
-        check = True
-        
-        if data is None:
-            data = {}
-
-        if model_class is not None:
-            try:
-                model = model_class(data)
-                check = False
-            except Exception as e:
-                pass
-
-        if check:
-            try:
-                if GIZMO_MODEL in data:
-                    name  = data[GIZMO_MODEL]
-                    model = _MAP[name](data)
-                else:
-                    raise
-            except Exception as e:
-                model = General(data)
-
-        return model
-        
-    def _build_queries(self):
-        if self.auto_commit is False:
-            commit = '.'.join([self.gremlin.gv, 'commit()'])
-            
-            self.queries.append(commit)
-            
-        if len(self.models) > 0:
-            returns = []
-            
-            for k in self.models.keys():
-                returns.append("'%s': %s" % (k ,k))
-
-            ret = '[%s]' % ','.join(returns)
-            
-            self.queries.append(ret)
-        
-        return self
-        
-    def start(self, model):
-        return Traversal(mapper, model)
-        
-    def apply_statement(self, statement):
-        self.gremlin.apply_statement(statement)
-        
-        return self
-        
-    def send(self, script=None, params=None, gremlin=None):
-        if gremlin is not None:
-            script = str(gremlin)
-            params = gremlin.bound_params
-        elif script is None:
-            self._build_queries()
-            
-            script = ";\n".join(self.queries)
-            params = self.params
-
-        if script is None:
-            script = ''
-            
-        if params is None:
-            params = {}
-
-        response = self.request.send(script, params)
-        
-        if len(self.models) > 0:
-            response.update_models(self.models)
-        
-        return Collection(self, response)
 
 
 class Traversal(Gremlin):
