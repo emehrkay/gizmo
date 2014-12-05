@@ -1,5 +1,5 @@
 from utils import gizmo_import, get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
-from element import Edge, Vertex, General, _MAP, _BaseElement
+from entity import Edge, Vertex, General, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
 
 
@@ -66,8 +66,8 @@ class _GenericMapper(object):
         """
         Method used to create a new model based on the data that is passed in.
         If the kwagrg model_class is passed in, it will be used to create the model
-        else if pygwai.element.PYGWAI_MODEL is in data, that will be used
-        finally, pygwai.model.element.General will be used to construct the model
+        else if pygwai.entity.PYGWAI_MODEL is in data, that will be used
+        finally, pygwai.model.entity.General will be used to construct the model
         
         """
         check = True
@@ -116,7 +116,7 @@ class Mapper(object):
         
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
         if model is not None:
-            if isinstance(model, _BaseElement):
+            if isinstance(model, _BaseEntity):
                 name = get_qualified_instance_name(model)
             else:
                 name = get_qualified_name(model)
@@ -313,7 +313,9 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.data, IMMUTABLE['vertex'])
+        # use the model.fields.data instead of model.data because 
+        # model.data can be monkey-patched with custom mappers
+        self.build_fields(model.fields.data, IMMUTABLE['vertex'])
         
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
@@ -334,7 +336,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.data, IMMUTABLE['edge'])
+        self.build_fields(model.fields.data, IMMUTABLE['edge'])
         
         if len(self.fields) > 0:
             edge_fields = ', [%s]' % ', '.join(self.fields)
@@ -376,7 +378,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
             
-        self.update_fields(model.data, model._immutable)
+        self.update_fields(model.fields.data, model._immutable)
 
         next_func = Function(gremlin, 'next')
         
@@ -414,9 +416,9 @@ class Query(object):
         if model._type is None:
             raise Exception('Models need to have a type defined')
         
-        element = 'e' if model._type == 'edge' else 'v'
+        entity = 'e' if model._type == 'edge' else 'v'
 
-        getattr(gremlin, element)(id).remove()
+        getattr(gremlin, entity)(id).remove()
         
         return self.add_query(str(gremlin), gremlin.bound_params, model)
 

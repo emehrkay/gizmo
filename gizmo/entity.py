@@ -5,21 +5,21 @@ from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, G
 #Holds the model->object mappings
 _MAP = {}
 
-class _RootElement(type):
+class _RootEntity(type):
     """
     maps all models during definition to their object so that it can be
     loaded later
     """
     def __new__(cls, name, bases, attrs):
-        cls = super(_RootElement, cls).__new__(cls, name, bases, attrs)
+        cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
         map_name = '%s.%s' % (cls.__module__, cls.__name__)
         _MAP[map_name] = cls
         
         return cls
 
 
-class _BaseElement(object):
-    __metaclass__ = _RootElement
+class _BaseEntity(object):
+    __metaclass__ = _RootEntity
     
     def __init__(self, data=None):
         self.data_type = 'python'
@@ -89,12 +89,12 @@ class _BaseElement(object):
         return self.fields.data
         
     def get_rep(self):
-        element = 'e' if self._type == 'edge' else 'v'
+        entity = 'e' if self._type == 'edge' else 'v'
         
-        return element, self['_id']
+        return entity, self['_id']
 
 
-class Vertex(_BaseElement):
+class Vertex(_BaseEntity):
     @property
     def _type(self):
         return 'vertex'
@@ -106,7 +106,7 @@ class General(Vertex):
         return 'General'
 
 
-class Edge(_BaseElement):
+class Edge(_BaseEntity):
     def __init__(self, data=None, label=None):
         if data is None:
             data = {}

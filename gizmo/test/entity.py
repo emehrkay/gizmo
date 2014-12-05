@@ -1,6 +1,6 @@
 import unittest
 from random import randrange
-from gizmo.element import Vertex, Edge
+from gizmo.entity import Vertex, Edge
 from gremlinpy.gremlin import Gremlin
 
 TEST_EDGE = 'test_edge'
@@ -19,7 +19,7 @@ class TestEdge(Edge):
         return TEST_EDGE
 
 
-class ElementTests(unittest.TestCase):
+class EntityTests(unittest.TestCase):
     def set_up(self):
         pass
     

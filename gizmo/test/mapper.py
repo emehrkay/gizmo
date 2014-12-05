@@ -5,7 +5,7 @@ from gizmo.mapper import Mapper, Vertex, Edge
 from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
-from element import TestVertex, TestEdge
+from entity import TestVertex, TestEdge
 
 
 def get_dict_key(dict, value):
@@ -16,10 +16,10 @@ def get_dict_key(dict, value):
     return None
     
 
-def get_element_entry(element_queue, element):
-    for i, s in element_queue.iteritems():
-        if s == element:
-            return {i: element_queue[i]}
+def get_entity_entry(entity_queue, entity):
+    for i, s in entity_queue.iteritems():
+        if s == entity:
+            return {i: entity_queue[i]}
             
     return None
 
@@ -64,7 +64,7 @@ class MapperTests(unittest.TestCase):
         vd = v.data
 
         """
-        the element's data will have a _type member
+        the entity's data will have a _type member
         """
         self.assertTrue(isinstance(v, Vertex))
 
@@ -85,7 +85,7 @@ class MapperTests(unittest.TestCase):
         params = self.mapper.params
         immutable = v._immutable
         query_ps = []
-        entry_v1 = get_element_entry(self.mapper.models, v)
+        entry_v1 = get_entity_entry(self.mapper.models, v)
         
         for k, v in d.iteritems():
             if k not in immutable:
@@ -113,7 +113,7 @@ class MapperTests(unittest.TestCase):
         params = self.mapper.params
         immutable = v._immutable
         props = []
-        entry_v1 = get_element_entry(self.mapper.models, v)
+        entry_v1 = get_entity_entry(self.mapper.models, v)
         
         for k,v in d.iteritems():
             if k not in immutable:

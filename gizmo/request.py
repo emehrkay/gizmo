@@ -1,5 +1,4 @@
 import copy
-from rexpro import RexProConnection
 
 
 class _Request(object):
@@ -94,7 +93,9 @@ class _Response(object):
 
 
 class Binary(_Request):
-    def __init__(self, uri, graph, port=8184, username=None, password=None):
+    def __init__(self, uri, graph, username=None, password=None, port=8184):
+        from rexpro import RexProConnection
+        
         super(Binary, self).__init__(uri, username, password)
         
         self.connection = RexProConnection(uri, port, graph)
@@ -115,3 +116,25 @@ class BinaryResponse(_Response):
     pass
 
 
+class Http(_Request):
+    def __init__(self, uri, graph, username=None, password=None):
+        import request
+        
+        super(Binary, self).__init__(uri, username, password)
+        
+        self.connection = request.Request()
+        
+    def send(self, script=None, params=None, update_models=None):
+        if params is None:
+            params = {}
+
+        if update_models is None:
+            update_models = {}
+
+        resp = self.connection.post(script, params)
+
+        return HttpResponse(resp, update_models)
+
+
+class HttpResponse(_Response):
+    pass

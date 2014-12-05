@@ -1,4 +1,4 @@
-from gizmo.element import Vertex
+from gizmo.entity import Vertex
 from gizmo.request import BinaryRequest
 from gizmo.mapper import Mapper
 from gremlinpy import Gremlin
