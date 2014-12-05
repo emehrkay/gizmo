@@ -1,13 +1,21 @@
 from utils import gizmo_import, get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
-from entity import Edge, Vertex, General, _MAP, _BaseEntity
+from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
 
-
+#Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
 GENERIC_MAPPER = 'generic.mapper'
 
 
 class _RootMapper(type):
+    """
+    In the case of custom mappers, this metaclass will register the model name
+    with the mapper object. This is done so that when models are loaded by name
+    its mappers is used to CRUD it. 
+    
+    This only works when the mapper_instance.create_model() method is used to 
+    create the model
+    """
     def __new__(cls, name, bases, attrs):
         cls = super(_RootMapper, cls).__new__(cls, name, bases, attrs)
         
@@ -65,9 +73,9 @@ class _GenericMapper(object):
     def create_model(self, data=None, model_class=None):
         """
         Method used to create a new model based on the data that is passed in.
-        If the kwagrg model_class is passed in, it will be used to create the model
-        else if pygwai.entity.PYGWAI_MODEL is in data, that will be used
-        finally, pygwai.model.entity.General will be used to construct the model
+        If the kwarg model_class is passed in, it will be used to create the model
+        else if utils.GIZMO_MODEL is in data, that will be used
+        finally, entity.GenericVertex or entity.GenericEdge will be used to construct the model
         
         """
         check = True
@@ -90,7 +98,10 @@ class _GenericMapper(object):
                 else:
                     raise
             except Exception as e:
-                model = General(data)
+                if data.get('_type', None) == 'vertex':
+                    model = GenericVertex(data)
+                else:
+                    model = GenericEdge(data)
 
         return model
 

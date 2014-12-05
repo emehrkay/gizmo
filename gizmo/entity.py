@@ -2,8 +2,10 @@ from field import String, DateTime, Boolean, List, Map, _Fields
 from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 
+
 #Holds the model->object mappings
 _MAP = {}
+
 
 class _RootEntity(type):
     """
@@ -23,7 +25,9 @@ class _BaseEntity(object):
     
     def __init__(self, data=None):
         self.data_type = 'python'
-        self.allow_undefined = True
+        
+        if not hasattr(self, 'allow_undefined'):
+            self.allow_undefined = False
         
         if not hasattr(self, '_immutable'):
             self._immutable = IMMUTABLE['vertex']
@@ -100,10 +104,10 @@ class Vertex(_BaseEntity):
         return 'vertex'
 
 
-class General(Vertex):
+class GenericVertex(Vertex):
     @property
     def _node_type(self):
-        return 'General'
+        return 'generic_vertex'
 
 
 class Edge(_BaseEntity):
@@ -154,3 +158,8 @@ class Edge(_BaseEntity):
     def _type(self):
         return 'edge'
 
+
+class GenericEdge(Edge):
+    @property
+    def _node_type(self):
+        return 'generic_edge'
