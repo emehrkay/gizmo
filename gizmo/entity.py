@@ -105,6 +105,10 @@ class Vertex(_BaseEntity):
 
 
 class GenericVertex(Vertex):
+    def __init__(self, data=None):
+        self.allow_undefined = True
+        super(GenericVertex, self).__init__(data)
+
     @property
     def _node_type(self):
         return 'generic_vertex'
@@ -160,6 +164,11 @@ class Edge(_BaseEntity):
 
 
 class GenericEdge(Edge):
+    def __init__(self, data=None):
+        self.allow_undefined = True
+        
+        super(GenericEdge, self).__init__(data)
+        
     @property
     def _node_type(self):
         return 'generic_edge'

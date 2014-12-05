@@ -8,7 +8,9 @@ Gizmo is a lightweight Python Object Graph Mapper (O.G.M.) for [Tinkerpop Bluepr
 
 ### About
 
-Gizmo starts and ends with Rexster. It is made up of model, mapper, query, request, response, and other object whose jobe is to convert pure Python to a Rexster string to be executed on a server.
+Gizmo starts and ends with Rexster. It is made up of model, mapper, query, request, response, and other objects whose job is to convert pure Python to a Rexster string to be executed on a server.
+
+Gizmo is a loose implementation of a [Data Mapper](). You have entites, mappers, and adapters (in the form of request objects). This means that the entity objects know nothing of storage, it cannot persist itself nor can it directly get more data than what was given to it. 
 
 ### Gremlin
 
@@ -21,11 +23,11 @@ If you're new to Gremlin there are a few good resources to check out that will h
 * [GremlinDocs](http://gremlindocs.com) -- A site that goes over the core functions that you will use in your scripts.
 * [Tinkerpop mailing list](https://groups.google.com/forum/#!forum/gremlin-users) -- These guys/gals are cool. 
 
-After getting a grasp of the Gremlin/Groovy language, you can now begin to write script via [GremlinPy](https://github.com/emehrkay/gremlinpy) and take full advantage of what Gizmo can do.
+After getting a grasp of the Gremlin/Groovy language, you can now begin to write scripts with [Gremlinpy](https://github.com/emehrkay/gremlinpy) (or without) and take full advantage of what Gizmo can do.
 
 ### Dependencies
 
-* [GremlinPy](https://github.com/emehrkay/gremlinpy) >= 0.2
+* [Gremlinpy](https://github.com/emehrkay/gremlinpy) >= 0.2
 * [Requests](http://docs.python-requests.org/en/latest/) -- If you're connecting via HTTP.
 * [Rexpro](https://pypi.python.org/pypi/rexpro/) -- If you're connecting via the binary interface.
 
@@ -74,15 +76,15 @@ or
 
 ### Entities
 
-A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly refered to as nodes or vertices and edges. Vertices are your objects and edges are the connections. 
+A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly refered to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
 
 Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You will extend these to create custom model definitions or you can use the `GenericVertex` for vertices and `GenericEdge` for edges.
 
 #### Models
 
-Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
+Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
 
-Gizmo reuires that you define a `node_type` property with each model. This should be a uniue string amoung your models as it will allow you to easily query for that model at a later date. 
+When creating custom models, Gizmo requires that you define a `node_type` property with each. This should be a uniue string amoung your models as it will allow you to easily query for that model at a later date. 
 
     class Article(Vertex):
         def __init__(self, data):
@@ -99,17 +101,20 @@ Gizmo reuires that you define a `node_type` property with each model. This shoul
         def _node_type(self):
             return 'custom_article'
 
-You can define an `Edge` in the same way. Most graph databaes allow for both vertices and edges to have data stored on them and you ca
     
 ##### Fields
 
 Gizmo entities comes with a few predefined fields that will help you structure and query your data once it is saved in your database. By default the fields member defines how your model's data is structured. 
 
-If you want your model to have unstructured data, set the instance member `allow_undefined` to `True` in the `__init__` method before you call super. When this memeber is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use.
+If you want your model to have unstructured data, set the instance member `allow_undefined` to `True` in the `__init__` method before you call super. When this memeber is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
+
+> `GenericVertex` and `GenericEdge` have allowed_undefined set to True by default
 
 **Field Types**
 
-Gizmo ships whith a few self-describing types for fields. The field object main job is to convert the data from a Python type to a Groovy type (if necessary).
+Gizmo ships whith a few self-explanatory types for fields. The field object main job is to convert the data from a Python type to a Groovy type (if necessary). 
+
+> You can always add more by extending `field.Field` and defining `to_python` and `to_graph` methods.
 
 * String
 * Integer
@@ -130,13 +135,57 @@ These are fields created and populated at class instantiation:
 * GIZMO_LABEL _:String_ -- all edges have a _label member. This defines how the vertices are connected
 
 
-#### Edges
+##### Edges
 
 ### Mappers
 
-#### Custom Mappers
+Mapper objects are the real workhorses in Gizmo, it is the entry and exit points for all interactions between your code and the graph. 
 
 #### Queries and Statements
+
+You have the ability to send strings or Gremlin objects to the sever and entity `Vertex` or `Edge` objects are returned. 
+
+    get_all_v = 'g.V'
+    collection = mapper.send(script=get_all_v)
+    
+    for entity in collection:
+        print entity.data
+        
+    get_specific = 'g.v(ID)'
+    params = {'ID': 12}
+    
+    collection = mapper.send(script=get_specific, params=params)
+    ...
+  
+You can augment the Gremlin object directly ([more details](https://github.com/emehrkay/gremlinpy)) and pass that as an argument instead.
+
+    gremlin = Gremlin()
+    
+    g.V(12).out('knows')
+    
+    collection = mapper.send(gremlin=gremlin)
+    
+    ...
+    
+Statments are useful when you create complex queries often and want to reference that logic in multiple places.
+
+    from gremlinpy.statement import Statement
+    
+    #silly illustrative example
+    class HasOutVal(Statement):
+        def __init__(self, out_val):
+            self.out_val = out_val
+         
+        def build(self):
+            self.gremlin.out(self.out_val)
+    
+    # this will augment the gremlin instance on the mapper
+    mapper.apply_statement(HasOutVal('knows'))
+    mapper.send() #some query with your HasOutVal statement added
+
+#### Custom Mappers
+
+Gizmo mappers do a few things: CRUD entity models. Gizmo allows you to create custom mappers and augment 
 
 #### Traversal Object
 

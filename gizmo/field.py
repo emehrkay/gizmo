@@ -62,6 +62,10 @@ class Integer(Field):
     pass
 
 
+class Float(Field):
+    pass
+
+
 class Boolean(Field):
     pass
 
@@ -75,14 +79,6 @@ class List(Field):
 
 
 class DateTime(Field):
-    pass
-
-
-class List(Field):
-    pass
-
-
-class Map(Field):
     pass
 
 
