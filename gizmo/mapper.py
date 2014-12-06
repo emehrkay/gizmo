@@ -194,7 +194,7 @@ class Mapper(object):
         return self
         
     def start(self, model):
-        return Traversal(mapper, model)
+        return Traversal(self, model)
         
     def apply_statement(self, statement):
         self.gremlin.apply_statement(statement)
@@ -216,10 +216,11 @@ class Mapper(object):
             
         if params is None:
             params = {}
-        print script
-        print params
+
         response = self.request.send(script, params, self.models)
+
         self.reset()
+
         return Collection(self, response)
 
 
@@ -419,9 +420,9 @@ class Query(object):
     def delete(self, model):
         gremlin = self.gremlin
 
-        id = model['_id']
+        _id = model['_id']
         
-        if id is None:
+        if _id is None:
             raise Exception('Models must have an _id before they are deleted')
             
         if model._type is None:
@@ -429,7 +430,7 @@ class Query(object):
         
         entity = 'e' if model._type == 'edge' else 'v'
 
-        getattr(gremlin, entity)(id).remove()
+        getattr(gremlin, entity)(_id).remove()
         
         return self.add_query(str(gremlin), gremlin.bound_params, model)
 
@@ -437,16 +438,38 @@ class Query(object):
 class Traversal(Gremlin):
     """
     class used to start a traversal query based on a given model
+    when the class is created, the model's _id and type are are 
+    set on the Gremlin object
     
     example:
         
     """
     
-    def __init__(self, mapper, model, graph_variable='G'):
+    def __init__(self, mapper, model):
+        graph_variable = mapper.gremlin.gv
+        
         super(Traversal, self).__init__(graph_variable)
+        
         self._mapper = mapper
         self._model = model
-
+        entity, _id = model.get_rep()
+        
+        getattr(self, entity)(_id)
+        
+    def define_traversal(self, traversal):
+        if hasattr(traversal, '__call__'):
+            self.traversal = traversal
+        
+        return self
+        
+    def start_bredth(self):
+        pass
+        
+    def start_depth(self):
+        pass
+    
+    def to_collection(self):
+        return self._mapper.send(gremlin=self)
 
 class Collection(object):
     def __init__(self, mapper, response):
