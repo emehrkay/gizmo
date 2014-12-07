@@ -1,7 +1,7 @@
 from field import String, DateTime, Boolean, List, Map, _Fields
 from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
-
+from utils import current_date_time
 
 #Holds the model->object mappings
 _MAP = {}
@@ -23,9 +23,7 @@ class _RootEntity(type):
 class _BaseEntity(object):
     __metaclass__ = _RootEntity
     
-    def __init__(self, data=None):
-        self.data_type = 'python'
-        
+    def __init__(self, data=None, data_type='python'):
         if not hasattr(self, 'allow_undefined'):
             self.allow_undefined = False
         
@@ -33,13 +31,14 @@ class _BaseEntity(object):
             self._immutable = IMMUTABLE['vertex']
 
         self.fields = _Fields({
-            GIZMO_MODEL     : String(get_qualified_instance_name(self)),
-            GIZMO_CREATED   : DateTime(),
-            GIZMO_MODIFIED  : DateTime(),
-            GIZMO_NODE_TYPE : String(self._node_type),
-            GIZMO_ID        : String(),
+            GIZMO_MODEL     : String(get_qualified_instance_name(self), data_type=data_type),
+            GIZMO_CREATED   : DateTime(value=current_date_time, data_type=data_type, set_max=1),
+            GIZMO_MODIFIED  : DateTime(value=current_date_time, data_type=data_type),
+            GIZMO_NODE_TYPE : String(self._node_type, data_type=data_type),
+            GIZMO_ID        : String(data_type=data_type),
         })
-            
+        self.data_type = 'python'
+
         self.hydrate(data)
         
         if data is not None and GIZMO_ID in data:
@@ -68,7 +67,7 @@ class _BaseEntity(object):
     
     def __setitem__(self, name, value):
         if name not in self._immutable and name in self.fields:
-            self.fields[name].field_value = value
+            self.fields[name].value = value
         elif self.allow_undefined:
             self._add_undefined_field(name, value)
         
@@ -83,6 +82,15 @@ class _BaseEntity(object):
             field = self._add_undefined_field(name, value)
             
         return value
+        
+    def _get_data_type(self):
+        return self.data_type
+        
+    def _set_data_type(self, data_type):
+        self.data_type = data_type
+        self.fields.data_type = data_type
+    
+    field_type = property(_get_data_type, _set_data_type)
     
     @property
     def _node_type(self):
@@ -105,9 +113,9 @@ class Vertex(_BaseEntity):
 
 
 class GenericVertex(Vertex):
-    def __init__(self, data=None):
+    def __init__(self, data=None, data_type='python'):
         self.allow_undefined = True
-        super(GenericVertex, self).__init__(data)
+        super(GenericVertex, self).__init__(data, data_type=data_type)
 
     @property
     def _node_type(self):
@@ -115,7 +123,7 @@ class GenericVertex(Vertex):
 
 
 class Edge(_BaseEntity):
-    def __init__(self, data=None, label=None):
+    def __init__(self, data=None, label=None, data_type='python'):
         if data is None:
             data = {}
             
@@ -147,10 +155,10 @@ class Edge(_BaseEntity):
 
         self._immutable = IMMUTABLE['edge']
         
-        super(Edge, self).__init__(data)
+        super(Edge, self).__init__(data=data, data_type=data_type)
 
         self.fields.update({
-            GIZMO_LABEL : String(label),
+            GIZMO_LABEL : String(label, data_type=data_type),
         })
         
         if GIZMO_LABEL in data:

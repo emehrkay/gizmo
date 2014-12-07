@@ -1,4 +1,4 @@
-from utils import gizmo_import, get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
+from utils import get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
 from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
 
@@ -18,7 +18,6 @@ class _RootMapper(type):
     """
     def __new__(cls, name, bases, attrs):
         cls = super(_RootMapper, cls).__new__(cls, name, bases, attrs)
-        
         model = attrs.pop('model', None)
         
         if model:
@@ -28,7 +27,8 @@ class _RootMapper(type):
             _MAPPER_MAP[GENERIC_MAPPER] = cls
         
         return cls
-        
+
+
 class _GenericMapper(object):
     __metaclass__ = _RootMapper
     VARIABLE = 'gizmo_var'
@@ -70,7 +70,7 @@ class _GenericMapper(object):
         
         return self.enqueue(query, False)
         
-    def create_model(self, data=None, model_class=None):
+    def create_model(self, data=None, model_class=None, data_type='python'):
         """
         Method used to create a new model based on the data that is passed in.
         If the kwarg model_class is passed in, it will be used to create the model
@@ -85,7 +85,7 @@ class _GenericMapper(object):
 
         if model_class is not None:
             try:
-                model = model_class(data)
+                model = model_class(data, data_type=data_type)
                 check = False
             except Exception as e:
                 pass
@@ -94,16 +94,18 @@ class _GenericMapper(object):
             try:
                 if GIZMO_MODEL in data:
                     name  = data[GIZMO_MODEL]
-                    model = _MAP[name](data)
+                    model = _MAP[name](data, data_type=data_type)
                 else:
                     raise
             except Exception as e:
-                if data.get('_type', None) == 'vertex':
-                    model = GenericVertex(data)
+                # all else fails create a GenericVertex unless _type is 'edge'
+                if data.get('_type', None) == 'edge':
+                    model = GenericEdge(data, data_type=data_type)
                 else:
-                    model = GenericEdge(data)
+                    model = GenericVertex(data, data_type=data_type)
 
         return model
+
 
 class Mapper(object):
     __metaclass__ = _RootMapper
@@ -158,7 +160,7 @@ class Mapper(object):
         
         return self.enqueue(mapper)
         
-    def create_model(self, data=None, model_class=None):
+    def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
             data = {}
         
@@ -173,7 +175,7 @@ class Mapper(object):
         if type(mapper) == _GenericMapper:
             args = args + (model_class,)
         
-        return mapper.create_model(*args)
+        return mapper.create_model(*args, **kwargs)
         
     def _build_queries(self):
         if self.auto_commit is False:
@@ -216,13 +218,13 @@ class Mapper(object):
             
         if params is None:
             params = {}
-
+        print script
+        print params
         response = self.request.send(script, params, self.models)
 
         self.reset()
 
         return Collection(self, response)
-
 
 
 class Query(object):
@@ -318,8 +320,8 @@ class Query(object):
     def add_vertex(self, model, set_variable=False):
         if model._type is None:
             raise Exception('Models need to have a type defined')
-        
-        model.fields.data_type = 'graph'
+
+        model.field_type = 'graph'
         gremlin = self.gremlin
         
         if set_variable:
@@ -339,7 +341,7 @@ class Query(object):
         if model['_label'] is None:
             raise Exception('The edge must have a label before saving')
         
-        model.fields.data_type = 'graph'
+        model.field_type = 'graph'
         gremlin     = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
         label_bound = gremlin.bind_param(model['_label'])
@@ -384,7 +386,7 @@ class Query(object):
             raise Exception()
             
         gremlin = self.gremlin
-        model.fields.data_type = 'graph'
+        model.field_type = 'graph'
         model_type = 'e' if model._type == 'edge' else 'v'
         
         if set_variable:
@@ -396,7 +398,7 @@ class Query(object):
         
         getattr(gremlin, model_type)(model['_id'])._().sideEffect.close('; '.join(self.fields)).add_token(next_func)
 
-        model.fields.data_type = 'python'
+        model.field_type = 'python'
         
         return self.add_gremlin_query(model)
 
@@ -471,12 +473,14 @@ class Traversal(Gremlin):
     def to_collection(self):
         return self._mapper.send(gremlin=self)
 
+
 class Collection(object):
     def __init__(self, mapper, response):
         self.mapper = mapper
         self.response = response
         self._models = {}
         self._index = 0
+        self._data_type = 'graph'
         
     @property
     def data(self):
@@ -490,7 +494,7 @@ class Collection(object):
                 data = self.response[key]
                 
                 if data is not None:
-                    model = self.mapper.create_model(data=data)
+                    model = self.mapper.create_model(data=data, data_type=self._data_type)
                     self._models[key] = model
                 else:
                     raise

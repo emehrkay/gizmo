@@ -1,3 +1,5 @@
+import time
+
 GIZMO_MODEL     = '__gizmo_model'
 GIZMO_CREATED   = '__gizmo_created'
 GIZMO_MODIFIED  = '__gizmo_modified'
@@ -22,20 +24,12 @@ def get_qualified_name(obj):
 def get_qualified_instance_name(obj):
     return '%s.%s' % (obj.__class__.__module__, obj.__class__.__name__)
 
-def gizmo_import(name):
-    parts = name.split('.')
-    mod   = __import__(parts[0])
-    
-    for part in parts[1:]:
-        mod = getattr(mod, part)
-
-    return mod
-
-
-def pylist_to_groovy(list):
+def current_date():
     pass
 
-    
-def pydict_to_groovy(dict):
+def current_time():
     pass
+
+def current_date_time():
+    return int(time.time()) * 1000
 
