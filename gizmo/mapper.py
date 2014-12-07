@@ -19,7 +19,7 @@ class _RootMapper(type):
     def __new__(cls, name, bases, attrs):
         cls = super(_RootMapper, cls).__new__(cls, name, bases, attrs)
         model = attrs.pop('model', None)
-        
+
         if model:
             map_name = '%s.%s' % (model.__module__, model.__name__)
             _MAPPER_MAP[map_name] = cls
@@ -57,7 +57,7 @@ class _GenericMapper(object):
         
         return self
         
-    def save(self, model, bind_return=True, lookup=True):
+    def save(self, model, bind_return=True):
         query = Query(self.gremlin)
         query.save(model)
         
@@ -163,17 +163,14 @@ class Mapper(object):
     def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
             data = {}
-        
+
         if model_class:
             mapper = self._get_mapper(model_class)
         else:
             name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self._get_mapper(name=name)
 
-        args = (data,)
-        
-        if type(mapper) == _GenericMapper:
-            args = args + (model_class,)
+        args = (data, model_class)
         
         return mapper.create_model(*args, data_type=data_type)
         
@@ -485,6 +482,9 @@ class Collection(object):
     @property
     def data(self):
         return [x for x in self.response.data]
+        
+    def __len__(self):
+        return len(self.response.data)
     
     def __getitem__(self, key):
         model = self._models.get(key, None)
