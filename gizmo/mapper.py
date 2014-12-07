@@ -175,7 +175,7 @@ class Mapper(object):
         if type(mapper) == _GenericMapper:
             args = args + (model_class,)
         
-        return mapper.create_model(*args, **kwargs)
+        return mapper.create_model(*args, data_type=data_type)
         
     def _build_queries(self):
         if self.auto_commit is False:
