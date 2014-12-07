@@ -170,9 +170,9 @@ class Mapper(object):
             name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self._get_mapper(name=name)
 
-        args = (data, model_class)
-        
-        return mapper.create_model(*args, data_type=data_type)
+        kwargs = {'data': data, 'model_class': model_class, 'data_type': data_type}
+
+        return mapper.create_model(**kwargs)
         
     def _build_queries(self):
         if self.auto_commit is False:
