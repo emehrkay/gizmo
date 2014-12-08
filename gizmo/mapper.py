@@ -8,6 +8,22 @@ _MAPPER_MAP = {}
 GENERIC_MAPPER = 'generic.mapper'
 
 
+def get_mapper(gremlin, model=None, name=GENERIC_MAPPER):
+    """
+    function used to load a mapper based on the entity
+    """
+    if model is not None:
+        if isinstance(model, _BaseEntity):
+            name = get_qualified_instance_name(model)
+        else:
+            name = get_qualified_name(model)
+
+    if name not in _MAPPER_MAP:
+        name = GENERIC_MAPPER
+        
+    return _MAPPER_MAP[name](gremlin)
+
+
 class _RootMapper(type):
     """
     In the case of custom mappers, this metaclass will register the model name
@@ -131,16 +147,7 @@ class Mapper(object):
         self.params  = {}
         
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
-        if model is not None:
-            if isinstance(model, _BaseEntity):
-                name = get_qualified_instance_name(model)
-            else:
-                name = get_qualified_name(model)
-
-        if name not in _MAPPER_MAP:
-            name = GENERIC_MAPPER
-            
-        return _MAPPER_MAP[name](self.gremlin)
+        return get_mapper(gremlin=self.gremlin, model=model, name=name)
         
     def _enqueue_mapper(self, mapper):
         self.queries = mapper.queries
