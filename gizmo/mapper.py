@@ -1,6 +1,7 @@
 from utils import get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
 from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
+from exception import *
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
@@ -123,6 +124,8 @@ class Mapper(object):
         self.reset()
         
     def reset(self):
+        self.gremlin.reset()
+        
         self.queries = []
         self.models  = {}
         self.params  = {}
@@ -159,6 +162,27 @@ class Mapper(object):
         mapper.delete(model)
         
         return self.enqueue(mapper)
+    
+    def connect(out_v, in_v, label, data=None, edge_model=None, data_type='python'):
+        """
+        method used to connect two vertices and create an Edge object
+        the resulting edge is not saved to to graph until it is passed to save allowing
+        further augmentation
+        """
+        if not isinstance(out_v, Vertex) or not isinstance(out_v, str):
+            raise ModelException('The out_v needs to be eiter a Vertex or string id')
+            
+        if not isinstance(in_v, Vertex) or not isinstance(in_v, str):
+            raise ModelException('The in_v needs to be eiter a Vertex or string id')
+        
+        if data is None:
+            data = {}
+        
+        data['_out_v'] = out_v
+        data['in_v'] = in_v
+        data['_type'] = edge
+        
+        return self.create_model(data=data, model_class=model_class, data_type=data_type)
         
     def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
@@ -217,6 +241,7 @@ class Mapper(object):
             params = {}
         print script
         print params
+        
         response = self.request.send(script, params, self.models)
 
         self.reset()
@@ -316,7 +341,7 @@ class Query(object):
         
     def add_vertex(self, model, set_variable=False):
         if model._type is None:
-            raise Exception('Models need to have a type defined')
+            raise QueryException('Models need to have a type defined in order to save')
 
         model.field_type = 'graph'
         gremlin = self.gremlin
@@ -336,7 +361,7 @@ class Query(object):
         
     def add_edge(self, model, set_variable=False):
         if model['_label'] is None:
-            raise Exception('The edge must have a label before saving')
+            raise QueryException('The edge must have a label before saving')
         
         model.field_type = 'graph'
         gremlin     = self.gremlin
@@ -368,7 +393,7 @@ class Query(object):
             error = 'Both out and in vertices must be set before saving \
                 the edge'
                 
-            raise Exception(error)
+            raise QueryException(error)
         
         self.save(out_v, out_v_ref)
         self.save(in_v, in_v_ref)
@@ -377,10 +402,10 @@ class Query(object):
     
     def update(self, model, set_variable=False):
         if model._type is None:
-            raise Exception()
+            raise QueryException('The model must have a type defined in order to update')
             
         if model['_id'] is None:
-            raise Exception()
+            raise QueryException('The model must have an _id defined in order to update')
             
         gremlin = self.gremlin
         model.field_type = 'graph'
@@ -498,7 +523,8 @@ class Collection(object):
                     self._models[key] = model
                 else:
                     raise
-            except:
+            except Exception, e:
+                print e
                 raise StopIteration()
         
         return model
