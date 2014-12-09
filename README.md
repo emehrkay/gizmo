@@ -55,9 +55,7 @@ or
     m = Mapper(r, g)
     
     class User(Vertex):
-        def __init__(self, data=None):
-            self.allow_undefined = True
-            super(User, self).__init__(data)
+        allow_undefined = True
             
         @property
         def _node_type(self):
@@ -87,15 +85,8 @@ Gizmo allows you to interact with the graph server by either sending a string to
 When creating custom models, Gizmo requires that you define a `node_type` property with each. This should be a uniue string amoung your models as it will allow you to easily query for that model at a later date. 
 
     class Article(Vertex):
-        def __init__(self, data):
-            super(Article, self).__init__(data)
-            
-            self.fields.update({
-            	'title': String(),
-            	'content': String()
-            })
-            
-            self.hydrate(data)
+        title = String()
+        content = String()
             
         @property
         def _node_type(self):

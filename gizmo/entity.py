@@ -1,4 +1,4 @@
-from field import String, DateTime, Boolean, List, Map, _Fields
+from field import String, DateTime, Boolean, List, Map, _Fields, Field
 from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from utils import current_date_time
@@ -11,8 +11,70 @@ class _RootEntity(type):
     """
     maps all models during definition to their object so that it can be
     loaded later
+    overwrites the __init__ method. Models cannot define one
     """
     def __new__(cls, name, bases, attrs):
+        def new_init__(self, data=None, data_type='python'):
+            if data is None:
+                data = {}
+
+            self.fields = _Fields({
+                GIZMO_MODEL     : String(get_qualified_instance_name(self), data_type=data_type),
+                GIZMO_CREATED   : DateTime(value=current_date_time, data_type=data_type, set_max=1),
+                GIZMO_MODIFIED  : DateTime(value=current_date_time, data_type=data_type),
+                GIZMO_NODE_TYPE : String(self._node_type, data_type=data_type),
+                GIZMO_ID        : String(data_type=data_type),
+            })
+            
+            if isinstance(self, Edge):
+                if 'out_v' in data:
+                    self.out_v = data['out_v']
+            
+                    del data['out_v']
+                else:
+                    self.out_v = None
+            
+                if '_outV' in data:
+                    self.outV = data['_outV']
+            
+                    del data['_outV']
+                else:
+                    self.outV = None
+
+                if 'in_v' in data:
+                    self.in_v = data['in_v']
+            
+                    del data['in_v']
+
+                if '_inV' in data:
+                    self.inV = data['_inV']
+            
+                    del data['_inV']
+                else:
+                    self.inV = None
+                
+                label = data.get('label', None)
+                self.fields[GIZMO_LABEL] = String(label, data_type=data_type)
+            
+            #build the properties for the instance
+            for name, field in attrs.iteritems():
+                if not name.startswith('_'):
+                    if isinstance(field, Field):
+                        instance = field.__class__(field.value, field.data_type)
+                        self.fields[name] = instance
+                    else:
+                        setattr(self, name, field)
+
+            self.data_type = 'python'
+
+            self.hydrate(data)
+        
+            if data is not None and GIZMO_ID in data:
+                self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
+            
+            self.dirty = False
+    
+        attrs['__init__'] = new_init__
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
         map_name = '%s.%s' % (cls.__module__, cls.__name__)
         _MAP[map_name] = cls
@@ -22,29 +84,8 @@ class _RootEntity(type):
 
 class _BaseEntity(object):
     __metaclass__ = _RootEntity
-    
-    def __init__(self, data=None, data_type='python'):
-        if not hasattr(self, 'allow_undefined'):
-            self.allow_undefined = False
-        
-        if not hasattr(self, '_immutable'):
-            self._immutable = IMMUTABLE['vertex']
-
-        self.fields = _Fields({
-            GIZMO_MODEL     : String(get_qualified_instance_name(self), data_type=data_type),
-            GIZMO_CREATED   : DateTime(value=current_date_time, data_type=data_type, set_max=1),
-            GIZMO_MODIFIED  : DateTime(value=current_date_time, data_type=data_type),
-            GIZMO_NODE_TYPE : String(self._node_type, data_type=data_type),
-            GIZMO_ID        : String(data_type=data_type),
-        })
-        self.data_type = 'python'
-
-        self.hydrate(data)
-        
-        if data is not None and GIZMO_ID in data:
-            self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
-            
-        self.dirty = False
+    immutable = IMMUTABLE['vertex']
+    allow_undefined = False
     
     def hydrate(self, data=None):
         if data is None:
@@ -68,7 +109,7 @@ class _BaseEntity(object):
         return field
     
     def __setitem__(self, name, value):
-        if name not in self._immutable and name in self.fields:
+        if name not in self.immutable and name in self.fields:
             self.fields[name].value = value
             self.dirty = True
         elif self.allow_undefined:
@@ -117,9 +158,7 @@ class Vertex(_BaseEntity):
 
 
 class GenericVertex(Vertex):
-    def __init__(self, data=None, data_type='python'):
-        self.allow_undefined = True
-        super(GenericVertex, self).__init__(data, data_type=data_type)
+    allow_undefined = True
 
     @property
     def _node_type(self):
@@ -127,48 +166,7 @@ class GenericVertex(Vertex):
 
 
 class Edge(_BaseEntity):
-    def __init__(self, data=None, label=None, data_type='python'):
-        if data is None:
-            data = {}
-            
-        if 'out_v' in data:
-            self.out_v = data['out_v']
-            
-            del data['out_v']
-        else:
-            self.out_v = None
-            
-        if '_outV' in data:
-            self.outV = data['_outV']
-            
-            del data['_outV']
-        else:
-            self.outV = None
-
-        if 'in_v' in data:
-            self.in_v = data['in_v']
-            
-            del data['in_v']
-
-        if '_inV' in data:
-            self.inV = data['_inV']
-            
-            del data['_inV']
-        else:
-            self.inV = None
-
-        self._immutable = IMMUTABLE['edge']
-        
-        super(Edge, self).__init__(data=data, data_type=data_type)
-
-        self.fields.update({
-            GIZMO_LABEL : String(label, data_type=data_type),
-        })
-        
-        if GIZMO_LABEL in data:
-            self.fields[GIZMO_LABEL].field_value = data[GIZMO_LABEL]
-            
-        self.hydrate(data)
+    immutable = IMMUTABLE['edge']
 
     @property
     def _type(self):
@@ -176,11 +174,8 @@ class Edge(_BaseEntity):
 
 
 class GenericEdge(Edge):
-    def __init__(self, data=None, label=None, data_type='python'):
-        self.allow_undefined = True
-        
-        super(GenericEdge, self).__init__(data=data, label=label, data_type=data_type)
-        
+    allow_undefined = True
+
     @property
     def _node_type(self):
         return 'generic_edge'

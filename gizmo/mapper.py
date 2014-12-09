@@ -417,7 +417,9 @@ class Query(object):
             
         if model['_id'] is None:
             raise QueryException('The model must have an _id defined in order to update')
-            
+        
+        print model, model.dirty
+        
         if model.dirty == False:
             return
         
