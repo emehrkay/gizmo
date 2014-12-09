@@ -43,6 +43,8 @@ class _BaseEntity(object):
         
         if data is not None and GIZMO_ID in data:
             self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
+            
+        self.dirty = False
     
     def hydrate(self, data=None):
         if data is None:
@@ -68,8 +70,10 @@ class _BaseEntity(object):
     def __setitem__(self, name, value):
         if name not in self._immutable and name in self.fields:
             self.fields[name].value = value
+            self.dirty = True
         elif self.allow_undefined:
             self._add_undefined_field(name, value)
+            self.dirty = True
         
         return self
         

@@ -6,7 +6,7 @@ from exception import *
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
 GENERIC_MAPPER = 'generic.mapper'
-
+count = 0
 
 def get_mapper(gremlin, model=None, name=GENERIC_MAPPER):
     """
@@ -59,11 +59,12 @@ class _GenericMapper(object):
 
     def enqueue(self, query, bind_return=True):
         for entry in query.queries:
-            self.count += 1
+            global count
+            count += 1
             script = entry['script']
             
             if bind_return:
-                variable = '%s_%s' % (self.VARIABLE, self.count)
+                variable = '%s_%s' % (self.VARIABLE, count)
                 script   = '%s = %s' % (variable, script)
                 
                 if 'model' in entry:
@@ -417,6 +418,9 @@ class Query(object):
         if model['_id'] is None:
             raise QueryException('The model must have an _id defined in order to update')
             
+        if model.dirty == False:
+            return
+        
         gremlin = self.gremlin
         model.field_type = 'graph'
         model_type = 'e' if model._type == 'edge' else 'v'
