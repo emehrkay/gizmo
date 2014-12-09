@@ -172,10 +172,10 @@ class Edge(_BaseEntity):
 
 
 class GenericEdge(Edge):
-    def __init__(self, data=None):
+    def __init__(self, data=None, label=None, data_type='python'):
         self.allow_undefined = True
         
-        super(GenericEdge, self).__init__(data)
+        super(GenericEdge, self).__init__(data=data, label=label, data_type=data_type)
         
     @property
     def _node_type(self):

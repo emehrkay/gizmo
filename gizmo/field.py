@@ -102,10 +102,11 @@ class List(Field):
 
 class DateTime(Field):
     def to_graph(self):
-        return int(self.field_value)
+        return '' if self.field_value is None or self.field_value == '' else int(self.field_value)
     
     def to_python(self):
-        return int(self.field_value) / 1000
+        value = 0 if self.field_value is None or self.field_value == '' else self.field_value
+        return int(value) / 1000
 
 
 class TimeStamp(DateTime):

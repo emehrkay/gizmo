@@ -150,7 +150,7 @@ class Mapper(object):
         return get_mapper(gremlin=self.gremlin, model=model, name=name)
         
     def _enqueue_mapper(self, mapper):
-        self.queries = mapper.queries
+        self.queries += mapper.queries
         self.models.update(mapper.models)
         self.params.update(mapper.params)
         
@@ -170,26 +170,29 @@ class Mapper(object):
         
         return self.enqueue(mapper)
     
-    def connect(out_v, in_v, label, data=None, edge_model=None, data_type='python'):
+    def connect(self, out_v, in_v, label, data=None, edge_model=None, data_type='python'):
         """
         method used to connect two vertices and create an Edge object
         the resulting edge is not saved to to graph until it is passed to save allowing
         further augmentation
         """
-        if not isinstance(out_v, Vertex) or not isinstance(out_v, str):
-            raise ModelException('The out_v needs to be eiter a Vertex or string id')
+        if not isinstance(out_v, Vertex):
+            if not isinstance(out_v, str):
+                raise ModelException('The out_v needs to be eiter a Vertex or string id')
             
-        if not isinstance(in_v, Vertex) or not isinstance(in_v, str):
-            raise ModelException('The in_v needs to be eiter a Vertex or string id')
+        if not isinstance(in_v, Vertex):
+            if not isinstance(in_v, str):
+                raise ModelException('The in_v needs to be eiter a Vertex or string id')
         
         if data is None:
             data = {}
         
-        data['_out_v'] = out_v
+        data['out_v'] = out_v
         data['in_v'] = in_v
-        data['_type'] = edge
+        data['_type'] = 'edge'
+        data['_label'] = label
         
-        return self.create_model(data=data, model_class=model_class, data_type=data_type)
+        return self.create_model(data=data, model_class=edge_model, data_type=data_type)
         
     def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
@@ -510,7 +513,13 @@ class Collection(object):
         self._models = {}
         self._index = 0
         self._data_type = 'graph'
+
+    def first(self):
+        return self[0]
         
+    def last(self):
+        return self[-1]
+
     @property
     def data(self):
         return [x for x in self.response.data]
