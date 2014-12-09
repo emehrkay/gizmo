@@ -41,8 +41,12 @@ class _Response(object):
                     val = fix_properties(arg.get(k, None))
                 
                     if isinstance(val, dict):
+                        if k == '_id':
+                            model.fields[k].field_value = val
+                        
                         model.hydrate(val)
                         data.append(val)
+                        model.dirty = False
                         del arg[k]
             
                 data.append(arg)

@@ -5,10 +5,13 @@ from exception import *
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
+_MODEL_CACHE = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
+query_count = 0
 
-def get_mapper(gremlin, model=None, name=GENERIC_MAPPER):
+
+def get_mapper(gremlin, var_storage, model=None, name=GENERIC_MAPPER):
     """
     function used to load a mapper based on the entity
     """
@@ -21,7 +24,23 @@ def get_mapper(gremlin, model=None, name=GENERIC_MAPPER):
     if name not in _MAPPER_MAP:
         name = GENERIC_MAPPER
         
-    return _MAPPER_MAP[name](gremlin)
+    return _MAPPER_MAP[name](gremlin, var_storage)
+
+
+class _MapperVariableStorage(dict):
+    """
+    dictionary used to hold all of the variables mapped to the return entities
+    used in the current executing script
+    """
+    def get_key_by_value(self, value):
+        ret_key = None
+        
+        for key, def_val in self.iteritems():
+            if value == def_val:
+                ret_key = key
+                break;
+        
+        return ret_key
 
 
 class _RootMapper(type):
@@ -50,12 +69,12 @@ class _GenericMapper(object):
     __metaclass__ = _RootMapper
     VARIABLE = 'gizmo_var'
     
-    def __init__(self, gremlin=None):
+    def __init__(self, gremlin=None, var_storage=None):
         self.gremlin = gremlin
+        self.var_storage  = var_storage
         self.queries = []
         self.models  = {}
         self.params  = {}
-        self.count   = -1
 
     def enqueue(self, query, bind_return=True):
         for entry in query.queries:
@@ -76,13 +95,13 @@ class _GenericMapper(object):
         return self
         
     def save(self, model, bind_return=True):
-        query = Query(self.gremlin)
+        query = Query(self.gremlin, self.var_storage)
         query.save(model)
         
         return self.enqueue(query, bind_return)
     
     def delete(self, model, lookup=True):
-        query = Query(self.gremlin)
+        query = Query(self.gremlin, self.var_storage)
         
         query.delete(model)
         
@@ -134,7 +153,6 @@ class Mapper(object):
         if gremlin is None:
             gremlin = Gremlin()
 
-        self.count = -1
         self.request = request
         self.gremlin = gremlin
         self.auto_commit = auto_commit
@@ -144,11 +162,11 @@ class Mapper(object):
         self.gremlin.reset()
         
         self.queries = []
-        self.models  = {}
+        self.models  = _MapperVariableStorage()
         self.params  = {}
         
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
-        return get_mapper(gremlin=self.gremlin, model=model, name=name)
+        return get_mapper(gremlin=self.gremlin, var_storage=self.models, model=model, name=name)
         
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries
@@ -263,11 +281,11 @@ class Mapper(object):
 class Query(object):
     QUERY_VAR = 'query_var'
     
-    def __init__(self, gremlin):
+    def __init__(self, gremlin, var_storage):
         self.gremlin = gremlin
+        self.var_storage  = var_storage
         self.fields  = []
         self.queries = []
-        self.count   = -1
         
     def reset(self):
         self.fields = []
@@ -277,9 +295,10 @@ class Query(object):
         return self
         
     def next_var(self):
-        self.count += 1
+        global query_count
+        query_count += 1
         
-        return '%s_%s' % (self.QUERY_VAR, self.count)
+        return '%s_%s' % (self.QUERY_VAR, query_count)
         
     def add_query(self, script, params=None, model=None):
         if params is None:
@@ -350,6 +369,17 @@ class Query(object):
         
         return ','.join(gmap)
         
+    def by_id(self, _id, model, set_variable=None):
+        gremlin = self.gremlin
+        entity = 'e' if model['_type'] == 'edge' else 'v'
+        
+        getattr(gremlin, entity)(_id)
+        
+        if set_variable is not None:
+            gremlin.set_ret_variable(set_variable)
+        
+        return self.add_gremlin_query(model)
+        
     def add_vertex(self, model, set_variable=False):
         if model._type is None:
             raise QueryException('Models need to have a type defined in order to save')
@@ -367,6 +397,8 @@ class Query(object):
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
+        
+        model.field_type = 'python'
         
         return self.add_gremlin_query(model)
         
@@ -392,13 +424,13 @@ class Query(object):
         
         gremlin.set_graph_variable('').raw(script)
         
+        model.field_type = 'python'
+        
         return self.add_gremlin_query(model)
 
     def _get_or_create_edge_vertices(self, edge):
-        out_v     = edge.out_v
-        out_v_ref = self.next_var()
-        in_v      = edge.in_v
-        in_v_ref  = self.next_var()
+        out_v = edge.out_v
+        in_v  = edge.in_v
         
         if out_v is None or in_v is None:
             error = 'Both out and in vertices must be set before saving \
@@ -406,10 +438,20 @@ class Query(object):
                 
             raise QueryException(error)
         
-        self.save(out_v, out_v_ref)
-        self.save(in_v, in_v_ref)
+        out_v_mod = self.var_storage.get_key_by_value(out_v)
+        in_v_mod  = self.var_storage.get_key_by_value(in_v)
         
-        return out_v_ref, in_v_ref
+        if out_v_mod is None:
+            out_v_mod = self.next_var()
+            
+            self.save(out_v, out_v_mod)
+        
+        if in_v_mod is None:
+            in_v_mod = self.next_var()
+            
+            self.save(in_v, in_v_mod)
+
+        return out_v_mod, in_v_mod
     
     def update(self, model, set_variable=False):
         if model._type is None:
@@ -418,10 +460,8 @@ class Query(object):
         if model['_id'] is None:
             raise QueryException('The model must have an _id defined in order to update')
         
-        print model, model.dirty
-        
         if model.dirty == False:
-            return
+            return self.by_id(model['_id'], model, set_variable)
         
         gremlin = self.gremlin
         model.field_type = 'graph'
@@ -430,7 +470,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
             
-        self.update_fields(model.fields.data, model._immutable)
+        self.update_fields(model.fields.data, model.immutable)
 
         next_func = Function(gremlin, 'next')
         
@@ -444,10 +484,10 @@ class Query(object):
         if model._type is None:
             raise Exception('The model does not have a _type defined')
         
-        id        = model['_id']
-        immutable = model._immutable
+        _id       = model['_id']
+        immutable = model.immutable
 
-        if id is None:
+        if _id is None:
             if model._type == 'vertex':
                 self.add_vertex(model, set_variable)
             else:
@@ -542,6 +582,7 @@ class Collection(object):
                 
                 if data is not None:
                     model = self.mapper.create_model(data=data, data_type=self._data_type)
+                    model.dirty = False
                     self._models[key] = model
                 else:
                     raise
