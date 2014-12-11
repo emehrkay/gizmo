@@ -110,9 +110,10 @@ class Binary(_Request):
 
         if update_models is None:
             update_models = {}
-
+        
+        self.connection.open()
         resp = self.connection.execute(script, params)
-
+        self.connection.close()
         return BinaryResponse(resp, update_models)
 
 

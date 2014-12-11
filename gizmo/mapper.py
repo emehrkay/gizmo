@@ -5,7 +5,6 @@ from exception import *
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
-_MODEL_CACHE = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
 query_count = 0
@@ -70,6 +69,12 @@ class _GenericMapper(object):
     VARIABLE = 'gizmo_var'
     
     def __init__(self, gremlin=None, var_storage=None):
+        if gremlin is None:
+            gremlin = Gremlin()
+
+        if var_storage is None:
+            var_storage = _MapperVariableStorage()
+
         self.gremlin = gremlin
         self.var_storage  = var_storage
         self.queries = []
@@ -281,7 +286,13 @@ class Mapper(object):
 class Query(object):
     QUERY_VAR = 'query_var'
     
-    def __init__(self, gremlin, var_storage):
+    def __init__(self, gremlin=None, var_storage=None):
+        if gremlin is None:
+            gremlin = Gremlin()
+
+        if var_storage is None:
+            var_storage = _MapperVariableStorage()
+        
         self.gremlin = gremlin
         self.var_storage  = var_storage
         self.fields  = []

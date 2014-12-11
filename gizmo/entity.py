@@ -17,7 +17,7 @@ class _RootEntity(type):
         def new_init__(self, data=None, data_type='python'):
             if data is None:
                 data = {}
-
+            
             self.fields = _Fields({
                 GIZMO_MODEL     : String(get_qualified_instance_name(self), data_type=data_type),
                 GIZMO_CREATED   : DateTime(value=current_date_time, data_type=data_type, set_max=1),
@@ -58,7 +58,7 @@ class _RootEntity(type):
             
             #build the properties for the instance
             for name, field in attrs.iteritems():
-                if not name.startswith('_'):
+                if not name.startswith('_') and:
                     if isinstance(field, Field):
                         instance = field.__class__(field.value, field.data_type)
                         self.fields[name] = instance
