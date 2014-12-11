@@ -58,7 +58,7 @@ class _RootEntity(type):
             
             #build the properties for the instance
             for name, field in attrs.iteritems():
-                if not name.startswith('_') and:
+                if not name.startswith('_'):
                     if isinstance(field, Field):
                         instance = field.__class__(field.value, field.data_type)
                         self.fields[name] = instance
