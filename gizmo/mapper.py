@@ -102,8 +102,9 @@ class _GenericMapper(object):
         params are set, it will run a sub query to check to see if an entity exists
         that matches those values
         """
+        query = Query(self.gremlin, self.mapper)
+        
         if unique_fields is None:
-            query = Query(self.gremlin, self.mapper)
             query.save(model)
         elif model['_id'] is None and unique_type is not None:
             gremlin = Gremlin(self.gremlin.gv)
@@ -120,12 +121,8 @@ class _GenericMapper(object):
                 tag = self.mapper.query(gremlin=gremlin).first()
 
                 model.fields['_id'].value = tag['_id']
-                
-                query = Query(self.gremlin, self.mapper)
-            
                 query.by_id(model['_id'], model)
             except Exception, e:
-                query = Query(self.gremlin, self.mapper)
                 query.save(model)
         
         return self.enqueue(query, bind_return)
