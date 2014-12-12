@@ -212,7 +212,7 @@ class Mapper(object):
         
         return self.enqueue(mapper)
     
-    def connect(self, out_v, in_v, label, data=None, edge_model=None, data_type='python'):
+    def connect(self, out_v, in_v, label=None, data=None, edge_model=None, data_type='python'):
         """
         method used to connect two vertices and create an Edge object
         the resulting edge is not saved to to graph until it is passed to save allowing

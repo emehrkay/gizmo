@@ -54,6 +54,10 @@ class _RootEntity(type):
                     self.inV = None
                 
                 label = data.get('label', None)
+                
+                if label is None:
+                    label = self._node_type
+                
                 self.fields[GIZMO_LABEL] = String(label, data_type=data_type)
             
             #build the properties for the instance
