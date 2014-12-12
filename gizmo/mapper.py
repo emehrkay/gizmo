@@ -26,22 +26,6 @@ def get_mapper(gremlin, mapper, model=None, name=GENERIC_MAPPER):
     return _MAPPER_MAP[name](gremlin, mapper)
 
 
-class _MapperVariableStorage(dict):
-    """
-    dictionary used to hold all of the variables mapped to the return entities
-    used in the current executing script
-    """
-    def get_key_by_value(self, value):
-        ret_key = None
-        
-        for key, def_val in self.iteritems():
-            if value == def_val:
-                ret_key = key
-                break;
-        
-        return ret_key
-
-
 class _RootMapper(type):
     """
     In the case of custom mappers, this metaclass will register the model name
