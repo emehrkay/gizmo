@@ -1,4 +1,4 @@
-from utils import get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL
+from utils import get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
 from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
 from exception import *
@@ -10,7 +10,7 @@ count = 0
 query_count = 0
 
 
-def get_mapper(gremlin, var_storage, model=None, name=GENERIC_MAPPER):
+def get_mapper(gremlin, mapper, model=None, name=GENERIC_MAPPER):
     """
     function used to load a mapper based on the entity
     """
@@ -23,7 +23,7 @@ def get_mapper(gremlin, var_storage, model=None, name=GENERIC_MAPPER):
     if name not in _MAPPER_MAP:
         name = GENERIC_MAPPER
         
-    return _MAPPER_MAP[name](gremlin, var_storage)
+    return _MAPPER_MAP[name](gremlin, mapper)
 
 
 class _MapperVariableStorage(dict):
@@ -68,15 +68,12 @@ class _GenericMapper(object):
     __metaclass__ = _RootMapper
     VARIABLE = 'gizmo_var'
     
-    def __init__(self, gremlin=None, var_storage=None):
+    def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
             gremlin = Gremlin()
 
-        if var_storage is None:
-            var_storage = _MapperVariableStorage()
-
         self.gremlin = gremlin
-        self.var_storage  = var_storage
+        self.mapper  = mapper
         self.queries = []
         self.models  = {}
         self.params  = {}
@@ -99,14 +96,42 @@ class _GenericMapper(object):
         
         return self
         
-    def save(self, model, bind_return=True):
-        query = Query(self.gremlin, self.var_storage)
-        query.save(model)
+    def save(self, model, bind_return=True, unique_type=None, unique_fields=None):
+        """
+        method used to save a model. IF both the unique_type and unique_fields 
+        params are set, it will run a sub query to check to see if an entity exists
+        that matches those values
+        """
+        if unique_fields is None:
+            query = Query(self.gremlin, self.mapper)
+            query.save(model)
+        elif model['_id'] is None and unique_type is not None:
+            gremlin = Gremlin(self.gremlin.gv)
+            node_type = "'%s'" % GIZMO_NODE_TYPE
+            
+            gremlin.V.has(node_type, 'T.eq', unique_type)
+            
+            for field in unique_fields:
+                g_field = '"%s"' % field
+                
+                gremlin.has(g_field, 'T.eq', model[field])
+            
+            try:
+                tag = self.mapper.query(gremlin=gremlin).first()
+
+                model.fields['_id'].value = tag['_id']
+                
+                query = Query(self.gremlin, self.mapper)
+            
+                query.by_id(model['_id'], model)
+            except Exception, e:
+                query = Query(self.gremlin, self.mapper)
+                query.save(model)
         
         return self.enqueue(query, bind_return)
     
     def delete(self, model, lookup=True):
-        query = Query(self.gremlin, self.var_storage)
+        query = Query(self.gremlin, self.mapper)
         
         query.delete(model)
         
@@ -167,11 +192,21 @@ class Mapper(object):
         self.gremlin.reset()
         
         self.queries = []
-        self.models  = _MapperVariableStorage()
+        self.models  = {}
         self.params  = {}
         
+    def get_model_variable(self, model):
+        ret_key = None
+        
+        for key, def_model in self.models.iteritems():
+            if model == def_model:
+                ret_key = key
+                break;
+        
+        return ret_key
+    
     def _get_mapper(self, model=None, name=GENERIC_MAPPER):
-        return get_mapper(gremlin=self.gremlin, var_storage=self.models, model=model, name=name)
+        return get_mapper(gremlin=self.gremlin, mapper=self, model=model, name=name)
         
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries
@@ -180,15 +215,17 @@ class Mapper(object):
         
         return self
 
-    def save(self, model, bind_return=True):
-        mapper = self._get_mapper(model)
+    def save(self, model, bind_return=True, mapper=None):
+        if mapper is None:
+            mapper = self._get_mapper(model)
         
         mapper.save(model, bind_return)
         
         return self._enqueue_mapper(mapper)
         
-    def delete(self, model):
-        mapper = self._get_mapper(model)
+    def delete(self, model, mapper=None):
+        if mapper is None:
+            mapper = self._get_mapper(model)
         
         mapper.delete(model)
         
@@ -258,27 +295,33 @@ class Mapper(object):
         
         return self
         
-    def send(self, script=None, params=None, gremlin=None):
+    def send(self):
+        self._build_queries()
+        
+        script = ";\n".join(self.queries)
+        params = self.params
+
+        print script
+        print params
+        
+        self.reset()
+        
+        return self.query(script=script, params=params)
+    
+    def query(self, script=None, params=None, gremlin=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
-        elif script is None:
-            self._build_queries()
             
-            script = ";\n".join(self.queries)
-            params = self.params
-
+            gremlin.reset()
+        
         if script is None:
             script = ''
             
         if params is None:
             params = {}
-        print script
-        print params
         
         response = self.request.send(script, params, self.models)
-
-        self.reset()
 
         return Collection(self, response)
 
@@ -286,15 +329,12 @@ class Mapper(object):
 class Query(object):
     QUERY_VAR = 'query_var'
     
-    def __init__(self, gremlin=None, var_storage=None):
+    def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
             gremlin = Gremlin()
-
-        if var_storage is None:
-            var_storage = _MapperVariableStorage()
         
         self.gremlin = gremlin
-        self.var_storage  = var_storage
+        self.mapper  = mapper
         self.fields  = []
         self.queries = []
         
@@ -448,19 +488,17 @@ class Query(object):
                 the edge'
                 
             raise QueryException(error)
-        
-        out_v_mod = self.var_storage.get_key_by_value(out_v)
-        in_v_mod  = self.var_storage.get_key_by_value(in_v)
-        
+
+        out_v_mod = self.mapper.get_model_variable(out_v)
+        in_v_mod  = self.mapper.get_model_variable(in_v)
+
         if out_v_mod is None:
-            out_v_mod = self.next_var()
-            
-            self.save(out_v, out_v_mod)
-        
+            self.mapper.save(out_v)
+            out_v_mod = self.mapper.get_model_variable(out_v)
+
         if in_v_mod is None:
-            in_v_mod = self.next_var()
-            
-            self.save(in_v, in_v_mod)
+            self.mapper.save(in_v)
+            in_v_mod = self.mapper.get_model_variable(in_v)
 
         return out_v_mod, in_v_mod
     

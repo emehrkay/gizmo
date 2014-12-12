@@ -11,8 +11,10 @@ class V(Vertex):
 v = V()
 v['__gizmo_node_type'] = 'lllllllllll'
 
-r = BinaryRequest('localhost', 8984, 'komm')
-g = Gremlin()
-m = Mapper(r, g)
+
+REQUEST = Binary('localhost', 'komm', port=8984)
+GREMLIN = Gremlin()
+MAPPER = Mapper(REQUEST, GREMLIN, auto_commit=True)
+
 
 print v.fields.data, v['_type']
