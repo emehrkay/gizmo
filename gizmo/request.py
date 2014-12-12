@@ -41,8 +41,10 @@ class _Response(object):
                     val = fix_properties(arg.get(k, None))
                 
                     if isinstance(val, dict):
+                        # the _id field is immutable in the interface, but for newly created 
+                        # entites it is passed back with the response. Set it here
                         if k == '_id':
-                            model.fields[k].field_value = val
+                            model.fields[k].value = val
                         
                         model.hydrate(val)
                         data.append(val)
