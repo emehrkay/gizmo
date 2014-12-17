@@ -352,45 +352,52 @@ class Query(object):
         
         return self.reset()
         
-    def build_fields(self, data, immutable):
+    def build_fields(self, data, immutable, prefix=''):
         gremlin = self.gremlin
         
         for key, val in data.iteritems():
+            name = '%s_%s' % (prefix, key)
+            
             if key not in immutable:
                 value = val
+                
                 if type(val) is dict or type(val) is list:
                     listed = self.iterable_to_map(val)
                     value  = "[%s]" % listed
                     
                     self.fields.append(value)
                 else:
-                    bound = gremlin.bind_param(value)
+                    bound = gremlin.bind_param(value, name)
 
                     self.fields.append("'%s': %s" % (key, bound[0]))
         
         return self
         
-    def update_fields(self, data, immutable):
+    def update_fields(self, data, immutable, prefix=''):
         gremlin = self.gremlin
         
         for k, v in data.iteritems():
+            name = '%s_%s' % (prefix, k)
+
             if k not in immutable:
                 if type(v) is dict or type(v) is list:
-                    gmap  = self.iterable_to_map(v)
+                    gmap  = self.iterable_to_map(v, model=model)
                     entry = "it.setProperty('%s', %s)" % (k, gmap)
                 else:
-                    bound = self.gremlin.bind_param(v)
+                    bound = self.gremlin.bind_param(v, name)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     
                 self.fields.append(entry)
                 
         return self
         
-    def iterable_to_map(self, iterable):
+    def iterable_to_map(self, iterable, prefix=''):
         gremlin = self.gremlin
         gmap = []
         
         for k, v in enumerate(iterable):
+            name = '%s_%s' % (prefix, k)
+
             if type(v) is dict or type(v) is list:
                 gmap.append(self.iterable_to_map(v))
             else:
@@ -424,7 +431,7 @@ class Query(object):
         
         # use the model.fields.data instead of model.data because 
         # model.data can be monkey-patched with custom mappers
-        self.build_fields(model.fields.data, IMMUTABLE['vertex'])
+        self.build_fields(model.fields.data, IMMUTABLE['vertex'], prefix=model.__class__.__name__)
         
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
@@ -447,7 +454,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.fields.data, IMMUTABLE['edge'])
+        self.build_fields(model.fields.data, IMMUTABLE['edge'], prefix=model.__class__.__name__)
         
         if len(self.fields) > 0:
             edge_fields = ', [%s]' % ', '.join(self.fields)
@@ -500,7 +507,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
             
-        self.update_fields(model.fields.data, model.immutable)
+        self.update_fields(model.fields.data, model.immutable, prefix=model.__class__.__name__)
 
         next_func = Function(gremlin, 'next')
         
