@@ -362,7 +362,7 @@ class Query(object):
                 value = val
                 
                 if type(val) is dict or type(val) is list:
-                    listed = self.iterable_to_map(val)
+                    listed = self.iterable_to_map(val, prefix)
                     value  = "[%s]" % listed
                     
                     self.fields.append(value)
@@ -399,9 +399,9 @@ class Query(object):
             name = '%s_%s' % (prefix, k)
 
             if type(v) is dict or type(v) is list:
-                gmap.append(self.iterable_to_map(v))
+                gmap.append(self.iterable_to_map(v, prefix))
             else:
-                bound = gremlin.bind_param(v)
+                bound = gremlin.bind_param(v, name)
                 entry = "'%s': %s" % (k, bound[0])
                 
                 gmap.append(entry)
@@ -411,8 +411,9 @@ class Query(object):
     def by_id(self, _id, model, set_variable=None):
         gremlin = self.gremlin
         entity = 'e' if model['_type'] == 'edge' else 'v'
+        bound = gremlin.bind_param(_id, '_id')
         
-        getattr(gremlin, entity)(_id)
+        getattr(gremlin, entity)('_id')
         
         if set_variable is not None:
             gremlin.set_ret_variable(set_variable)
