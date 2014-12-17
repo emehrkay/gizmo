@@ -1,5 +1,6 @@
 Gizmo
 =====
+> This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second
 
 Gizmo is a lightweight Python Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster](http://www.tinkerpop.com) servers. 
 
@@ -33,16 +34,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Installation
 
-    easy_install gizmo
-
-or 
-
-    pip install gizmo
-
-or
-
     python setup.py install
-
 
 ### Quickstart
 
