@@ -381,7 +381,7 @@ class Query(object):
 
             if k not in immutable:
                 if type(v) is dict or type(v) is list:
-                    gmap  = self.iterable_to_map(v, model=model)
+                    gmap  = self.iterable_to_map(v, prefix)
                     entry = "it.setProperty('%s', %s)" % (k, gmap)
                 else:
                     bound = self.gremlin.bind_param(v, name)
