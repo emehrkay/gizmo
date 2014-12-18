@@ -43,8 +43,8 @@ class _Response(object):
                     if isinstance(val, dict):
                         # the _id field is immutable in the interface, but for newly created 
                         # entites it is passed back with the response. Set it here
-                        if k == '_id':
-                            model.fields[k].value = val
+                        if '_id' in val:
+                            model.fields['_id'].value = val['_id']
                         
                         model.hydrate(val)
                         data.append(val)
@@ -116,7 +116,7 @@ class Binary(_Request):
         self.connection.open()
         resp = self.connection.execute(script, params)
         self.connection.close()
-        return BinaryResponse(resp, update_models)
+        return _Response(resp, update_models)
 
 
 class BinaryResponse(_Response):

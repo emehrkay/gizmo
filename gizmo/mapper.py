@@ -22,7 +22,7 @@ def get_mapper(gremlin, mapper, model=None, name=GENERIC_MAPPER):
 
     if name not in _MAPPER_MAP:
         name = GENERIC_MAPPER
-        
+
     return _MAPPER_MAP[name](gremlin, mapper)
 
 
@@ -108,7 +108,7 @@ class _GenericMapper(object):
                 query.by_id(model['_id'], model)
             except Exception, e:
                 query.save(model)
-        
+
         return self.enqueue(query, bind_return)
     
     def delete(self, model, lookup=True):
@@ -130,7 +130,7 @@ class _GenericMapper(object):
         
         if data is None:
             data = {}
-
+        
         if model_class is not None:
             try:
                 model = model_class(data, data_type=data_type)
@@ -201,7 +201,7 @@ class Mapper(object):
             mapper = self._get_mapper(model)
         
         mapper.save(model, bind_return)
-        
+
         return self._enqueue_mapper(mapper)
         
     def delete(self, model, mapper=None):
@@ -245,8 +245,8 @@ class Mapper(object):
         else:
             name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self._get_mapper(name=name)
-
-        kwargs = {'data': data, 'model_class': model_class, 'data_type': data_type}
+        
+        kwargs = {'data': data, 'model_class': model_class, 'data_type': 'python'}
 
         return mapper.create_model(**kwargs)
         
@@ -281,15 +281,13 @@ class Mapper(object):
         
         script = ";\n".join(self.queries)
         params = self.params
-
-        print script
-        print params
+        models = self.models
         
         self.reset()
         
-        return self.query(script=script, params=params)
+        return self.query(script=script, params=params, update_models=models)
     
-    def query(self, script=None, params=None, gremlin=None):
+    def query(self, script=None, params=None, gremlin=None, update_models=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -302,7 +300,13 @@ class Mapper(object):
         if params is None:
             params = {}
         
-        response = self.request.send(script, params, self.models)
+        if update_models is None:
+            update_models = {}
+
+        print script
+        print params
+
+        response = self.request.send(script, params, update_models)
 
         return Collection(self, response)
 
@@ -491,7 +495,7 @@ class Query(object):
 
         return out_v_mod, in_v_mod
     
-    def update(self, model, set_variable=False):
+    def update(self, model, set_variable=None):
         if model._type is None:
             raise QueryException('The model must have a type defined in order to update')
             
@@ -625,7 +629,6 @@ class Collection(object):
                 else:
                     raise
             except Exception, e:
-                print e
                 raise StopIteration()
         
         return model

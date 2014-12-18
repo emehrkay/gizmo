@@ -17,7 +17,7 @@ setup(
     author_email     = 'emehrkay@gmail.com',
     long_description = __doc__,
     install_requires = [
-        'gremlinpy',
+        'gremlinpy >= 0.2.0',
         'rexpro'
     ],
     classifiers      = [
