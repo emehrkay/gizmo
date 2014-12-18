@@ -246,7 +246,7 @@ class Mapper(object):
             name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self._get_mapper(name=name)
         
-        kwargs = {'data': data, 'model_class': model_class, 'data_type': 'python'}
+        kwargs = {'data': data, 'model_class': model_class, 'data_type': data_type}
 
         return mapper.create_model(**kwargs)
         
