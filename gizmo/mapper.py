@@ -80,7 +80,7 @@ class _GenericMapper(object):
         
         return self
         
-    def save(self, model, bind_return=True, unique_type=None, unique_fields=None):
+    def save(self, model, bind_return=True, unique_fields=None):
         """
         method used to save a model. IF both the unique_type and unique_fields 
         params are set, it will run a sub query to check to see if an entity exists
@@ -90,11 +90,11 @@ class _GenericMapper(object):
         
         if unique_fields is None:
             query.save(model)
-        elif model['_id'] is None and unique_type is not None:
+        elif model['_id'] is None:
             gremlin = Gremlin(self.gremlin.gv)
             node_type = "'%s'" % GIZMO_NODE_TYPE
             
-            gremlin.V.has(node_type, 'T.eq', unique_type)
+            gremlin.V.has(node_type, 'T.eq', model._node_type)
             
             for field in unique_fields:
                 g_field = '"%s"' % field
@@ -186,7 +186,7 @@ class Mapper(object):
         
         return ret_key
     
-    def _get_mapper(self, model=None, name=GENERIC_MAPPER):
+    def get_mapper(self, model=None, name=GENERIC_MAPPER):
         return get_mapper(gremlin=self.gremlin, mapper=self, model=model, name=name)
         
     def _enqueue_mapper(self, mapper):
@@ -198,7 +198,7 @@ class Mapper(object):
 
     def save(self, model, bind_return=True, mapper=None):
         if mapper is None:
-            mapper = self._get_mapper(model)
+            mapper = self.get_mapper(model)
         
         mapper.save(model, bind_return)
 
@@ -206,7 +206,7 @@ class Mapper(object):
         
     def delete(self, model, mapper=None):
         if mapper is None:
-            mapper = self._get_mapper(model)
+            mapper = self.get_mapper(model)
         
         mapper.delete(model)
         
@@ -241,10 +241,10 @@ class Mapper(object):
             data = {}
 
         if model_class:
-            mapper = self._get_mapper(model_class)
+            mapper = self.get_mapper(model_class)
         else:
             name   = data.get(GIZMO_MODEL, GENERIC_MAPPER)
-            mapper = self._get_mapper(name=name)
+            mapper = self.get_mapper(name=name)
         
         kwargs = {'data': data, 'model_class': model_class, 'data_type': data_type}
 
@@ -371,7 +371,7 @@ class Query(object):
                     
                     self.fields.append(value)
                 else:
-                    bound = gremlin.bind_param(value, name)
+                    bound = gremlin.bind_param(value)
 
                     self.fields.append("'%s': %s" % (key, bound[0]))
         
@@ -388,7 +388,7 @@ class Query(object):
                     gmap  = self.iterable_to_map(v, prefix)
                     entry = "it.setProperty('%s', %s)" % (k, gmap)
                 else:
-                    bound = self.gremlin.bind_param(v, name)
+                    bound = self.gremlin.bind_param(v)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     
                 self.fields.append(entry)
@@ -415,9 +415,8 @@ class Query(object):
     def by_id(self, _id, model, set_variable=None):
         gremlin = self.gremlin
         entity = 'e' if model['_type'] == 'edge' else 'v'
-        bound = gremlin.bind_param(_id, '_id')
         
-        getattr(gremlin, entity)('_id')
+        getattr(gremlin, entity)(_id)
         
         if set_variable is not None:
             gremlin.set_ret_variable(set_variable)
@@ -436,7 +435,8 @@ class Query(object):
         
         # use the model.fields.data instead of model.data because 
         # model.data can be monkey-patched with custom mappers
-        self.build_fields(model.fields.data, IMMUTABLE['vertex'], prefix=model.__class__.__name__)
+#        self.build_fields(model.fields.data, IMMUTABLE['vertex'], prefix=model.__class__.__name__)
+        self.build_fields(model.fields.data, IMMUTABLE['vertex'])
         
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
 
@@ -459,7 +459,8 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
         
-        self.build_fields(model.fields.data, IMMUTABLE['edge'], prefix=model.__class__.__name__)
+        #self.build_fields(model.fields.data, IMMUTABLE['edge'], prefix=model.__class__.__name__)
+        self.build_fields(model.fields.data, IMMUTABLE['edge'])
         
         if len(self.fields) > 0:
             edge_fields = ', [%s]' % ', '.join(self.fields)
