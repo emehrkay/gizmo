@@ -78,6 +78,7 @@ class Field(object):
 class String(Field):
     pass
 
+
 class Integer(Field):
     def to_python(self):
         return int(self.field_value)

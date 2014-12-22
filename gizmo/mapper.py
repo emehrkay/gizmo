@@ -1,6 +1,7 @@
 from utils import get_qualified_name, get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
 from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
+from gremlinpy.statement import GetEdge
 from exception import *
 
 #Holds the model->mapper mappings for custom mappers
@@ -8,22 +9,6 @@ _MAPPER_MAP = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
 query_count = 0
-
-
-def get_mapper(gremlin, mapper, model=None, name=GENERIC_MAPPER):
-    """
-    function used to load a mapper based on the entity
-    """
-    if model is not None:
-        if isinstance(model, _BaseEntity):
-            name = get_qualified_instance_name(model)
-        else:
-            name = get_qualified_name(model)
-
-    if name not in _MAPPER_MAP:
-        name = GENERIC_MAPPER
-
-    return _MAPPER_MAP[name](gremlin, mapper)
 
 
 class _RootMapper(type):
@@ -51,6 +36,8 @@ class _RootMapper(type):
 class _GenericMapper(object):
     __metaclass__ = _RootMapper
     VARIABLE = 'gizmo_var'
+    unique = False
+    unique_fields = None
     
     def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
@@ -80,35 +67,86 @@ class _GenericMapper(object):
         
         return self
         
-    def save(self, model, bind_return=True, unique_fields=None):
+    def save(self, model, bind_return=True):
+        if model._type == 'edge':
+            self._save_edge(model, bind_return)
+        else:
+            self._save_vertex(model, bind_return)
+        
+        return self
+        
+    def _save_vertex(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields 
         params are set, it will run a sub query to check to see if an entity exists
         that matches those values
         """
         query = Query(self.gremlin, self.mapper)
+        save = True
         
-        if unique_fields is None:
-            query.save(model)
-        elif model['_id'] is None:
+        if model['_id'] is None and self.unique_fields is not None:
             gremlin = Gremlin(self.gremlin.gv)
             node_type = "'%s'" % GIZMO_NODE_TYPE
             
             gremlin.V.has(node_type, 'T.eq', model._node_type)
             
-            for field in unique_fields:
+            for field in self.unique_fields:
                 g_field = '"%s"' % field
                 
                 gremlin.has(g_field, 'T.eq', model[field])
             
             try:
-                tag = self.mapper.query(gremlin=gremlin).first()
+                first = self.mapper.query(gremlin=gremlin).first()
 
-                model.fields['_id'].value = tag['_id']
+                model.fields['_id'].value = first['_id']
                 query.by_id(model['_id'], model)
+                
+                save = False
             except Exception, e:
-                query.save(model)
+                pass
 
+        if save:
+            query.save(model)
+
+        return self.enqueue(query, bind_return)
+    
+    def _save_edge(self, model, bind_return=True):
+        query = Query(self.gremlin, self.mapper)
+        save = True
+
+        if model['_id'] is None and self.unique is not False:
+            out_v = model.out_v
+            in_v  = model.in_v
+
+            if isinstance(out_v, Vertex) and out_v['_id'] is None:
+                self.mapper.save(out_v).send()
+                
+            if isinstance(in_v, Vertex) and in_v['_id'] is None:
+                self.mapper.save(in_v).send()
+            
+            save  = False
+            out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
+            in_v  = in_v['_id'] if isinstance(in_v, Vertex) else in_v
+
+            if out_v is None or in_v is None:
+                save = True
+            else:
+                edge = GetEdge(out_v, in_v, model['_label'])
+                gremlin = Gremlin(self.gremlin.gv)
+                
+                gremlin.apply_statement(edge)
+                
+                try:
+                    edge = self.mapper.query(gremlin=gremlin).first()
+                    save = False
+                    
+                    query.by_id(edge['_id'], model, 'xxxx')
+                except Exception, e:
+                    save = True
+        
+        if save:
+            query.save(model)
+            
         return self.enqueue(query, bind_return)
     
     def delete(self, model, lookup=True):
@@ -187,7 +225,16 @@ class Mapper(object):
         return ret_key
     
     def get_mapper(self, model=None, name=GENERIC_MAPPER):
-        return get_mapper(gremlin=self.gremlin, mapper=self, model=model, name=name)
+        if model is not None:
+            if isinstance(model, _BaseEntity):
+                name = get_qualified_instance_name(model)
+            else:
+                name = get_qualified_name(model)
+
+        if name not in _MAPPER_MAP:
+            name = GENERIC_MAPPER
+
+        return _MAPPER_MAP[name](self.gremlin, self)
         
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries
