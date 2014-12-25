@@ -48,10 +48,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
     
     class User(Vertex):
         allow_undefined = True
-            
-        @property
-        def _node_type(self):
-        	return 'user'
+        _node_type = 'user'
         	
     u = User({'name': 'mark', 'sex': 'male'})
     g = User({'name': 'sadé', 'sex': 'female'})
@@ -79,10 +76,7 @@ When creating custom models, Gizmo requires that you define a `node_type` proper
     class Article(Vertex):
         title = String()
         content = String()
-            
-        @property
-        def _node_type(self):
-            return 'custom_article'
+        _node_type = 'custom_article'
 
     
 ##### Fields

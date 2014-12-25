@@ -68,12 +68,9 @@ class _GenericMapper(object):
         return self
         
     def save(self, model, bind_return=True):
-        if model._type == 'edge':
-            self._save_edge(model, bind_return)
-        else:
-            self._save_vertex(model, bind_return)
+        method = '_save_edge' if model._type == 'edge' else '_save_vertex'
         
-        return self
+        return getattr(self, method)(model=model, bind_return=bind_return)
         
     def _save_vertex(self, model, bind_return=True):
         """
@@ -194,8 +191,6 @@ class _GenericMapper(object):
 
 
 class Mapper(object):
-    __metaclass__ = _RootMapper
-    
     VARIABLE = 'gizmo_var'
     
     def __init__(self, request, gremlin=None, auto_commit=False):
@@ -482,7 +477,6 @@ class Query(object):
         
         # use the model.fields.data instead of model.data because 
         # model.data can be monkey-patched with custom mappers
-#        self.build_fields(model.fields.data, IMMUTABLE['vertex'], prefix=model.__class__.__name__)
         self.build_fields(model.fields.data, IMMUTABLE['vertex'])
         
         script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
@@ -506,7 +500,6 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
         
-        #self.build_fields(model.fields.data, IMMUTABLE['edge'], prefix=model.__class__.__name__)
         self.build_fields(model.fields.data, IMMUTABLE['edge'])
         
         if len(self.fields) > 0:
