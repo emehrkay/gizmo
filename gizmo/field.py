@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 
 class _Fields(dict):
+
     def __init__(self, *args, **kwargs):
         self.update(*args, **kwargs)
         self.data_type = 'python'
@@ -32,6 +33,7 @@ class _Fields(dict):
 
 
 class Field(object):
+
     def __init__(self, value=None, data_type='python', set_max=None):
         self.field_value = value
         self.data_type   = data_type

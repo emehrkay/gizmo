@@ -2,6 +2,8 @@ from field import String, DateTime, Boolean, List, Map, _Fields, Field
 from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from utils import current_date_time
+from inspect import isfunction
+
 
 #Holds the model->object mappings
 _MAP = {}
@@ -60,13 +62,14 @@ class _RootEntity(type):
                 
                 self.fields[GIZMO_LABEL] = String(label, data_type=data_type)
             
-            #build the properties for the instance
+            # build the properties for the instance
+            # ignore things that start with an underscore and methods
             for name, field in attrs.iteritems():
                 if not name.startswith('_'):
                     if isinstance(field, Field):
                         instance = field.__class__(field.value, field.data_type)
                         self.fields[name] = instance
-                    else:
+                    elif isfunction(field) == False:
                         setattr(self, name, field)
 
             self.data_type = 'python'
