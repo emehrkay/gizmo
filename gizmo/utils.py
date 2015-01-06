@@ -1,16 +1,16 @@
 import time
 
-GIZMO_MODEL     = '__gizmo_model'
-GIZMO_CREATED   = '__gizmo_created'
-GIZMO_MODIFIED  = '__gizmo_modified'
+GIZMO_MODEL = '__gizmo_model'
+GIZMO_CREATED = '__gizmo_created'
+GIZMO_MODIFIED = '__gizmo_modified'
 GIZMO_NODE_TYPE = '__gizmo_node_type'
-GIZMO_TYPE      = '_type'
-GIZMO_ID        = '_id'
-GIZMO_LABEL     = '_label'
-VERTEX          = 'vertex'
-EDGE            = 'edge'
-TYPES           = {VERTEX: VERTEX, EDGE: EDGE}
-IMMUTABLE       = {VERTEX: [GIZMO_ID, GIZMO_TYPE], EDGE: [GIZMO_ID, GIZMO_TYPE, GIZMO_LABEL, '_inV', '_outV']}
+GIZMO_TYPE = '_type'
+GIZMO_ID = '_id'
+GIZMO_LABEL = '_label'
+VERTEX = 'vertex'
+EDGE = 'edge'
+TYPES = {VERTEX: VERTEX, EDGE: EDGE}
+IMMUTABLE = {VERTEX: [GIZMO_ID, GIZMO_TYPE], EDGE: [GIZMO_ID, GIZMO_TYPE, GIZMO_LABEL, '_inV', '_outV']}
 
 
 def get_object_items(obj):

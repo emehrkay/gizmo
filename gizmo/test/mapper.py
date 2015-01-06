@@ -59,8 +59,8 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(v._type == 'vertex')
         
     def test_can_create_vertex_with_data(self):
-        d  = {'name': 'mark', 'sex': 'male'}
-        v  = self.mapper.create_model(d, TestVertex)
+        d = {'name': 'mark', 'sex': 'male'}
+        v = self.mapper.create_model(d, TestVertex)
         vd = v.data
 
         """
@@ -93,9 +93,9 @@ class MapperTests(unittest.TestCase):
                 query_ps.append(prop)
 
 
-        propv    = get_dict_key(params, vid)
-        close    = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
-        params   = (entry_v1.keys()[0], propv, close)
+        propv = get_dict_key(params, vid)
+        close = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
+        params = (entry_v1.keys()[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
         
         self.assertEqual(expected, self.mapper.queries[0])

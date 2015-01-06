@@ -36,10 +36,10 @@ class Field(object):
 
     def __init__(self, value=None, data_type='python', set_max=None):
         self.field_value = value
-        self.data_type   = data_type
-        self.set_count   = 0
-        self.set_max     = set_max
-        self.value       = value
+        self.data_type = data_type
+        self.set_count = 0
+        self.set_max = set_max
+        self.value = value
 
     def _get_value(self):
         if self.data_type == 'python':
