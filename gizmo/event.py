@@ -57,18 +57,18 @@ class MapperMixin(object):
         The source is the out vertex, or the thing that triggered the change
         in the model to be saved
         """
-        self.source = source
+        self.source_model = source
 
         return self
 
     def save(self, model, bind_return=True):
-        if self.source is None:
+        if self.source_model is None:
             error = 'There must be a source defined before saving.'
             raise EventSourceException(error)
 
         super(EventSource, self).save(model=model, bind_return=bind_return)
 
-        edge = self.mapper.connect(out_v=self.event, in_v=model,\
+        edge = self.mapper.connect(out_v=self.source_model, in_v=model,\
             label=TRIGGERED_SOURCE_EVENT)
 
         self.mapper.save(edge, bind_return=bind_return)
