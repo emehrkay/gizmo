@@ -1,6 +1,7 @@
 from entity import Vertex, _GenericMapper
 
 
+TRIGGERED_SOURCE_EVENT = 'triggered_source_event'
 SOURCE_EVENT = 'source_event'
 
 
@@ -68,6 +69,6 @@ class MapperMixin(object):
         super(EventSource, self).save(model=model, bind_return=bind_return)
 
         edge = self.mapper.connect(out_v=self.event, in_v=model,\
-            label=SOURCE_EVENT)
+            label=TRIGGERED_SOURCE_EVENT)
 
         self.mapper.save(edge, bind_return=bind_return)
