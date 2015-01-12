@@ -5,6 +5,7 @@ SOURCE_EVENT = 'source_event'
 
 
 class Entity(Vertex):
+    _node_type = SOURCE_EVENT
     allow_undefined = True
 
 
