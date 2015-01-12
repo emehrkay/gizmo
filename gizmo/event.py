@@ -1,4 +1,5 @@
 from entity import Vertex, _GenericMapper
+from types import MethodType
 
 
 TRIGGERED_SOURCE_EVENT = 'triggered_source_event'
