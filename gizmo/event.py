@@ -66,7 +66,7 @@ class MapperMixin(object):
 
         super(EventSource, self).save(model=model, bind_return=bind_return)
 
-        edge = self.mapper.connect(out_v=model, in_v=self.event,\
+        edge = self.mapper.connect(out_v=self.event, in_v=model,\
             label=SOURCE_EVENT)
 
         self.mapper.save(edge, bind_return=bind_return)
