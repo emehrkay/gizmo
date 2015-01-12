@@ -2,6 +2,7 @@ from entity import Vertex, _GenericMapper
 
 
 TRIGGERED_SOURCE_EVENT = 'triggered_source_event'
+SOURCE_EVENT_ENTRY = 'source_event_entry'
 SOURCE_EVENT = 'source_event'
 
 
@@ -62,13 +63,22 @@ class MapperMixin(object):
         return self
 
     def save(self, model, bind_return=True):
+        """
+        Method used to save the original model and to add the 
+        source -> event and
+        model -> event
+        relationships
+        """
         if self.source_model is None:
             error = 'There must be a source defined before saving.'
             raise EventSourceException(error)
 
         super(EventSource, self).save(model=model, bind_return=bind_return)
 
-        edge = self.mapper.connect(out_v=self.source_model, in_v=model,\
+        source_edge = self.mapper.connect(out_v=self.source_model, in_v=self.event,\
             label=TRIGGERED_SOURCE_EVENT)
+        event_edge = self.mapper.connect(out_v=model, in_v=model,\
+            label=SOURCE_EVENT_ENTRY)
 
-        self.mapper.save(edge, bind_return=bind_return)
+        self.mapper.save(source_edge, bind_return=False)
+        self.mapper.save(event_edge, bind_return=False)
