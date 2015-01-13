@@ -12,15 +12,15 @@ def get_dict_key(dict, value):
     for k, v in dict.iteritems():
         if v == value:
             return k
-    
+
     return None
-    
+
 
 def get_entity_entry(entity_queue, entity):
     for i, s in entity_queue.iteritems():
         if s == entity:
             return {i: entity_queue[i]}
-            
+
     return None
 
 
@@ -29,7 +29,7 @@ class MapperTests(unittest.TestCase):
         self.gremlin = Gremlin()
         self.request = _Request('localhost', 'x', 'x')
         self.mapper = Mapper(self.request, self.gremlin)
-    
+
     def get_model_data(self, data, id=None, edge=False):
         seed = random()
         d = {
@@ -38,13 +38,13 @@ class MapperTests(unittest.TestCase):
             GIZMO_MODIFIED  : 'some_mod_%s' % seed,
             GIZMO_NODE_TYPE : 'some_node_type_%s' % seed,
         }
-        
+
         if edge:
             d[GIZMO_LABEL] = 'some_label_%s' % seed
-        
+
         if id is not None:
             d[GIZMO_ID] = id
-            
+
         return OrderedDict(sorted(d.items()))
 
     def test_mapper_instance(self):
@@ -57,7 +57,7 @@ class MapperTests(unittest.TestCase):
 
         self.assertTrue(isinstance(v, Vertex))
         self.assertTrue(v._type == 'vertex')
-        
+
     def test_can_create_vertex_with_data(self):
         d = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(d, TestVertex)
@@ -71,22 +71,22 @@ class MapperTests(unittest.TestCase):
         for k, v in d.iteritems():
             self.assertIn(k, vd)
             self.assertEqual(v, vd[k])
-        
+
     def test_can_update_existing_vertex(self):
         vid = 1111
         d = self.get_model_data({
-            'name': 'mark', 
+            'name': 'mark',
             'sex': 'male'
         }, vid)
         v = self.mapper.create_model(d, TestVertex)
-        
+
         self.mapper.save(v)._build_queries()
 
         params = self.mapper.params
         immutable = v._immutable
         query_ps = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
-        
+
         for k, v in d.iteritems():
             if k not in immutable:
                 prop = "it.setProperty('%s', %s)" % (k, get_dict_key(params, v))
@@ -97,13 +97,13 @@ class MapperTests(unittest.TestCase):
         close = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
         params = (entry_v1.keys()[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
-        
+
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d), len(self.mapper.params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = self.get_model_data({
-            'name': 'mark', 
+            'name': 'mark',
             'sex': 'male'
         })
         v = self.mapper.create_model(d, TestVertex)
@@ -114,14 +114,14 @@ class MapperTests(unittest.TestCase):
         immutable = v._immutable
         props = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
-        
+
         for k,v in d.iteritems():
             if k not in immutable:
                 prop = "'%s': %s" % (k, get_dict_key(params, v))
                 props.append(prop)
-                
+
         expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
-        
+
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d), len(self.mapper.params))
 
@@ -132,7 +132,7 @@ class MapperTests(unittest.TestCase):
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
         edge = self.mapper.create_model(ed, TestEdge)
-        
+
         self.assertTrue(isinstance(edge, Edge))
         self.assertTrue(isinstance(edge.out_v, TestVertex))
         self.assertTrue(isinstance(edge.in_v, TestVertex))
@@ -144,10 +144,19 @@ class MapperTests(unittest.TestCase):
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v, '_label': 'knows'}
         edge = self.mapper.create_model(ed, TestEdge)
-        
+
         self.mapper.save(edge)._build_queries()
 
         print self.mapper.queries
-        
+
+class QueryTests(unittest.TestCase):
+    def setUp(self):
+        self.gremlin = Gremlin()
+        self.request = _Request('localhost', 'x', 'x')
+        self.mapper = Mapper(self.request, self.gremlin)
+
+    def test_query_wont_save_model_twice(self):
+        print 'xxxx'
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,5 @@
-from entity import Vertex, _GenericMapper
+from entity import Vertex
+from mapper import _GenericMapper
 from types import MethodType
 
 
@@ -30,6 +31,8 @@ class MapperMixin(object):
     The source must be defined before saving the model.
     """
 
+    source_model = None
+
     def create_model(self, data=None, model_class=None, data_type='python'):
         """
         This method is used to create the model defined in the original
@@ -43,7 +46,7 @@ class MapperMixin(object):
         set_item = model.__setitem__
 
         def set_item_override(self, name, value):
-            if model[name] != value:
+            if self._initial_load is False and model[name] != value:
                 event[name] = value
 
             return set_item(name, value)
@@ -54,32 +57,27 @@ class MapperMixin(object):
 
         return model
 
-    def set_source(self, source):
+    def save(self, model, bind_return=True, source=None):
         """
-        The source is the out vertex, or the thing that triggered the change
-        in the model to be saved
-        """
-        self.source_model = source
-
-        return self
-
-    def save(self, model, bind_return=True):
-        """
-        Method used to save the original model and to add the 
+        Method used to save the original model and to add the
         source -> event and
         model -> event
         relationships
         """
-        if self.source_model is None:
-            error = 'There must be a source defined before saving.'
-            raise EventSourceException(error)
 
-        super(EventSource, self).save(model=model, bind_return=bind_return)
+        super(MapperMixin, self).save(model=model, bind_return=bind_return)
 
-        source_edge = self.mapper.connect(out_v=self.source_model, in_v=self.event,\
-            label=TRIGGERED_SOURCE_EVENT)
-        event_edge = self.mapper.connect(out_v=model, in_v=model,\
-            label=SOURCE_EVENT_ENTRY)
+        if source is not None:
+            source_edge = self.mapper.connect(out_v=source,\
+                in_v=self.event, label=TRIGGERED_SOURCE_EVENT)
+            event_edge = self.mapper.connect(out_v=model, in_v=self.event,\
+                label=SOURCE_EVENT_ENTRY)
 
-        self.mapper.save(source_edge, bind_return=False)
-        self.mapper.save(event_edge, bind_return=False)
+            self.mapper.save(source_edge, bind_return=True)
+            self.mapper.save(event_edge, bind_return=True)
+
+        return self
+
+    def get_event_history(self, model, range_start=None, range_end=None):
+        gremlin = self.mapper.gremlin
+        #TODO: fill this query out

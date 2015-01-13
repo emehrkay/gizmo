@@ -17,6 +17,8 @@ class _RootEntity(type):
     """
     def __new__(cls, name, bases, attrs):
         def new_init__(self, data=None, data_type='python'):
+            self._initial_load = True
+
             if data is None:
                 data = {}
             
@@ -80,7 +82,8 @@ class _RootEntity(type):
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
             
             self.dirty = False
-    
+            self._initial_load = True
+
         attrs['__init__'] = new_init__
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
         map_name = '%s.%s' % (cls.__module__, cls.__name__)

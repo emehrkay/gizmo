@@ -139,7 +139,7 @@ class _GenericMapper(object):
                     edge = self.mapper.query(gremlin=gremlin).first()
                     save = False
 
-                    query.by_id(edge['_id'], model, 'xxxx')
+                    query.by_id(edge['_id'], model)
                 except Exception, e:
                     save = True
 
@@ -565,14 +565,13 @@ class Query(object):
 
         return self.add_gremlin_query(model)
 
-    def save(self, model, set_variable=False):
+    def save(self, model, set_variable=None):
+        model.field_type = 'python'
+
         if model._type is None:
             raise Exception('The model does not have a _type defined')
 
-        _id = model['_id']
-        immutable = model.immutable
-
-        if _id is None:
+        if not model['_id']:
             if model._type == 'vertex':
                 self.add_vertex(model, set_variable)
             else:
