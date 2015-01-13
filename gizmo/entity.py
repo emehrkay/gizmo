@@ -119,6 +119,9 @@ class _BaseEntity(object):
         return field
     
     def __setitem__(self, name, value):
+        return self._set_item(name, value)
+
+    def _set_item(self, name, value):
         if name not in self.immutable and name in self.fields:
             self.fields[name].value = value
             self.dirty = True
@@ -129,6 +132,9 @@ class _BaseEntity(object):
         return self
         
     def __getitem__(self, name):
+        return _get_item(self, name):
+    
+    def _get_item(self, name):
         value = None
 
         if name in self.fields:

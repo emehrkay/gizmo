@@ -41,9 +41,9 @@ class MapperMixin(object):
         """
         model = super(MapperMixin, self).create_model(data=data,\
             model_class=model_class, data_type=data_type)
-        self.event = event = self.mapper.create_model(model_class=Entity,\
+        model._event = event = self.mapper.create_model(model_class=Entity,\
             data_type=data_type)
-        set_item = model.__setitem__
+        set_item = model._set_item
 
         def set_item_override(self, name, value):
             if self._initial_load is False and model[name] != value:
@@ -53,7 +53,7 @@ class MapperMixin(object):
 
         new_setter = MethodType(set_item_override, model, type(model))
 
-        setattr(model, '__setitem__', new_setter)
+        setattr(model, '_set_item', new_setter)
 
         return model
 
@@ -69,8 +69,8 @@ class MapperMixin(object):
 
         if source is not None:
             source_edge = self.mapper.connect(out_v=source,\
-                in_v=self.event, label=TRIGGERED_SOURCE_EVENT)
-            event_edge = self.mapper.connect(out_v=model, in_v=self.event,\
+                in_v=model._event, label=TRIGGERED_SOURCE_EVENT)
+            event_edge = self.mapper.connect(out_v=model, in_v=model._event,\
                 label=SOURCE_EVENT_ENTRY)
 
             self.mapper.save(source_edge, bind_return=True)
