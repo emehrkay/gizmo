@@ -82,7 +82,7 @@ class _RootEntity(type):
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
             
             self.dirty = False
-            self._initial_load = True
+            self._initial_load = False
 
         attrs['__init__'] = new_init__
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
