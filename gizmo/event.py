@@ -68,9 +68,18 @@ class MapperMixin(object):
         super(MapperMixin, self).save(model=model, bind_return=bind_return)
 
         if source is not None:
+            event = self.mapper.create_model(model_class=Entity,\
+                data_type=model.data_type)
+            
+            for field, change in model.changes.iteritems():
+                event[field] = change
+            
+            if model.atomic_changes:
+                pass
+            
             source_edge = self.mapper.connect(out_v=source,\
-                in_v=model._event, label=TRIGGERED_SOURCE_EVENT)
-            event_edge = self.mapper.connect(out_v=model, in_v=model._event,\
+                in_v=event, label=TRIGGERED_SOURCE_EVENT)
+            event_edge = self.mapper.connect(out_v=model, in_v=event,\
                 label=SOURCE_EVENT_ENTRY)
 
             self.mapper.save(source_edge, bind_return=True)

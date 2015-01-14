@@ -19,7 +19,7 @@ Gremlin is the basis of all interactions between Gizmo and the Rexster server. G
 
 If you're new to Gremlin there are a few good resources to check out that will help you get the concept and allow you to hit the ground running with this library.
 
-* [Tinkerpop Gremlin](https://github.com/tinkerpop/gremlin/wiki) -- Tinkerpop's Gremlin documenation.
+* [Tinkerpop Gremlin](https://github.com/tinkerpop/gremlin/wiki) -- Tinkerpop's Gremlin documentation.
 * [SQL2Gremlin](http://sql2gremlin.com) -- A site dedicated to explaing how you can convert some simple SQL into Gremlin/Groovy scripts.
 * [GremlinDocs](http://gremlindocs.com) -- A site that goes over the core functions that you will use in your scripts.
 * [Tinkerpop mailing list](https://groups.google.com/forum/#!forum/gremlin-users) -- These guys/gals are cool. 
@@ -63,7 +63,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Entities
 
-A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly refered to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
+A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly referred to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
 
 Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You will extend these to create custom model definitions or you can use the `GenericVertex` for vertices and `GenericEdge` for edges.
 
@@ -71,7 +71,7 @@ Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You 
 
 Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
 
-When creating custom models, Gizmo requires that you define a `node_type` property with each. This should be a uniue string amoung your models as it will allow you to easily query for that model at a later date. 
+When creating custom models, Gizmo requires that you define a `node_type` property with each. This should be a unique string among your models as it will allow you to easily query for that model at a later date. 
 
     class Article(Vertex):
         title = String()
@@ -83,13 +83,13 @@ When creating custom models, Gizmo requires that you define a `node_type` proper
 
 Gizmo entities comes with a few predefined fields that will help you structure and query your data once it is saved in your database. By default the fields member defines how your model's data is structured. 
 
-If you want your model to have unstructured data, set the instance member `allow_undefined` to `True` in the `__init__` method before you call super. When this memeber is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
+If you want your model to have unstructured data, set the instance member `allow_undefined` to `True`. When this member is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
 
 > `GenericVertex` and `GenericEdge` have allowed_undefined set to True by default
 
 **Field Types**
 
-Gizmo ships whith a few self-explanatory types for fields. The field object main job is to convert the data from a Python type to a Groovy type (if necessary). 
+Gizmo ships with a few self-explanatory types for fields. The field object main job is to convert the data from a Python type to a Groovy type (if necessary). 
 
 > You can always add more by extending `field.Field` and defining `to_python` and `to_graph` methods.
 
@@ -144,7 +144,7 @@ You can augment the Gremlin object directly ([more details](https://github.com/e
     
     ...
     
-Statments are useful when you create complex queries often and want to reference that logic in multiple places.
+Statements are useful when you create complex queries often and want to reference that logic in multiple places.
 
     from gremlinpy.statement import Statement
     

@@ -5,7 +5,7 @@ from gremlinpy.gremlin import Gremlin
 
 TEST_EDGE = 'test_edge'
 TEST_VERTEX = 'test_vertex'
-
+TEST_UNDEFINED_VERTEX = 'test_undefied_vertex'
 
 class TestVertex(Vertex):
     @property
@@ -17,6 +17,11 @@ class TestEdge(Edge):
     @property
     def _node_type(self):
         return TEST_EDGE
+
+
+class TestUndefinedVertex(Vertex):
+    _node_type = TEST_UNDEFINED_VERTEX
+    allow_undefined = True
 
 
 class EntityTests(unittest.TestCase):
@@ -52,6 +57,16 @@ class EntityTests(unittest.TestCase):
         for k, v in d.iteritems():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
+
+    def test_can_add_field_to_undefied_vertex(self):
+        d = {'one': 1, 'two': 2, 'three': 3}
+        v = TestUndefinedVertex(d)
+        data = v.data
+        
+        for k, v in d.iteritems():
+            self.assertIn(k, data)
+            self.assertEqual(v, data[k])
+
 
 if __name__ == '__main__':
     unittest.main()

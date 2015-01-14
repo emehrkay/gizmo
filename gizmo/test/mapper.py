@@ -5,7 +5,7 @@ from gizmo.mapper import Mapper, Vertex, Edge
 from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
-from entity import TestVertex, TestEdge
+from entity import TestVertex, TestEdge, TestUndefinedVertex
 
 
 def get_dict_key(dict, value):
@@ -157,6 +157,12 @@ class QueryTests(unittest.TestCase):
 
     def test_query_wont_save_model_twice(self):
         print 'xxxx'
+
+
+class EventSourceTests(unittest.TestCase):
+    def setUp(self):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

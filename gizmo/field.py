@@ -30,16 +30,40 @@ class _Fields(dict):
         # sorting field names do not matter
         # this is done for testing purposes
         return OrderedDict(sorted(data.items()))
+    
+    @property
+    def changed(self):
+        changed = {}
+        
+        for name, field in self.iteritems():
+            if field.track_changes and len(field._changes):
+                field.data_type = self.data_type
+                changed[name] = field.value
+        
+        return OrderedDict(sorted(changed.items()))
+
+    @property
+    def unchanged(self):
+        changed = {}
+        
+        for name, field in self.iteritems():
+            if field.track_changes and len(field._changes) == 0:
+                field.data_type = self.data_type
+                changed[name] = field.value
+        
+        return OrderedDict(sorted(changed.items()))
 
 
 class Field(object):
 
-    def __init__(self, value=None, data_type='python', set_max=None):
+    def __init__(self, value=None, data_type='python', set_max=None, track_changes=True):
         self.field_value = value
         self.data_type = data_type
         self.set_count = 0
         self.set_max = set_max
         self.value = value
+        self.track_changes = track_changes
+        self._changes = []
 
     def _get_value(self):
         if self.data_type == 'python':
@@ -54,6 +78,8 @@ class Field(object):
             if hasattr(value, '__call__'):
                 value = value()
             
+            self._changes.append(value)
+
             self.field_value = value
             
     def _del_value(self):

@@ -18,16 +18,24 @@ class _RootEntity(type):
     def __new__(cls, name, bases, attrs):
         def new_init__(self, data=None, data_type='python'):
             self._initial_load = True
+            self.allow_undefined = False
+            self.immutable = []
+            self.atomic_changes = False
 
             if data is None:
                 data = {}
             
             self.fields = _Fields({
-                GIZMO_MODEL     : String(get_qualified_instance_name(self), data_type=data_type),
-                GIZMO_CREATED   : DateTime(value=current_date_time, data_type=data_type, set_max=1),
-                GIZMO_MODIFIED  : DateTime(value=current_date_time, data_type=data_type),
-                GIZMO_NODE_TYPE : String(self._node_type, data_type=data_type),
-                GIZMO_ID        : String(data_type=data_type),
+                GIZMO_MODEL: String(get_qualified_instance_name(self),\
+                    data_type=data_type, track_changes=False),
+                GIZMO_CREATED: DateTime(value=current_date_time,\
+                    data_type=data_type, set_max=1, track_changes=False),
+                GIZMO_MODIFIED: DateTime(value=current_date_time,\
+                    data_type=data_type, track_changes=False),
+                GIZMO_NODE_TYPE: String(self._node_type, data_type=data_type,\
+                    track_changes=False),
+                GIZMO_ID: String(data_type=data_type,\
+                    track_changes=False),
             })
             
             if isinstance(self, Edge):
@@ -88,7 +96,7 @@ class _RootEntity(type):
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
         map_name = '%s.%s' % (cls.__module__, cls.__name__)
         _MAP[map_name] = cls
-        
+
         return cls
 
 
@@ -152,6 +160,11 @@ class _BaseEntity(object):
         self.fields.data_type = data_type
     
     field_type = property(_get_data_type, _set_data_type)
+
+    def get_rep(self):
+        entity = 'e' if self._type == 'edge' else 'v'
+        
+        return entity, self['_id']
     
     @property
     def _node_type(self):
@@ -160,11 +173,14 @@ class _BaseEntity(object):
     @property
     def data(self):
         return self.fields.data
-        
-    def get_rep(self):
-        entity = 'e' if self._type == 'edge' else 'v'
-        
-        return entity, self['_id']
+
+    @property
+    def changed(self):
+        return self.fields.changed
+    
+    @property
+    def unchanged(self):
+        return self.fields.unchanged
 
 
 class Vertex(_BaseEntity):
