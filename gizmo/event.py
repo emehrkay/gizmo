@@ -31,32 +31,6 @@ class MapperMixin(object):
     The source must be defined before saving the model.
     """
 
-    source_model = None
-
-    def create_model(self, data=None, model_class=None, data_type='python'):
-        """
-        This method is used to create the model defined in the original
-        mapper. It captures all value changes on the node and stores them
-        in an gizmo.event.Entity vertex
-        """
-        model = super(MapperMixin, self).create_model(data=data,\
-            model_class=model_class, data_type=data_type)
-        model._event = event = self.mapper.create_model(model_class=Entity,\
-            data_type=data_type)
-        set_item = model._set_item
-
-        def set_item_override(self, name, value):
-            if self._initial_load is False and model[name] != value:
-                event[name] = value
-
-            return set_item(name, value)
-
-        new_setter = MethodType(set_item_override, model, type(model))
-
-        setattr(model, '_set_item', new_setter)
-
-        return model
-
     def save(self, model, bind_return=True, source=None):
         """
         Method used to save the original model and to add the
@@ -68,22 +42,28 @@ class MapperMixin(object):
         super(MapperMixin, self).save(model=model, bind_return=bind_return)
 
         if source is not None:
-            event = self.mapper.create_model(model_class=Entity,\
-                data_type=model.data_type)
-            
-            for field, change in model.changes.iteritems():
-                event[field] = change
-            
-            if model.atomic_changes:
-                pass
-            
-            source_edge = self.mapper.connect(out_v=source,\
-                in_v=event, label=TRIGGERED_SOURCE_EVENT)
-            event_edge = self.mapper.connect(out_v=model, in_v=event,\
-                label=SOURCE_EVENT_ENTRY)
+            fields_changed = len(model.changed) > 0
+            fields_removed = False
 
-            self.mapper.save(source_edge, bind_return=True)
-            self.mapper.save(event_edge, bind_return=True)
+            self.event = event = self.mapper.create_model(model_class=Entity,\
+                data_type=model.data_type)
+
+            for field, change in model.changed.iteritems():
+                event[field] = change
+
+            if model.atomic_changes:
+                #TODO: track the fields that were removed
+                pass
+
+            #only create the edges
+            if fields_changed or fields_removed:
+                source_edge = self.mapper.connect(out_v=source,\
+                    in_v=event, label=TRIGGERED_SOURCE_EVENT)
+                event_edge = self.mapper.connect(out_v=model, in_v=event,\
+                    label=SOURCE_EVENT_ENTRY)
+
+                self.mapper.save(source_edge, bind_return=True)
+                self.mapper.save(event_edge, bind_return=True)
 
         return self
 
