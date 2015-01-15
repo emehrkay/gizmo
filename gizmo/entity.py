@@ -179,6 +179,10 @@ class _BaseEntity(object):
     def unchanged(self):
         return self.fields.unchanged
 
+    @property
+    def removed(self):
+        return self.fields.removed
+
 
 class Vertex(_BaseEntity):
     @property

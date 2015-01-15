@@ -54,6 +54,13 @@ class _Fields(dict):
 
         return OrderedDict(sorted(changed.items()))
 
+    @property
+    def removed(self):
+        changed = self.changed
+        unchanged = self.unchanged
+        
+        return set(changed.keys()) - set(unchanged.keys())
+
 
 class Field(object):
 

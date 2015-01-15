@@ -43,20 +43,20 @@ class MapperMixin(object):
 
         if source is not None:
             fields_changed = len(model.changed) > 0
-            fields_removed = False
+            fields_removed = len(model.removed) > 0
 
-            self.event = event = self.mapper.create_model(model_class=Entity,\
-                data_type=model.data_type)
-
-            for field, change in model.changed.iteritems():
-                event[field] = change
-
-            if model.atomic_changes:
-                #TODO: track the fields that were removed
-                pass
-
-            #only create the edges
+            #only create the source event if there were actual changes
             if fields_changed or fields_removed:
+                self.event = event = self.mapper.create_model(model_class=Entity,\
+                    data_type=model.data_type)
+
+                for field, change in model.changed.iteritems():
+                    event[field] = change
+
+                if model.atomic_changes and fields_removed:
+                    #TODO: track the fields that were removed
+                    pass
+                
                 source_edge = self.mapper.connect(out_v=source,\
                     in_v=event, label=TRIGGERED_SOURCE_EVENT)
                 event_edge = self.mapper.connect(out_v=model, in_v=event,\
