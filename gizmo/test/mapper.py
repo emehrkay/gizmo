@@ -47,23 +47,6 @@ class MapperTests(unittest.TestCase):
         self.request = TestRequest('localhost', 'x', 'x')
         self.mapper = Mapper(self.request, self.gremlin)
 
-    def get_model_data(self, data, model):
-        seed = random()
-        d = {
-            GIZMO_MODEL     : 'some_model_%s' % seed,
-            GIZMO_CREATED   : 'some_created_%s' % seed,
-            GIZMO_MODIFIED  : 'some_mod_%s' % seed,
-            GIZMO_NODE_TYPE : 'some_node_type_%s' % seed,
-        }
-
-        if edge:
-            d[GIZMO_LABEL] = 'some_label_%s' % seed
-
-        if id is not None:
-            d[GIZMO_ID] = id
-
-        return OrderedDict(sorted(d.items()))
-
     def test_mapper_instance(self):
         m = Mapper(self.gremlin, self.request)
 
@@ -148,8 +131,8 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
     def test_can_create_edge_with_existing_vertices(self):
-        v1 = self.get_model_data({}, id=15)
-        v2 = self.get_model_data({}, id=10)
+        v1 = {'_id': 15}
+        v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
@@ -160,8 +143,8 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(isinstance(edge.in_v, TestVertex))
 
     def test_can_queue_save_edge_with_existing_vertices(self):
-        v1 = self.get_model_data({}, id=15)
-        v2 = self.get_model_data({}, id=10)
+        v1 = {'_id': 15}
+        v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v, '_label': 'knows'}
