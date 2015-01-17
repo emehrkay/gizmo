@@ -6,14 +6,17 @@ from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
 from entity import TestVertex, TestEdge, TestUndefinedVertex
+import copy
 
 
-def get_dict_key(dict, value):
-    for k, v in dict.iteritems():
+def get_dict_key(params, value, unset=False):
+    for k, v in params.iteritems():
         if v == value:
-            return k
+            if unset:
+                del(params[k])
+            return k, params
 
-    return None
+    return None, dict
 
 
 def get_entity_entry(entity_queue, entity):
@@ -24,13 +27,25 @@ def get_entity_entry(entity_queue, entity):
     return None
 
 
+class TestRequest(_Request):
+    pass
+
+
+DEFAULT_FIELDS = [
+    GIZMO_MODEL,
+    GIZMO_CREATED,
+    GIZMO_MODIFIED,
+    GIZMO_NODE_TYPE,
+]
+
+
 class MapperTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
-        self.request = _Request('localhost', 'x', 'x')
+        self.request = TestRequest('localhost', 'x', 'x')
         self.mapper = Mapper(self.request, self.gremlin)
 
-    def get_model_data(self, data, id=None, edge=False):
+    def get_model_data(self, data, model):
         seed = random()
         d = {
             GIZMO_MODEL     : 'some_model_%s' % seed,
@@ -75,8 +90,7 @@ class MapperTests(unittest.TestCase):
     def test_can_update_existing_vertex(self):
         vid = 1111
         d = self.get_model_data({
-            'name': 'mark',
-            'sex': 'male'
+            'some_field': 'mark',
         }, vid)
         v = self.mapper.create_model(d, TestVertex)
 
@@ -102,28 +116,31 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(len(d), len(self.mapper.params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
-        d = self.get_model_data({
-            'name': 'mark',
-            'sex': 'male'
-        })
+        d = {
+            'some_field': 'mark',
+        }
         v = self.mapper.create_model(d, TestVertex)
 
         self.mapper.save(v)._build_queries()
 
-        params = self.mapper.params
-        immutable = v._immutable
+        params = copy.deepcopy(self.mapper.params)
+        sent_params = copy.deepcopy(self.mapper.params)
+
+        immutable = v.immutable
         props = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
+        v.field_type = 'graph'
 
-        for k,v in d.iteritems():
+        for k,v in v.data.iteritems():
             if k not in immutable:
-                prop = "'%s': %s" % (k, get_dict_key(params, v))
+                value, params = get_dict_key(params, v, True)
+                prop = "'%s': %s" % (k, value)
                 props.append(prop)
 
         expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
 
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(d), len(self.mapper.params))
+        self.assertEqual(len(d) + len(DEFAULT_FIELDS), len(sent_params))
 
     def test_can_create_edge_with_existing_vertices(self):
         v1 = self.get_model_data({}, id=15)
@@ -152,7 +169,7 @@ class MapperTests(unittest.TestCase):
 class QueryTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
-        self.request = _Request('localhost', 'x', 'x')
+        self.request = TestRequest('localhost', 'x', 'x')
         self.mapper = Mapper(self.request, self.gremlin)
 
     def test_query_wont_save_model_twice(self):

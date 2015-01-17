@@ -23,12 +23,13 @@ class _RootEntity(type):
             if data is None:
                 data = {}
 
+            modified = lambda: current_date_time(1)
             self.fields = _Fields({
                 GIZMO_MODEL: String(get_qualified_instance_name(self),\
                     data_type=data_type, track_changes=False),
                 GIZMO_CREATED: DateTime(value=current_date_time,\
                     data_type=data_type, set_max=1, track_changes=False),
-                GIZMO_MODIFIED: DateTime(value=current_date_time,\
+                GIZMO_MODIFIED: DateTime(value=modified,\
                     data_type=data_type, track_changes=False),
                 GIZMO_NODE_TYPE: String(self._node_type, data_type=data_type,\
                     track_changes=False),
@@ -80,7 +81,6 @@ class _RootEntity(type):
                         value = None
 
                         if name in data:
-                            print '<%s %s>' % (name, data[name])
                             value = data[name]
                             del(undefined[name])
 

@@ -1,5 +1,2 @@
-* Make collections a thing
 * Fix map/list binding for adding nodes, works for updating
-* add cutsom mappers to mapper.Mapper
-    * augment methods to allow for custom mapping
 * Flesh out the Traversal object

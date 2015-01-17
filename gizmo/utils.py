@@ -30,6 +30,6 @@ def current_date():
 def current_time():
     pass
 
-def current_date_time():
-    return int(time.time()) * 1000
+def current_date_time(offset=0):
+    return (int(time.time()) + offset) * 1000
 
