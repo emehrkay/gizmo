@@ -1,26 +1,31 @@
 import unittest
 from random import randrange
 from gizmo.entity import Vertex, Edge
+from gizmo.field import String
 from gremlinpy.gremlin import Gremlin
 
 TEST_EDGE = 'test_edge'
 TEST_VERTEX = 'test_vertex'
 TEST_UNDEFINED_VERTEX = 'test_undefied_vertex'
+TEST_UNDEFINED_EDGE = 'test_undefied_edge'
 
 class TestVertex(Vertex):
-    @property
-    def _node_type(self):
-        return TEST_VERTEX
+    some_field = String()
+    _node_type = TEST_VERTEX
 
 
 class TestEdge(Edge):
-    @property
-    def _node_type(self):
-        return TEST_EDGE
+    some_field = String()
+    _node_type = TEST_EDGE
 
 
 class TestUndefinedVertex(Vertex):
     _node_type = TEST_UNDEFINED_VERTEX
+    allow_undefined = True
+
+
+class TestUndefinedEdge(Vertex):
+    _node_type = TEST_UNDEFINED_EDGE
     allow_undefined = True
 
 
@@ -35,7 +40,7 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(v._type, 'vertex')
         
     def test_can_create_vertex_with_data(self):
-        d = {'one': 1, 'two': 2, 'three': 3}
+        d = {'some_field': 1}
         v = TestVertex(d)
         data = v.data
 
@@ -50,7 +55,7 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(e._type, 'edge')
         
     def test_can_create_edge_with_data(self):
-        d = {'one': 1, 'two': 2, 'three': 3}
+        d = {'some_field': 1}
         e = TestEdge(d)
         data = e.data
 
@@ -58,11 +63,20 @@ class EntityTests(unittest.TestCase):
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 
-    def test_can_add_field_to_undefied_vertex(self):
+    def test_can_add_undefined_field_to_undefied_vertex(self):
         d = {'one': 1, 'two': 2, 'three': 3}
         v = TestUndefinedVertex(d)
         data = v.data
-        
+
+        for k, v in d.iteritems():
+            self.assertIn(k, data)
+            self.assertEqual(v, data[k])
+
+    def test_can_add_undefined_field_to_undefied_edge(self):
+        d = {'one': 1, 'two': 2, 'three': 3}
+        v = TestUndefinedEdge(d)
+        data = v.data
+
         for k, v in d.iteritems():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])

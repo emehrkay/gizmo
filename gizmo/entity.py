@@ -3,6 +3,7 @@ from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTA
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from utils import current_date_time
 from inspect import isfunction
+import copy
 
 
 #Holds the model->object mappings
@@ -71,11 +72,20 @@ class _RootEntity(type):
 
             # build the properties for the instance
             # ignore things that start with an underscore and methods
+            undefined = copy.deepcopy(data)
+
             for name, field in attrs.iteritems():
                 if not name.startswith('_'):
                     if isinstance(field, Field):
+                        value = None
+
+                        if name in data:
+                            print '<%s %s>' % (name, data[name])
+                            value = data[name]
+                            del(undefined[name])
+
                         kwargs = {
-                            'value': data.get(name, None),
+                            'value': value,
                             'data_type': field.data_type,
                             'set_max': field.set_max,
                             'track_changes': field.track_changes,
@@ -87,7 +97,7 @@ class _RootEntity(type):
 
             self.data_type = 'python'
 
-            #self.hydrate(data, True)
+            self.hydrate(undefined)
 
             if data is not None and GIZMO_ID in data:
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
