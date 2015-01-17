@@ -8,7 +8,13 @@ import copy
 
 #Holds the model->object mappings
 _MAP = {}
-
+DEFAULT_MODEL_FIELDS = [
+    GIZMO_MODEL,
+    GIZMO_CREATED,
+    GIZMO_MODIFIED,
+    GIZMO_NODE_TYPE,
+    GIZMO_ID,
+]
 
 class _RootEntity(type):
     """
@@ -23,7 +29,11 @@ class _RootEntity(type):
             if data is None:
                 data = {}
 
-            modified = lambda: current_date_time(1)
+            self.dirty = False
+
+            # the modified field is a microsecond later than the created
+            # this is done for testing purposes
+            modified = lambda: current_date_time(0.001)
             self.fields = _Fields({
                 GIZMO_MODEL: String(get_qualified_instance_name(self),\
                     data_type=data_type, track_changes=False),
@@ -79,10 +89,13 @@ class _RootEntity(type):
                 if not name.startswith('_'):
                     if isinstance(field, Field):
                         value = None
-
+                        
                         if name in data:
                             value = data[name]
                             del(undefined[name])
+
+                        if name not in DEFAULT_MODEL_FIELDS:
+                            self.dirty = True
 
                         kwargs = {
                             'value': value,
@@ -102,7 +115,6 @@ class _RootEntity(type):
             if data is not None and GIZMO_ID in data:
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
 
-            self.dirty = False
 
         attrs['__init__'] = new_init__
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)

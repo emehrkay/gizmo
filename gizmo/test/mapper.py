@@ -31,12 +31,14 @@ class TestRequest(_Request):
     pass
 
 
-DEFAULT_FIELDS = [
+DEFAULT_INSERT_FIELDS = [
     GIZMO_MODEL,
     GIZMO_CREATED,
     GIZMO_MODIFIED,
     GIZMO_NODE_TYPE,
 ]
+
+DEFAULT_UPDATE_FIELDS = [GIZMO_ID] + DEFAULT_INSERT_FIELDS
 
 
 class MapperTests(unittest.TestCase):
@@ -71,10 +73,10 @@ class MapperTests(unittest.TestCase):
         v = self.mapper.create_model(model_class=TestVertex)
 
         self.assertTrue(isinstance(v, Vertex))
-        self.assertTrue(v._type == 'vertex')
+        self.assertEquals(v._type, 'vertex')
 
     def test_can_create_vertex_with_data(self):
-        d = {'name': 'mark', 'sex': 'male'}
+        d = {'some_field': random()}
         v = self.mapper.create_model(d, TestVertex)
         vd = v.data
 
@@ -89,31 +91,34 @@ class MapperTests(unittest.TestCase):
 
     def test_can_update_existing_vertex(self):
         vid = 1111
-        d = self.get_model_data({
+        d = {
+            GIZMO_ID: vid,
             'some_field': 'mark',
-        }, vid)
+        }
         v = self.mapper.create_model(d, TestVertex)
-
         self.mapper.save(v)._build_queries()
 
         params = self.mapper.params
-        immutable = v._immutable
+        sent_params = copy.deepcopy(self.mapper.params)
+        immutable = v.immutable
         query_ps = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
+        v.field_type = 'graph'
 
-        for k, v in d.iteritems():
+        for k, v in v.data.iteritems():
             if k not in immutable:
-                prop = "it.setProperty('%s', %s)" % (k, get_dict_key(params, v))
+                value, paramsss = get_dict_key(params, v)
+                prop = "it.setProperty('%s', %s)" % (k, value)
                 query_ps.append(prop)
 
+        propv, params = get_dict_key(sent_params, vid)
 
-        propv = get_dict_key(params, vid)
         close = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
         params = (entry_v1.keys()[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
 
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(d), len(self.mapper.params))
+        self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = {
@@ -140,7 +145,7 @@ class MapperTests(unittest.TestCase):
         expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
 
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(d) + len(DEFAULT_FIELDS), len(sent_params))
+        self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
     def test_can_create_edge_with_existing_vertices(self):
         v1 = self.get_model_data({}, id=15)
