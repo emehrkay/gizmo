@@ -1,5 +1,6 @@
 import unittest
 from random import randrange, random
+from time import sleep
 from collections import OrderedDict
 from gizmo.mapper import Mapper, Vertex, Edge
 from gizmo.request import _Request
@@ -28,7 +29,8 @@ def get_entity_entry(entity_queue, entity):
 
 
 class TestRequest(_Request):
-    pass
+    def __init__(self):
+        pass
 
 
 DEFAULT_INSERT_FIELDS = [
@@ -44,7 +46,7 @@ DEFAULT_UPDATE_FIELDS = [GIZMO_ID] + DEFAULT_INSERT_FIELDS
 class MapperTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
-        self.request = TestRequest('localhost', 'x', 'x')
+        self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin)
 
     def test_mapper_instance(self):
@@ -146,27 +148,42 @@ class MapperTests(unittest.TestCase):
         v1 = {'_id': 15}
         v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
+        sleep(0.5) #sleep so that the times will be unique across entities
         in_v = self.mapper.create_model(v2, TestVertex)
+        sleep(0.5)
         ed = {'out_v': out_v, 'in_v': in_v, '_label': 'knows'}
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
 
         print self.mapper.queries
+        # TODO: build and test all queries and params
+    
+    def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):
+        # TODO: create a test cast that will have one vertex as in insert, one
+        # as an update
+        pass
+    
 
 class QueryTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
-        self.request = TestRequest('localhost', 'x', 'x')
+        self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin)
 
-    def test_query_wont_save_model_twice(self):
-        print 'xxxx'
+
+class CustomMapperTests(unittest.TestCase):
+    def setUp(self):
+        self.gremlin = Gremlin()
+        self.request = TestRequest()
+        self.mapper = Mapper(self.request, self.gremlin)
 
 
 class EventSourceTests(unittest.TestCase):
     def setUp(self):
-        pass
+        self.gremlin = Gremlin()
+        self.request = TestRequest()
+        self.mapper = Mapper(self.request, self.gremlin)
 
 
 if __name__ == '__main__':
