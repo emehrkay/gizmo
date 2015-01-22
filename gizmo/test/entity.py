@@ -21,12 +21,12 @@ class TestEdge(Edge):
 
 class TestUndefinedVertex(Vertex):
     _node_type = TEST_UNDEFINED_VERTEX
-    allow_undefined = True
+    _allowed_undefined = True
 
 
 class TestUndefinedEdge(Vertex):
     _node_type = TEST_UNDEFINED_EDGE
-    allow_undefined = True
+    _allowed_undefined = True
 
 
 class EntityTests(unittest.TestCase):

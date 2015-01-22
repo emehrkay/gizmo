@@ -47,7 +47,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
     m = Mapper(r, g)
     
     class User(Vertex):
-        allow_undefined = True
+        _allowed_undefined = True
         _node_type = 'user'
         	
     u = User({'name': 'mark', 'sex': 'male'})
@@ -83,7 +83,7 @@ When creating custom models, Gizmo requires that you define a `node_type` proper
 
 Gizmo entities comes with a few predefined fields that will help you structure and query your data once it is saved in your database. By default the fields member defines how your model's data is structured. 
 
-If you want your model to have unstructured data, set the instance member `allow_undefined` to `True`. When this member is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
+If you want your model to have unstructured data, set the instance member `_allowed_undefined` to `True`. When this member is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
 
 > `GenericVertex` and `GenericEdge` have allowed_undefined set to True by default
 

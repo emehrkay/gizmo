@@ -10,7 +10,7 @@ SOURCE_EVENT = 'source_event'
 
 class Entity(Vertex):
     _node_type = SOURCE_EVENT
-    allow_undefined = True
+    _allowed_undefined = True
 
 
 class EntityMapper(_GenericMapper):
@@ -53,7 +53,7 @@ class MapperMixin(object):
                 for field, change in model.changed.iteritems():
                     event[field] = change
 
-                if model.atomic_changes and fields_removed:
+                if model._atomic_changes and fields_removed:
                     #TODO: track the fields that were removed
                     pass
                 

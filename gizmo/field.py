@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import json
 
 
 class _Fields(dict):
@@ -138,10 +139,15 @@ class Boolean(Field):
 
 
 class Map(Field):
-    pass
+
+    def to_python(self):
+        if isinstance(self.field_value, basestring):
+            return json.load(self.field_value)
+        else:
+            return self.field_value
 
 
-class List(Field):
+class List(Map):
     pass
 
 

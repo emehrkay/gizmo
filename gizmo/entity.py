@@ -30,6 +30,13 @@ class _RootEntity(type):
                 data = {}
 
             self.dirty = False
+            self.data_type = data_type
+
+            if '_allowed_undefined' in attrs:
+                self._allowed_undefined = attrs['_allowed_undefined']
+
+            if '_atomic_changes' in attrs:
+                self._atomic_changes = attrs['_atomic_changes']
 
             # the modified field is a microsecond later than the created
             # this is done for testing purposes
@@ -108,8 +115,6 @@ class _RootEntity(type):
                     elif isfunction(field) == False:
                         setattr(self, name, field)
 
-            self.data_type = 'python'
-
             self.hydrate(undefined)
 
             if data is not None and GIZMO_ID in data:
@@ -126,9 +131,9 @@ class _RootEntity(type):
 
 class _BaseEntity(object):
     __metaclass__ = _RootEntity
-    immutable = IMMUTABLE['vertex']
-    allow_undefined = False
-    atomic_changes = False
+    _immutable = IMMUTABLE['vertex']
+    _allowed_undefined = False
+    _atomic_changes = False
 
     def hydrate(self, data=None):
         if data is None:
@@ -152,10 +157,10 @@ class _BaseEntity(object):
         return field
 
     def __setitem__(self, name, value):
-        if name not in self.immutable and name in self.fields:
+        if name not in self._immutable and name in self.fields:
             self.fields[name].value = value
             self.dirty = True
-        elif self.allow_undefined:
+        elif self._allowed_undefined:
             self._add_undefined_field(name, value)
             self.dirty = True
 
@@ -166,7 +171,7 @@ class _BaseEntity(object):
 
         if name in self.fields:
             value = self.fields[name].value
-        elif self.allow_undefined:
+        elif self._allowed_undefined:
             field = self._add_undefined_field(name, value)
 
         return value
@@ -213,7 +218,7 @@ class Vertex(_BaseEntity):
 
 
 class GenericVertex(Vertex):
-    allow_undefined = True
+    _allowed_undefined = True
 
     @property
     def _node_type(self):
@@ -221,7 +226,7 @@ class GenericVertex(Vertex):
 
 
 class Edge(_BaseEntity):
-    immutable = IMMUTABLE['edge']
+    _immutable = IMMUTABLE['edge']
 
     @property
     def _type(self):
@@ -229,7 +234,7 @@ class Edge(_BaseEntity):
 
 
 class GenericEdge(Edge):
-    allow_undefined = True
+    _allowed_undefined = True
 
     @property
     def _node_type(self):

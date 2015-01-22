@@ -77,8 +77,8 @@ class _GenericMapper(object):
     def _save_vertex(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields
-        params are set, it will run a sub query to check to see if an entity exists
-        that matches those values
+        params are set, it will run a sub query to check to see if an entity 
+        exists that matches those values
         """
         query = Query(self.gremlin, self.mapper)
         save = True
@@ -217,7 +217,7 @@ class Mapper(object):
         for key, def_model in self.models.iteritems():
             if model == def_model:
                 ret_key = key
-                break;
+                break
 
         return ret_key
 
@@ -304,7 +304,7 @@ class Mapper(object):
             returns = []
 
             for k in self.models.keys():
-                returns.append("'%s': %s" % (k ,k))
+                returns.append("'%s': %s" % (k, k))
 
             ret = '[%s]' % ','.join(returns)
 
@@ -347,8 +347,10 @@ class Mapper(object):
         if update_models is None:
             update_models = {}
 
+        print '>>>>>>>>>>>>>'
         print script
         print params
+        print '>>>>>>>>>>>>>'
 
         response = self.request.send(script, params, update_models)
 
@@ -387,7 +389,7 @@ class Query(object):
         self.queries.append({
             'script': script,
             'params': params,
-            'model': model
+            'model': model,
         })
 
         return self
@@ -400,20 +402,21 @@ class Query(object):
 
         return self.reset()
 
-    def build_fields(self, data, immutable, prefix=''):
+    def build_fields(self, data, _immutable, prefix=''):
         gremlin = self.gremlin
 
         for key, val in data.iteritems():
             name = '%s_%s' % (prefix, key)
 
-            if key not in immutable:
+            if key not in _immutable:
                 value = val
 
                 if type(val) is dict or type(val) is list:
-                    listed = self.iterable_to_map(val, prefix)
+                    listed = self.iterable_to_graph(val, prefix)
                     value = "[%s]" % listed
+                    entry = "'%s': %s" % (key, value)
 
-                    self.fields.append(value)
+                    self.fields.append(entry)
                 else:
                     bound = gremlin.bind_param(value)
 
@@ -421,15 +424,15 @@ class Query(object):
 
         return self
 
-    def update_fields(self, data, immutable, prefix=''):
+    def update_fields(self, data, _immutable, prefix=''):
         gremlin = self.gremlin
 
         for k, v in data.iteritems():
             name = '%s_%s' % (prefix, k)
 
-            if k not in immutable:
+            if k not in _immutable:
                 if type(v) is dict or type(v) is list:
-                    gmap = self.iterable_to_map(v, prefix)
+                    gmap = self.iterable_to_graph(v, prefix)
                     entry = "it.setProperty('%s', %s)" % (k, gmap)
                 else:
                     bound = self.gremlin.bind_param(v)
@@ -439,22 +442,39 @@ class Query(object):
 
         return self
 
-    def iterable_to_map(self, iterable, prefix=''):
+    def iterable_to_graph(self, iterable, prefix=''):
+        if isinstance(iterable, dict):
+            return self._dict_to_graph(iterable, prefix)
+        else:
+            return self._list_to_graph(iterable, prefix)
+
+    def _dict_to_graph(self, iterable, prefix=''):
         gremlin = self.gremlin
-        gmap = []
+        gval = []
 
-        for k, v in enumerate(iterable):
-            name = '%s_%s' % (prefix, k)
-
-            if type(v) is dict or type(v) is list:
-                gmap.append(self.iterable_to_map(v, prefix))
+        for key, value in iterable.iteritems():
+            if type(value) is dict or type(value) is list:
+                gval.append(self.iterable_to_graph(value, prefix))
             else:
-                bound = gremlin.bind_param(v, name)
-                entry = "'%s': %s" % (k, bound[0])
+                bound = gremlin.bind_param(value)
 
-                gmap.append(entry)
+                gval.append("'%s': %s" % (key, bound[0]))
 
-        return ','.join(gmap)
+        return ','.join(gval)
+
+    def _list_to_graph(self, iterable, prefix=''):
+        gremlin = self.gremlin
+        gval = []
+
+        for key, value in enumerate(iterable):
+            if type(value) is dict or type(value) is list:
+                gval.append(self.iterable_to_graph(value, prefix))
+            else:
+                bound = gremlin.bind_param(value)
+
+                gval.append(bound[0])
+
+        return ','.join(gval)
 
     def by_id(self, _id, model, set_variable=None):
         gremlin = self.gremlin
@@ -555,7 +575,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        self.update_fields(model.fields.data, model.immutable, prefix=model.__class__.__name__)
+        self.update_fields(model.fields.data, model._immutable, prefix=model.__class__.__name__)
 
         next_func = Function(gremlin, 'next')
 
@@ -637,6 +657,7 @@ class Traversal(Gremlin):
 
 
 class Collection(object):
+
     def __init__(self, mapper, response):
         self.mapper = mapper
         self.response = response

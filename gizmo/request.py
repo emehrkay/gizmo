@@ -45,7 +45,7 @@ class _Response(object):
 
                     if isinstance(val, dict):
                         """
-                        the _id field is immutable in the interface,
+                        the _id field is _immutable in the interface,
                         but for newly created
                         entites it is passed back with the response.
                         Set it here

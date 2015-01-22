@@ -85,13 +85,13 @@ class MapperTests(unittest.TestCase):
 
         params = self.mapper.params
         sent_params = copy.deepcopy(self.mapper.params)
-        immutable = v.immutable
+        _immutable = v._immutable
         query_ps = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
         v.field_type = 'graph'
 
         for k, v in v.data.iteritems():
-            if k not in immutable:
+            if k not in _immutable:
                 value, paramsss = get_dict_key(params, v)
                 prop = "it.setProperty('%s', %s)" % (k, value)
                 query_ps.append(prop)
@@ -116,13 +116,13 @@ class MapperTests(unittest.TestCase):
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
 
-        immutable = v.immutable
+        _immutable = v._immutable
         props = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
         v.field_type = 'graph'
 
         for k,v in v.data.iteritems():
-            if k not in immutable:
+            if k not in _immutable:
                 value, params = get_dict_key(params, v, True)
                 prop = "'%s': %s" % (k, value)
                 props.append(prop)
@@ -144,7 +144,7 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(isinstance(edge.out_v, TestVertex))
         self.assertTrue(isinstance(edge.in_v, TestVertex))
 
-    def test_can_queue_save_edge_with_existing_vertices(self):
+    def test_can_queue_save_edge_with_existing_vertices(self):        
         v1 = {'_id': 15}
         v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
@@ -155,7 +155,6 @@ class MapperTests(unittest.TestCase):
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
-
         print self.mapper.queries
         # TODO: build and test all queries and params
     
