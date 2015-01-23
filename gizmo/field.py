@@ -66,7 +66,7 @@ class _Fields(dict):
 class Field(object):
 
     def __init__(self, value=None, data_type='python', set_max=None,\
-        track_changes=True):
+        track_changes=True, required=False, unique=False):
         self._changes = [value]
         self._initial_value = value
         self.set_count = 0
@@ -75,6 +75,8 @@ class Field(object):
         self.set_max = set_max
         self.value = value
         self.track_changes = track_changes
+        self.required = required
+        self.unique = unique
     
     def changed(self):
         return self._initial_value != self.value

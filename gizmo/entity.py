@@ -95,14 +95,11 @@ class _RootEntity(type):
             for name, field in attrs.iteritems():
                 if not name.startswith('_'):
                     if isinstance(field, Field):
-                        value = None
+                        value = field.value
                         
                         if name in data:
                             value = data[name]
                             del(undefined[name])
-                        
-                        if value is None:
-                            value = field.value
 
                         if name not in DEFAULT_MODEL_FIELDS:
                             self.dirty = True
@@ -112,6 +109,8 @@ class _RootEntity(type):
                             'data_type': field.data_type,
                             'set_max': field.set_max,
                             'track_changes': field.track_changes,
+                            'required': field.required,
+                            'unique': field.unique,
                         }
                         instance = field.__class__(**kwargs)
                         self.fields[name] = instance
@@ -122,7 +121,6 @@ class _RootEntity(type):
 
             if data is not None and GIZMO_ID in data:
                 self.fields[GIZMO_ID].field_value = data[GIZMO_ID]
-
 
         attrs['__init__'] = new_init__
         cls = super(_RootEntity, cls).__new__(cls, name, bases, attrs)
