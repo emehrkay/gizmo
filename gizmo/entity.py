@@ -109,8 +109,6 @@ class _RootEntity(type):
                             'data_type': field.data_type,
                             'set_max': field.set_max,
                             'track_changes': field.track_changes,
-                            'required': field.required,
-                            'unique': field.unique,
                         }
                         instance = field.__class__(**kwargs)
                         self.fields[name] = instance
