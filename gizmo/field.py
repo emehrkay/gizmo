@@ -62,6 +62,14 @@ class _Fields(dict):
         
         return set(changed.keys()) - set(unchanged.keys())
 
+    @property
+    def required(self):
+        return [name for name, field in self.iteritems() if field.required]
+
+    @property
+    def unique(self):
+        return [name for name, field in self.iteritems() if field.unique]
+
 
 class Field(object):
 
