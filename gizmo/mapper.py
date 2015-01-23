@@ -87,6 +87,9 @@ class _GenericMapper(object):
             gremlin = Gremlin(self.gremlin.gv)
             node_type = "'%s'" % GIZMO_NODE_TYPE
 
+            if '*' in self.unique_fields:
+                self.unique_fields = model.fields.keys()
+
             gremlin.V.has(node_type, 'T.eq', model._node_type)
 
             for field in self.unique_fields:
