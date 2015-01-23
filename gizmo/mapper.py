@@ -240,11 +240,11 @@ class Mapper(object):
 
         return self
 
-    def save(self, model, bind_return=True, mapper=None):
+    def save(self, model, bind_return=True, mapper=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.save(model, bind_return)
+        mapper.save(model, bind_return, **kwargs)
 
         return self._enqueue_mapper(mapper)
 
@@ -429,11 +429,12 @@ class Query(object):
 
         for k, v in data.iteritems():
             name = '%s_%s' % (prefix, k)
-
+            
             if k not in _immutable:
                 if type(v) is dict or type(v) is list:
+                    #import pudb; pu.db
                     gmap = self.iterable_to_graph(v, prefix)
-                    entry = "it.setProperty('%s', %s)" % (k, gmap)
+                    entry = "it.setProperty('%s', [%s])" % (k, gmap)
                 else:
                     bound = self.gremlin.bind_param(v)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
