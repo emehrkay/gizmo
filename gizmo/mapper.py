@@ -48,6 +48,9 @@ class _GenericMapper(object):
 
         self.gremlin = gremlin
         self.mapper = mapper
+        self.reset()
+
+    def reset(self):
         self.queries = []
         self.models = {}
         self.params = {}
@@ -242,6 +245,7 @@ class Mapper(object):
         self.queries += mapper.queries
         self.models.update(mapper.models)
         self.params.update(mapper.params)
+        mapper.reset()
 
         return self
 
@@ -351,7 +355,7 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        
+
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))

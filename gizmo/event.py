@@ -45,8 +45,8 @@ class MapperMixin(object):
         model -> event
         relationships
         """
-
         super(MapperMixin, self).save(model=model, bind_return=bind_return)
+        self.mapper._enqueue_mapper(self)
 
         if source is not None:
             fields_changed = len(model.changed) > 0
