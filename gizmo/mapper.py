@@ -4,6 +4,7 @@ from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
 from exception import *
+import json
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
@@ -198,13 +199,14 @@ class _GenericMapper(object):
 class Mapper(object):
     VARIABLE = 'gizmo_var'
 
-    def __init__(self, request, gremlin=None, auto_commit=False):
+    def __init__(self, request, gremlin=None, auto_commit=False, logger=None):
         if gremlin is None:
             gremlin = Gremlin()
 
         self.request = request
         self.gremlin = gremlin
         self.auto_commit = auto_commit
+        self.logger = logger
         self.reset()
 
     def reset(self):
@@ -349,11 +351,10 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-
-        print '>>>>>>>>>>>>>'
-        print script
-        print params
-        print '>>>>>>>>>>>>>'
+        
+        if self.logger:
+            self.logger.debug(script)
+            self.logger.debug(json.dumps(params))
 
         response = self.request.send(script, params, update_models)
 

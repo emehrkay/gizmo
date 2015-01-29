@@ -1,5 +1,6 @@
 import time
 
+
 GIZMO_MODEL = '__gizmo_model'
 GIZMO_CREATED = '__gizmo_created'
 GIZMO_MODIFIED = '__gizmo_modified'
@@ -33,3 +34,14 @@ def current_time():
 def current_date_time(offset=0):
     return (int(time.time()) + offset) * 1000
 
+def get_logger(address='/var/run/syslog'):
+    import logging
+    from logging.handlers import SysLogHandler
+    
+    logger = logging.getLogger('gizmo_logger')
+    handler = SysLogHandler(address=address)
+    
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    
+    return logger
