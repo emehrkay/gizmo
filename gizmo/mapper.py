@@ -41,6 +41,7 @@ class _GenericMapper(object):
     VARIABLE = 'gizmo_var'
     unique = False
     unique_fields = None
+    error_on_non_unique = False
 
     def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
@@ -103,12 +104,16 @@ class _GenericMapper(object):
 
             try:
                 first = self.mapper.query(gremlin=gremlin).first()
+                
+                if self.error_on_non_unique:
+                    message = 'The fields: %s are not unique' % ', '.join(self.unique_fields)
+                    raise MapperException([message])
 
                 model.fields['_id'].value = first['_id']
                 query.by_id(model['_id'], model)
 
                 save = False
-            except Exception, e:
+            except StopIteration, e:
                 pass
 
         if save:
@@ -273,11 +278,11 @@ class Mapper(object):
         """
         if not isinstance(out_v, Vertex):
             if not isinstance(out_v, str):
-                raise ModelException('The out_v needs to be eiter a Vertex or string id')
+                raise ModelException(['The out_v needs to be eiter a Vertex or string id'])
 
         if not isinstance(in_v, Vertex):
             if not isinstance(in_v, str):
-                raise ModelException('The in_v needs to be eiter a Vertex or string id')
+                raise ModelException(['The in_v needs to be eiter a Vertex or string id'])
 
         if data is None:
             data = {}
@@ -355,7 +360,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-
+        # print script
+        # print params
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
@@ -498,7 +504,7 @@ class Query(object):
 
     def add_vertex(self, model, set_variable=False):
         if model._type is None:
-            raise QueryException('Models need to have a type defined in order to save')
+            raise QueryException(['Models need to have a type defined in order to save'])
 
         model.field_type = 'graph'
         gremlin = self.gremlin
@@ -520,7 +526,7 @@ class Query(object):
 
     def add_edge(self, model, set_variable=False):
         if model['_label'] is None:
-            raise QueryException('The edge must have a label before saving')
+            raise QueryException(['The edge must have a label before saving'])
 
         model.field_type = 'graph'
         gremlin = self.gremlin
@@ -552,7 +558,7 @@ class Query(object):
             error = 'Both out and in vertices must be set before saving \
                 the edge'
 
-            raise QueryException(error)
+            raise QueryException([error])
 
         out_v_mod = self.mapper.get_model_variable(out_v)
         in_v_mod = self.mapper.get_model_variable(in_v)
@@ -569,10 +575,10 @@ class Query(object):
 
     def update(self, model, set_variable=None):
         if model._type is None:
-            raise QueryException('The model must have a type defined in order to update')
+            raise QueryException(['The model must have a type defined in order to update'])
 
         if model['_id'] is None:
-            raise QueryException('The model must have an _id defined in order to update')
+            raise QueryException(['The model must have an _id defined in order to update'])
 
         if model.dirty == False:
             return self.by_id(model['_id'], model, set_variable)
@@ -598,7 +604,7 @@ class Query(object):
         model.field_type = 'python'
 
         if model._type is None:
-            raise Exception('The model does not have a _type defined')
+            raise EntityException(['The model does not have a _type defined'])
 
         if not model['_id']:
             if model._type == 'vertex':
@@ -616,10 +622,10 @@ class Query(object):
         _id = model['_id']
 
         if _id is None:
-            raise Exception('Models must have an _id before they are deleted')
+            raise EntityException(['Models must have an _id before they are deleted'])
 
         if model._type is None:
-            raise Exception('Models need to have a type defined')
+            raise EntityException(['Models need to have a type defined'])
 
         entity = 'e' if model._type == 'edge' else 'v'
 

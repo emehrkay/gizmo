@@ -1,6 +1,9 @@
 
 class GizmoException(Exception):
-    pass
+    def __init__(self, errors=None):
+        if not errors:
+            errors = []
+        self.errors = errors
 
 
 class EntityException(GizmoException):
