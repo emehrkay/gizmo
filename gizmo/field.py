@@ -67,6 +67,9 @@ class Field(object):
 
     def __init__(self, value=None, data_type='python', set_max=None,\
         track_changes=True):
+        if not value:
+            value = self.default_value
+        
         self._changes = [value]
         self._initial_value = value
         self.set_count = 0
@@ -75,6 +78,10 @@ class Field(object):
         self.set_max = set_max
         self.value = value
         self.track_changes = track_changes
+    
+    @property
+    def default_value(self):
+        return None
     
     def changed(self):
         return self._initial_value != self.value
@@ -147,11 +154,9 @@ class Boolean(Field):
 
 class Map(Field):
     
-    def __init__(self, value=None, data_type='python', set_max=None,\
-        track_changes=True):
-        if not value:
-            value = {}
-        super(Map, self).__init__(value, data_type, set_max, track_changes)
+    @property
+    def default_value(self):
+        return {}
 
     def to_python(self):
         if isinstance(self.field_value, basestring):
@@ -162,11 +167,9 @@ class Map(Field):
 
 class List(Map):
 
-    def __init__(self, value=None, data_type='python', set_max=None,\
-        track_changes=True):
-        if not value:
-            value = []
-        super(Map, self).__init__(value, data_type, set_max, track_changes)
+    @property
+    def default_value(self):
+        return []
 
 
 class DateTime(Field):
