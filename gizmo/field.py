@@ -132,7 +132,7 @@ class Increment(Integer):
     
     def to_graph(self):
         val = self.field_value if self.field_value else 0
-        return (int) val + 1
+        return int(val) + 1
 
 
 class Float(Field):
@@ -146,6 +146,12 @@ class Boolean(Field):
 
 
 class Map(Field):
+    
+    def __init__(self, value=None, data_type='python', set_max=None,\
+        track_changes=True):
+        if not value:
+            value = {}
+        super(Map, self).__init__(value, data_type, set_max, track_changes)
 
     def to_python(self):
         if isinstance(self.field_value, basestring):
@@ -155,7 +161,12 @@ class Map(Field):
 
 
 class List(Map):
-    pass
+
+    def __init__(self, value=None, data_type='python', set_max=None,\
+        track_changes=True):
+        if not value:
+            value = []
+        super(Map, self).__init__(value, data_type, set_max, track_changes)
 
 
 class DateTime(Field):
