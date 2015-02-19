@@ -126,6 +126,13 @@ class Integer(Field):
 
     def to_python(self):
         return int(self.field_value)
+        
+
+class Increment(Integer):
+    
+    def to_graph(self):
+        val = self.field_value if self.field_value else 0
+        return (int) val + 1
 
 
 class Float(Field):
