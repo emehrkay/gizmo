@@ -176,7 +176,7 @@ class _GenericMapper(object):
 
         """
         check = True
-
+        
         if data is None:
             data = {}
 

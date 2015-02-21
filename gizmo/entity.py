@@ -88,33 +88,42 @@ class _RootEntity(type):
 
                 self.fields[GIZMO_LABEL] = String(value=label, data_type=data_type)
 
-            # build the properties for the instance
-            # ignore things that start with an underscore and methods
+            """"
+            build the properties for the instance
+            ignore things that start with an underscore and methods
+            this is done for all of the bases first, then the actual model
+            """
             undefined = copy.deepcopy(data)
 
-            for name, field in attrs.iteritems():
-                if not name.startswith('_'):
-                    if isinstance(field, Field):
-                        value = field.value
-                        
-                        if name in data:
-                            value = data[name]
-                            del(undefined[name])
+            def update_fields(obj):
+                for name, field in obj.items():
+                    if not name.startswith('_'):
+                        if isinstance(field, Field):
+                            value = field.value
+                            if name == 'active':
+                                import pudb; pu.db
+                            if name in data:
+                                value = data[name]
+                                del(undefined[name])
 
-                        if name not in DEFAULT_MODEL_FIELDS:
-                            self.dirty = True
+                            if name not in DEFAULT_MODEL_FIELDS:
+                                self.dirty = True
 
-                        kwargs = {
-                            'value': value,
-                            'data_type': field.data_type,
-                            'set_max': field.set_max,
-                            'track_changes': field.track_changes,
-                        }
-                        instance = field.__class__(**kwargs)
-                        self.fields[name] = instance
-                    elif isfunction(field) == False:
-                        setattr(self, name, field)
+                            kwargs = {
+                                'value': value,
+                                'data_type': field.data_type,
+                                'set_max': field.set_max,
+                                'track_changes': field.track_changes,
+                            }
+                            instance = field.__class__(**kwargs)
+                            self.fields[name] = instance
+                        elif isfunction(field) == False:
+                            setattr(self, name, field)
 
+            for b in reversed(bases):
+                update_fields(b.__dict__)
+            
+            update_fields(attrs)
             self.hydrate(undefined)
 
             if data is not None and GIZMO_ID in data:

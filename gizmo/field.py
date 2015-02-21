@@ -132,7 +132,7 @@ class String(Field):
 class Integer(Field):
 
     def to_python(self):
-        return int(self.field_value)
+        return int(self.field_value) if self.field_value else 0
         
 
 class Increment(Integer):
@@ -150,6 +150,9 @@ class Boolean(Field):
 
     def to_python(self):
         return bool(self.field_value)
+    
+    def to_graph(self):
+        return 'true' if self.field_value else 'false'
 
 
 class Map(Field):
