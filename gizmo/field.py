@@ -1,3 +1,7 @@
+"""
+Rexster datatypes are formatted based on what is defined here:
+https://github.com/tinkerpop/rexster/wiki/Property-Data-Types
+"""
 from collections import OrderedDict
 import json
 
@@ -132,7 +136,7 @@ class String(Field):
 class Integer(Field):
 
     def to_python(self):
-        return int(self.field_value) if self.field_value else 0
+        return int(float(self.field_value)) if self.field_value else 0
         
 
 class Increment(Integer):

@@ -74,7 +74,7 @@ class _GenericMapper(object):
 
         return self
 
-    def save(self, model, bind_return=True):
+    def save(self, model, bind_return=True, *args, **kwargs):
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
 
         return getattr(self, method)(model=model, bind_return=bind_return)
