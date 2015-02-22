@@ -137,7 +137,10 @@ class Integer(Field):
 
     def to_python(self):
         return int(float(self.field_value)) if self.field_value else 0
-        
+    
+    def to_graph(self):
+        return self.to_python()
+
 
 class Increment(Integer):
     
@@ -147,7 +150,10 @@ class Increment(Integer):
 
 
 class Float(Field):
-    pass
+
+    def to_ptyhon(self):
+        import pudb; pu.db
+        return float(self.field_value) if self.field_value else 0
 
 
 class Boolean(Field):
@@ -180,6 +186,11 @@ class List(Map):
 
 
 class DateTime(Field):
+
+    @property
+    def default_value(self):
+        from utils import current_date_time
+        return current_date_time
 
     def to_graph(self):
         return '' if self.field_value is None or self.field_value == '' else int(self.field_value)
