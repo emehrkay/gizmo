@@ -2,12 +2,17 @@ import unittest
 from random import randrange, random
 from time import sleep
 from collections import OrderedDict
-from gizmo.mapper import Mapper, Vertex, Edge
+from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
 from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
-from entity import TestVertex, TestEdge, TestUndefinedVertex
+from entity import TestVertex, TestEdge, TestUniqueEdge, TestUndefinedVertex
 import copy
+
+
+class TestUniqieMapper(_GenericMapper):
+    model = TestUniqueEdge
+    unique = True
 
 
 def get_dict_key(params, value, unset=False):
@@ -144,7 +149,24 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(isinstance(edge.out_v, TestVertex))
         self.assertTrue(isinstance(edge.in_v, TestVertex))
 
-    def test_can_queue_save_edge_with_existing_vertices(self):        
+    def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
+        v1 = {'_id': 15}
+        v2 = {}
+        out_v = self.mapper.create_model(v1, TestVertex)
+        self.mapper.save(out_v)
+        in_v = self.mapper.create_model(v2, TestVertex)
+        ed = {'out_v': out_v, 'in_v': in_v}
+        edge = self.mapper.create_model(ed, TestEdge)
+
+        get_vertex_query = ""
+        add_vertex_query = ""
+        add_edge_query = ""
+
+
+        self.mapper.save(edge)._build_queries()
+        print self.mapper.queries
+
+    def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
         v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
@@ -157,12 +179,12 @@ class MapperTests(unittest.TestCase):
         self.mapper.save(edge)._build_queries()
         print self.mapper.queries
         # TODO: build and test all queries and params
-    
+
     def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):
         # TODO: create a test cast that will have one vertex as in insert, one
         # as an update
         pass
-    
+
 
 class QueryTests(unittest.TestCase):
     def setUp(self):
