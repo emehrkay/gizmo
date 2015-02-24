@@ -82,7 +82,7 @@ class _GenericMapper(object):
     def _save_vertex(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields
-        params are set, it will run a sub query to check to see if an entity 
+        params are set, it will run a sub query to check to see if an entity
         exists that matches those values
         """
         query = Query(self.gremlin, self.mapper)
@@ -104,7 +104,7 @@ class _GenericMapper(object):
 
             try:
                 first = self.mapper.query(gremlin=gremlin).first()
-                
+
                 if self.error_on_non_unique:
                     message = 'The fields: %s are not unique' % ', '.join(self.unique_fields)
                     raise MapperException([message])
@@ -124,36 +124,42 @@ class _GenericMapper(object):
     def _save_edge(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
+        import pudb; pu.db
 
-        if model['_id'] is None and self.unique is not False:
-            out_v = model.out_v
-            in_v = model.in_v
+        out_v = model.out_v
+        in_v = model.in_v
+        import pudb; pu.db
+        out_v_ref = self.mapper.get_model_variable(out_v)
+        in_v_ref = self.mapper.get_model_variable(in_v)
 
-            if isinstance(out_v, Vertex) and out_v['_id'] is None:
-                self.mapper.save(out_v).send()
+        if not out_v_ref and isinstance(out_v, Vertex) and out_v['_id'] is None:
+            self.mapper.save(out_v)
+            out_v = self.mapper.get_model_variable(out_v)
+        else:
+            out_v = out_v_ref
 
-            if isinstance(in_v, Vertex) and in_v['_id'] is None:
-                self.mapper.save(in_v).send()
+        if not in_v_ref and isinstance(in_v, Vertex) and in_v['_id'] is None:
+            self.mapper.save(in_v)
+            in_v = self.mapper.get_model_variable(in_v)
+        else:
+            in_v = in_v_ref
 
-            save = False
-            out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
-            in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
+        out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
+        in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
 
-            if out_v is None or in_v is None:
+        if model['_id'] and self.unique:
+            edge = GetEdge(out_v, in_v, model['_label'])
+            gremlin = Gremlin(self.gremlin.gv)
+
+            gremlin.apply_statement(edge)
+
+            try:
+                edge = self.mapper.query(gremlin=gremlin).first()
+                save = False
+
+                query.by_id(edge['_id'], model)
+            except Exception, e:
                 save = True
-            else:
-                edge = GetEdge(out_v, in_v, model['_label'])
-                gremlin = Gremlin(self.gremlin.gv)
-
-                gremlin.apply_statement(edge)
-
-                try:
-                    edge = self.mapper.query(gremlin=gremlin).first()
-                    save = False
-
-                    query.by_id(edge['_id'], model)
-                except Exception, e:
-                    save = True
 
         if save:
             query.save(model)
@@ -176,7 +182,7 @@ class _GenericMapper(object):
 
         """
         check = True
-        
+
         if data is None:
             data = {}
 
@@ -360,8 +366,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        print script
-        print params
+        # print script
+        # print params
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
@@ -443,7 +449,7 @@ class Query(object):
 
         for k, v in data.iteritems():
             name = '%s_%s' % (prefix, k)
-            
+
             if k not in _immutable:
                 if type(v) is dict or type(v) is list:
                     #import pudb; pu.db

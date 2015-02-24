@@ -5,6 +5,7 @@ from gizmo.field import String
 from gremlinpy.gremlin import Gremlin
 
 TEST_EDGE = 'test_edge'
+TEST_UNIQUE_EDGE = 'test_unique_edge'
 TEST_VERTEX = 'test_vertex'
 TEST_UNDEFINED_VERTEX = 'test_undefied_vertex'
 TEST_UNDEFINED_EDGE = 'test_undefied_edge'
@@ -19,6 +20,9 @@ class TestEdge(Edge):
     _node_type = TEST_EDGE
 
 
+class TestUniqueEdge(Edge):
+    _node_type = TEST_UNIQUE_EDGE
+
 class TestUndefinedVertex(Vertex):
     _node_type = TEST_UNDEFINED_VERTEX
     _allowed_undefined = True
@@ -32,13 +36,13 @@ class TestUndefinedEdge(Vertex):
 class EntityTests(unittest.TestCase):
     def set_up(self):
         pass
-    
+
     def test_can_create_vertex(self):
         v = TestVertex()
 
         self.assertTrue(isinstance(v, Vertex))
         self.assertEqual(v._type, 'vertex')
-        
+
     def test_can_create_vertex_with_data(self):
         d = {'some_field': 1}
         v = TestVertex(d)
@@ -50,10 +54,10 @@ class EntityTests(unittest.TestCase):
 
     def test_can_create_edge(self):
         e = TestEdge()
-        
+
         self.assertTrue(isinstance(e, Edge))
         self.assertEqual(e._type, 'edge')
-        
+
     def test_can_create_edge_with_data(self):
         d = {'some_field': 1}
         e = TestEdge(d)

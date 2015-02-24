@@ -13,7 +13,7 @@ class _Request(object):
     def reset(self):
         pass
 
-    def send(self, script=None, params=None):
+    def send(self, script=None, params=None, *args, **kwargs):
         return _Response()
 
 
