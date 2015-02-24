@@ -87,6 +87,17 @@ class _GenericMapper(object):
         """
         query = Query(self.gremlin, self.mapper)
         save = True
+        ref = self.mapper.get_model_variable(model)
+        
+        """
+        check to see if the model has been used already in the current script
+        execution. 
+        If it has use the reference
+        if it hasnt, go through the process of saving it
+        """
+        if ref:
+            query.add_query(ref, params=None, model=model)
+            save = False
 
         if model['_id'] is None and self.unique_fields is not None:
             gremlin = Gremlin(self.gremlin.gv)
@@ -124,14 +135,21 @@ class _GenericMapper(object):
     def _save_edge(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
-        import pudb; pu.db
-
+        #TODO: send an edge to be saved multiple times
+        edge_ref = self.mapper.get_model_variable(model)
         out_v = model.out_v
         in_v = model.in_v
-        import pudb; pu.db
         out_v_ref = self.mapper.get_model_variable(out_v)
         in_v_ref = self.mapper.get_model_variable(in_v)
-
+        
+        """
+        both out_v and in_v are checked to see if the models stored in each
+        respective variable has been used.
+        If they have not and they are Vertex instances with an empty _id,
+            send them to be saved.
+        if they have been used, use the reference variable in the create edge
+        logic
+        """
         if not out_v_ref and isinstance(out_v, Vertex) and out_v['_id'] is None:
             self.mapper.save(out_v)
             out_v = self.mapper.get_model_variable(out_v)
@@ -366,8 +384,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        # print script
-        # print params
+        print script
+        print params
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
