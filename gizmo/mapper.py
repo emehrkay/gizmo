@@ -88,10 +88,10 @@ class _GenericMapper(object):
         query = Query(self.gremlin, self.mapper)
         save = True
         ref = self.mapper.get_model_variable(model)
-        
+
         """
         check to see if the model has been used already in the current script
-        execution. 
+        execution.
         If it has use the reference
         if it hasnt, go through the process of saving it
         """
@@ -141,7 +141,7 @@ class _GenericMapper(object):
         in_v = model.in_v
         out_v_ref = self.mapper.get_model_variable(out_v)
         in_v_ref = self.mapper.get_model_variable(in_v)
-        
+
         """
         both out_v and in_v are checked to see if the models stored in each
         respective variable has been used.
@@ -384,8 +384,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        print script
-        print params
+        # print script
+        # print params
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
@@ -712,7 +712,20 @@ class Collection(object):
 
     @property
     def data(self):
+        """
+        method used to return the raw data from the
+        response
+        """
         return [x for x in self.response.data]
+
+    @property
+    def entity_data(self):
+        """
+        this will get the instance data instead of the
+        raw data. This will use the mapper to create each
+        entity. Which may have a custom data attribute
+        """
+        return [x.data for x in self]
 
     def __len__(self):
         return len(self.response.data)
