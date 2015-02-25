@@ -243,7 +243,11 @@ class Mapper(object):
 
     def reset(self):
         self.gremlin.reset()
+        global query_count
+        global count
 
+        query_count = 0
+        count = 0
         self.queries = []
         self.models = {}
         self.params = {}
@@ -384,8 +388,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        # print script
-        # print params
+        print script
+        print params
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
