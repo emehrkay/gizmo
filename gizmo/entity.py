@@ -1,4 +1,4 @@
-from field import String, DateTime, Boolean, List, Map, _Fields, Field
+from field import String, DateTime, Boolean, List, Map, _Fields, Field, Enum
 from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from utils import current_date_time
@@ -100,8 +100,7 @@ class _RootEntity(type):
                     if not name.startswith('_'):
                         if isinstance(field, Field):
                             value = field.value
-                            if name == 'active':
-                                import pudb; pu.db
+                            
                             if name in data:
                                 value = data[name]
                                 del(undefined[name])
@@ -115,12 +114,16 @@ class _RootEntity(type):
                                 'set_max': field.set_max,
                                 'track_changes': field.track_changes,
                             }
+                            
+                            if isinstance(field, Enum):
+                                kwargs['allowed'] = field.allowed
+                            
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
                         elif isfunction(field) == False:
                             setattr(self, name, field)
 
-            for b in reversed(bases):
+            for b in bases:
                 update_fields(b.__dict__)
             
             update_fields(attrs)

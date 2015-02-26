@@ -205,7 +205,7 @@ class TimeStamp(DateTime):
 
 class Enum(Field):
 
-    def __init__(self, allowed, value, data_type='python', set_max=None):
+    def __init__(self, allowed, value, data_type='python', set_max=None, track_changes=True):
         if allowed is None:
             allowed = []
 
@@ -214,8 +214,8 @@ class Enum(Field):
         if value is None:
             value = self.allowed[0]
 
-        super(Enum, self).__init__(value=value, data_type=data_type, set_max=set_max)
+        super(Enum, self).__init__(value=value, data_type=data_type, set_max=set_max, track_changes=track_changes)
 
     def _set_value(self, value):
         if self._can_set() and value in self.allowed:
-            self.value = value
+            self.field_value = value
