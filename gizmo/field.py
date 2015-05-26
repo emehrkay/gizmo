@@ -171,7 +171,7 @@ class Map(Field):
         return {}
 
     def to_python(self):
-        if isinstance(self.field_value, basestring):
+        if isinstance(self.field_value, basestring) and len(self.field_value.replace(" ", "")):
             return json.load(self.field_value)
         else:
             return self.field_value
