@@ -22,14 +22,14 @@ class _Fields(dict):
         dict.__setitem__(self, field, value)
 
     def update(self, *args, **kwargs):
-        for field, obj in dict(*args, **kwargs).iteritems():
+        for field, obj in dict(*args, **kwargs).items():
             self[field] = obj
 
     @property
     def data(self):
         data = {}
 
-        for name, field in self.iteritems():
+        for name, field in self.items():
             field.data_type = self.data_type
             data[name] = field.value
 
@@ -41,7 +41,7 @@ class _Fields(dict):
     def changed(self):
         changed = {}
 
-        for name, field in self.iteritems():
+        for name, field in self.items():
             if field.track_changes and field.changed():
                 field.data_type = self.data_type
                 changed[name] = field.value
@@ -52,7 +52,7 @@ class _Fields(dict):
     def unchanged(self):
         changed = {}
 
-        for name, field in self.iteritems():
+        for name, field in self.items():
             if field.track_changes and not field.changed():
                 field.data_type = self.data_type
                 changed[name] = field.value
@@ -171,7 +171,7 @@ class Map(Field):
         return {}
 
     def to_python(self):
-        if isinstance(self.field_value, basestring) and len(self.field_value.replace(" ", "")):
+        if isinstance(self.field_value, str) and len(self.field_value.replace(" ", "")):
             return json.load(self.field_value)
         else:
             return self.field_value
@@ -188,7 +188,7 @@ class DateTime(Field):
 
     @property
     def default_value(self):
-        from utils import current_date_time
+        from gizmo.utils import current_date_time
         return current_date_time
 
     def to_graph(self):

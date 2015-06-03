@@ -40,7 +40,7 @@ class _Response(object):
             if len(self.update_models) > 0:
                 data = []
 
-                for k, model in self.update_models.iteritems():
+                for k, model in self.update_models.items():
                     val = fix_properties(arg.get(k, None))
 
                     if isinstance(val, dict):
@@ -62,7 +62,7 @@ class _Response(object):
             else:
                 data = [fix_properties(arg)]
         else:
-            data = map(fix_properties, arg)
+            data = list(map(fix_properties, arg))
 
         return data
 
@@ -84,7 +84,7 @@ class _Response(object):
     def update_models(self, mappings):
         fixed = copy.deepcopy(self.data)
 
-        for var, model in mappings.iteritems():
+        for var, model in mappings.items():
             if var in self.data:
                 model.hydrate(self.data[var])
 

@@ -1,7 +1,7 @@
-from field import String, DateTime, Boolean, List, Map, _Fields, Field, Enum
-from utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
-from utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
-from utils import current_date_time
+from gizmo.field import String, DateTime, Boolean, List, Map, _Fields, Field, Enum
+from gizmo.utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
+from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
+from gizmo.utils import current_date_time
 from inspect import isfunction
 import copy
 
@@ -140,8 +140,7 @@ class _RootEntity(type):
         return cls
 
 
-class _BaseEntity(object):
-    __metaclass__ = _RootEntity
+class _BaseEntity(metaclass=_RootEntity):
     _immutable = IMMUTABLE['vertex']
     _allowed_undefined = False
     _atomic_changes = False
@@ -150,7 +149,7 @@ class _BaseEntity(object):
         if data is None:
             data = {}
 
-        for field, value in data.iteritems():
+        for field, value in data.items():
             self[field] = value
 
         return self

@@ -16,7 +16,7 @@ class TestUniqieMapper(_GenericMapper):
 
 
 def get_dict_key(params, value, unset=False):
-    for k, v in params.iteritems():
+    for k, v in params.items():
         if v == value:
             if unset:
                 del(params[k])
@@ -26,7 +26,7 @@ def get_dict_key(params, value, unset=False):
 
 
 def get_entity_entry(entity_queue, entity):
-    for i, s in entity_queue.iteritems():
+    for i, s in entity_queue.items():
         if s == entity:
             return {i: entity_queue[i]}
 
@@ -75,7 +75,7 @@ class MapperTests(unittest.TestCase):
         """
         self.assertTrue(isinstance(v, Vertex))
 
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertIn(k, vd)
             self.assertEqual(v, vd[k])
 
@@ -95,7 +95,7 @@ class MapperTests(unittest.TestCase):
         entry_v1 = get_entity_entry(self.mapper.models, v)
         v.field_type = 'graph'
 
-        for k, v in v.data.iteritems():
+        for k, v in v.data.items():
             if k not in _immutable:
                 value, paramsss = get_dict_key(params, v)
                 prop = "it.setProperty('%s', %s)" % (k, value)
@@ -126,7 +126,7 @@ class MapperTests(unittest.TestCase):
         entry_v1 = get_entity_entry(self.mapper.models, v)
         v.field_type = 'graph'
 
-        for k,v in v.data.iteritems():
+        for k,v in v.data.items():
             if k not in _immutable:
                 value, params = get_dict_key(params, v, True)
                 prop = "'%s': %s" % (k, value)
@@ -164,7 +164,7 @@ class MapperTests(unittest.TestCase):
 
 
         self.mapper.save(edge)._build_queries()
-        print self.mapper.queries
+        print(self.mapper.queries)
 
     def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
@@ -177,7 +177,7 @@ class MapperTests(unittest.TestCase):
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
-        print self.mapper.queries
+        print(self.mapper.queries)
         # TODO: build and test all queries and params
 
     def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):

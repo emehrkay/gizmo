@@ -1,5 +1,5 @@
-from entity import Vertex
-from mapper import _GenericMapper
+from gizmo.entity import Vertex
+from gizmo.mapper import _GenericMapper
 from types import MethodType
 
 
@@ -57,7 +57,7 @@ class MapperMixin(object):
                 self.event = event = self.mapper.create_model(model_class=Entity,\
                     data_type=model.data_type)
 
-                for field, change in model.changed.iteritems():
+                for field, change in model.changed.items():
                     event[field] = change
 
                 if model._atomic_changes and fields_removed:

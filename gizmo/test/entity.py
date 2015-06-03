@@ -48,7 +48,7 @@ class EntityTests(unittest.TestCase):
         v = TestVertex(d)
         data = v.data
 
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 
@@ -63,7 +63,7 @@ class EntityTests(unittest.TestCase):
         e = TestEdge(d)
         data = e.data
 
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 
@@ -72,7 +72,7 @@ class EntityTests(unittest.TestCase):
         v = TestUndefinedVertex(d)
         data = v.data
 
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 
@@ -81,7 +81,7 @@ class EntityTests(unittest.TestCase):
         v = TestUndefinedEdge(d)
         data = v.data
 
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 

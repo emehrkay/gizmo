@@ -1,10 +1,12 @@
-from utils import get_qualified_name, get_qualified_instance_name
-from utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
-from entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
+import json
+
+from gizmo.utils import get_qualified_name, get_qualified_instance_name
+from gizmo.utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
+from gizmo.entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
+from gizmo.error import *
+
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
-from exception import *
-import json
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
@@ -36,8 +38,7 @@ class _RootMapper(type):
         return cls
 
 
-class _GenericMapper(object):
-    __metaclass__ = _RootMapper
+class _GenericMapper(metaclass=_RootMapper):
     VARIABLE = 'gizmo_var'
     unique = False
     unique_fields = None
@@ -124,7 +125,7 @@ class _GenericMapper(object):
                 query.by_id(model['_id'], model)
 
                 save = False
-            except StopIteration, e:
+            except StopIteration as e:
                 pass
 
         if save:
@@ -176,7 +177,7 @@ class _GenericMapper(object):
                 save = False
 
                 query.by_id(edge['_id'], model)
-            except Exception, e:
+            except Exception as e:
                 save = True
 
         if save:
@@ -255,7 +256,7 @@ class Mapper(object):
     def get_model_variable(self, model):
         ret_key = None
 
-        for key, def_model in self.models.iteritems():
+        for key, def_model in self.models.items():
             if model == def_model:
                 ret_key = key
                 break
@@ -388,8 +389,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        print script
-        print params
+        print (script)
+        print (params)
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
@@ -447,7 +448,7 @@ class Query(object):
     def build_fields(self, data, _immutable, prefix=''):
         gremlin = self.gremlin
 
-        for key, val in data.iteritems():
+        for key, val in data.items():
             name = '%s_%s' % (prefix, key)
 
             if key not in _immutable:
@@ -469,7 +470,7 @@ class Query(object):
     def update_fields(self, data, _immutable, prefix=''):
         gremlin = self.gremlin
 
-        for k, v in data.iteritems():
+        for k, v in data.items():
             name = '%s_%s' % (prefix, k)
 
             if k not in _immutable:
@@ -495,7 +496,7 @@ class Query(object):
         gremlin = self.gremlin
         gval = []
 
-        for key, value in iterable.iteritems():
+        for key, value in iterable.items():
             if type(value) is dict or type(value) is list:
                 gval.append(self.iterable_to_graph(value, prefix))
             else:
@@ -732,6 +733,7 @@ class Collection(object):
         return [x.data for x in self]
 
     def __len__(self):
+        print('@@@@@@@@@', self.response.data)
         return len(self.response.data)
 
     def __getitem__(self, key):
@@ -747,7 +749,7 @@ class Collection(object):
                     self._models[key] = model
                 else:
                     raise
-            except Exception, e:
+            except Exception as e:
                 raise StopIteration()
 
         return model
