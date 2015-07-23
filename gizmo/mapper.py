@@ -56,6 +56,7 @@ class _GenericMapper(metaclass=_RootMapper):
         self.queries = []
         self.models = {}
         self.params = {}
+        self.callbacks = {}
 
     def enqueue(self, query, bind_return=True):
         for entry in query.queries:
@@ -75,9 +76,24 @@ class _GenericMapper(metaclass=_RootMapper):
 
         return self
 
-    def save(self, model, bind_return=True, *args, **kwargs):
+    def _enqueue_callback(self, model, callback):
+        if callback:
+            listed = self.callbacks.get(model, [])
+
+            if isinstance(callback, (list, tuple)):
+                listed += list(callback)
+            else:
+                listed.append(callback)
+
+            self.callbacks[model] = listed
+
+        return self
+
+    def save(self, model, bind_return=True, callback=None, *args, **kwargs):
+        """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
 
+        self._enqueue_callback(model, callback)
         return getattr(self, method)(model=model, bind_return=bind_return)
 
     def _save_vertex(self, model, bind_return=True):
@@ -185,10 +201,11 @@ class _GenericMapper(metaclass=_RootMapper):
 
         return self.enqueue(query, bind_return)
 
-    def delete(self, model, lookup=True):
+    def delete(self, model, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
 
         query.delete(model)
+        self._enqueue_callback(model, callback)
 
         return self.enqueue(query, False)
 
@@ -252,6 +269,7 @@ class Mapper(object):
         self.queries = []
         self.models = {}
         self.params = {}
+        self.callbacks = {}
 
     def get_model_variable(self, model):
         ret_key = None
@@ -279,23 +297,29 @@ class Mapper(object):
         self.queries += mapper.queries
         self.models.update(mapper.models)
         self.params.update(mapper.params)
+
+        for model, callbacks in mapper.callbacks.items():
+            exisiting = self.callbacks.get(model, [])
+
+            self.callbacks[model] = exisiting + callbacks
+        
         mapper.reset()
 
         return self
 
-    def save(self, model, bind_return=True, mapper=None, **kwargs):
+    def save(self, model, bind_return=True, mapper=None, callback=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.save(model, bind_return, **kwargs)
+        mapper.save(model, bind_return, callback, **kwargs)
 
         return self._enqueue_mapper(mapper)
 
-    def delete(self, model, mapper=None):
+    def delete(self, model, mapper=None, callback=None):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.delete(model)
+        mapper.delete(model, callback)
 
         return self.enqueue(mapper)
 
@@ -369,12 +393,13 @@ class Mapper(object):
         script = ";\n".join(self.queries)
         params = self.params
         models = self.models
+        callbacks = self.callbacks
 
         self.reset()
 
-        return self.query(script=script, params=params, update_models=models)
+        return self.query(script=script, params=params, update_models=models, callbacks=callbacks)
 
-    def query(self, script=None, params=None, gremlin=None, update_models=None):
+    def query(self, script=None, params=None, gremlin=None, update_models=None, callbacks=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -395,7 +420,7 @@ class Mapper(object):
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
 
-        response = self.request.send(script, params, update_models)
+        response = self.request.send(script, params, update_models, callbacks)
 
         return Collection(self, response)
 
@@ -733,7 +758,6 @@ class Collection(object):
         return [x.data for x in self]
 
     def __len__(self):
-        print('@@@@@@@@@', self.response.data)
         return len(self.response.data)
 
     def __getitem__(self, key):
