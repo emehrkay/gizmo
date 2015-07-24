@@ -19,16 +19,12 @@ class _Request(object):
 
 class _Response(object):
 
-    def __init__(self, data=None, update_models=None, callback_models=None):
+    def __init__(self, data=None, update_models=None):
         if not update_models:
             update_models = {}
 
-        if not callback_models:
-            callback_models = {}
-
         self.original_data = data
         self.update_models = update_models
-        self.callback_models = callback_models
         self.data = self._fix_data(data)
 
     def _fix_data(self, arg):
@@ -49,7 +45,6 @@ class _Response(object):
 
                 for k, model in self.update_models.items():
                     val = fix_properties(arg.get(k, None))
-                    callbacks = self.callback_models.get(model, ())
 
                     if isinstance(val, dict):
                         """
@@ -65,9 +60,6 @@ class _Response(object):
                         data.append(val)
                         model.dirty = False
                         del arg[k]
-
-                    for c in callbacks:
-                        c(model)
 
                 data.append(arg)
             else:
@@ -125,20 +117,17 @@ class Binary(_Request):
 
         self.connection = RexProConnection(uri, port, graph)
 
-    def send(self, script=None, params=None, update_models=None, callbacks=None):
+    def send(self, script=None, params=None, update_models=None):
         if not params:
             params = {}
 
         if not update_models:
             update_models = {}
 
-        if not callbacks:
-            callbacks = {}
-
         self.connection.open()
         resp = self.connection.execute(script, params)
         self.connection.close()
-        response = _Response(resp, update_models, callbacks)
+        response = _Response(resp, update_models)
         response.script = script
         response.params = params
 

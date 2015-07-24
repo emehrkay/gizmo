@@ -268,6 +268,7 @@ class Mapper(object):
         count = 0
         self.queries = []
         self.models = {}
+        self.del_models = {}
         self.params = {}
         self.callbacks = {}
 
@@ -320,8 +321,12 @@ class Mapper(object):
             mapper = self.get_mapper(model)
 
         mapper.delete(model, callback)
+        # manually add the deleted model to the self.models collection for callbacks
+        from random import randrange
+        key = 'DELETED_%s_model' % str(randrange(0, 999999999))
+        self.del_models[key] = model
 
-        return self.enqueue(mapper)
+        return self._enqueue_mapper(mapper)
 
     def connect(self, out_v, in_v, label=None, data=None, edge_model=None, data_type='python'):
         """
@@ -394,7 +399,7 @@ class Mapper(object):
         params = self.params
         models = self.models
         callbacks = self.callbacks
-
+        models.update(self.del_models)
         self.reset()
 
         return self.query(script=script, params=params, update_models=models, callbacks=callbacks)
@@ -420,7 +425,13 @@ class Mapper(object):
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
 
-        response = self.request.send(script, params, update_models, callbacks)
+        response = self.request.send(script, params, update_models)
+
+        # run the callbacks
+        for k, model in update_models.items():
+            callbacks = callbacks.get(model, [])
+            for c in callbacks:
+                c(model)
 
         return Collection(self, response)
 
