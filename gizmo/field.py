@@ -192,7 +192,7 @@ class DateTime(Field):
         return current_date_time
 
     def to_graph(self):
-        return '' if self.field_value is None or self.field_value == '' else int(self.field_value)
+        return '' if self.field_value is None or self.field_value == '' else int(float(self.field_value))
 
     def to_python(self):
         value = 0 if self.field_value is None or self.field_value == '' else self.field_value
