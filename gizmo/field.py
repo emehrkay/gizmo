@@ -159,7 +159,10 @@ class Boolean(Field):
 
     def to_python(self):
         try:
-            value = str(self.field_value).lower().trim()
+            print('BOOLEAN VALUE', self.field_value)
+            value = str(self.field_value).lower().strip()
+            print('^^^^^^^^^^', value)
+            print('*******', bool(json.loads(value)))
             return bool(json.loads(value))
         except Exception as e:
             return False
