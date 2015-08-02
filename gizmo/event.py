@@ -38,14 +38,14 @@ class MapperMixin(object):
         * 
     """
 
-    def save(self, model, bind_return=True, source=None):
+    def save(self, model, bind_return=True, callback=None, source=None, *args, **kwargs):
         """
         Method used to save the original model and to add the
         source -> event and
         model -> event
         relationships
         """
-        super(MapperMixin, self).save(model=model, bind_return=bind_return)
+        super(MapperMixin, self).save(model=model, bind_return=bind_return, callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 
         if source is not None:

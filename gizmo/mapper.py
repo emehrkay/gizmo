@@ -426,7 +426,7 @@ class Mapper(object):
             self.logger.debug(json.dumps(params))
 
         response = self.request.send(script, params, update_models)
-        print('))))))))))', callbacks)
+
         # run the callbacks
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])
