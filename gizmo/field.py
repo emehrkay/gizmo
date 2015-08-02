@@ -158,7 +158,11 @@ class Float(Field):
 class Boolean(Field):
 
     def to_python(self):
-        return json.loads(str(bool(self.field_value)).lower())
+        try:
+            value = str(self.field_value).lower().strip()
+            return bool(json.loads(value))
+        except Exception as e:
+            return False
     
     def to_graph(self):
         return 'true' if self.field_value else 'false'
