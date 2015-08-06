@@ -257,19 +257,66 @@ class CustomMapperTests(unittest.TestCase):
         self.assertEqual(r, mapper.on_create_variable)
 
     def test_can_can_on_update_model_level_callback(self):
-        pass
+        r = random()
+        v = TestCallbackVertex({'_id': 10, 'on_update_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.save(v).send()
+        self.assertEqual(r, mapper.on_update_variable)
 
     def test_can_can_on_delete_model_level_callback(self):
-        pass
+        r = random()
+        v = TestCallbackVertex({'_id': 10, 'on_delete_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.delete(v).send()
+        self.assertEqual(r, mapper.on_delete_variable)
 
     def test_can_can_on_create_model_level_callback_and_onetime_callback(self):
-        pass
+        variable = ''
+        updated = random()
+
+        def create_test_callback(model):
+            nonlocal variable
+            nonlocal updated
+            variable = updated
+
+        r = random()
+        v = TestCallbackVertex({'on_create_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.save(v, callback=create_test_callback).send()
+        self.assertEqual(r, mapper.on_create_variable)
+        self.assertEqual(variable, updated)
 
     def test_can_can_on_update_model_level_callback_and_onetime_callback(self):
-        pass
+        variable = ''
+        updated = random()
+
+        def update_test_callback(model):
+            nonlocal variable
+            nonlocal updated
+            variable = updated
+
+        r = random()
+        v = TestCallbackVertex({'_id': 10, 'on_update_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.save(v, callback=update_test_callback).send()
+        self.assertEqual(r, mapper.on_update_variable)
+        self.assertEqual(variable, updated)
 
     def test_can_can_on_delete_model_level_callback_and_onetime_callback(self):
-        pass
+        variable = ''
+        updated = random()
+
+        def delete_test_callback(model):
+            nonlocal variable
+            nonlocal updated
+            variable = updated
+
+        r = random()
+        v = TestCallbackVertex({'_id': 10, 'on_delete_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.delete(v, callback=delete_test_callback).send()
+        self.assertEqual(r, mapper.on_delete_variable)
+        self.assertEqual(variable, updated)
 
 
 class EventSourceTests(unittest.TestCase):
