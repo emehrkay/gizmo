@@ -1,3 +1,4 @@
+#import pudb; pu.db
 import unittest
 from random import randrange, random
 from time import sleep
@@ -6,7 +7,7 @@ from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
 from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
-from entity import TestVertex, TestEdge, TestUniqueEdge, TestUndefinedVertex
+from gizmo.test.entity import TestVertex, TestEdge, TestUniqueEdge, TestUndefinedVertex
 import copy
 
 
@@ -63,7 +64,7 @@ class MapperTests(unittest.TestCase):
         v = self.mapper.create_model(model_class=TestVertex)
 
         self.assertTrue(isinstance(v, Vertex))
-        self.assertEquals(v._type, 'vertex')
+        self.assertEqual(v._type, 'vertex')
 
     def test_can_create_vertex_with_data(self):
         d = {'some_field': random()}
@@ -104,7 +105,7 @@ class MapperTests(unittest.TestCase):
         propv, params = get_dict_key(sent_params, vid)
 
         close = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
-        params = (entry_v1.keys()[0], propv, close)
+        params = (list(entry_v1.keys())[0], propv, close)
         expected = "%s = g.v(%s)%s" % params
 
         self.assertEqual(expected, self.mapper.queries[0])
@@ -132,7 +133,7 @@ class MapperTests(unittest.TestCase):
                 prop = "'%s': %s" % (k, value)
                 props.append(prop)
 
-        expected = "%s = g.addVertex([%s])" % (entry_v1.keys()[0] ,', '.join(props))
+        expected = "%s = g.addVertex([%s])" % (list(entry_v1.keys())[0] ,', '.join(props))
 
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
@@ -164,7 +165,7 @@ class MapperTests(unittest.TestCase):
 
 
         self.mapper.save(edge)._build_queries()
-        print(self.mapper.queries)
+        #print(self.mapper.queries)
 
     def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
@@ -177,13 +178,41 @@ class MapperTests(unittest.TestCase):
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
-        print(self.mapper.queries)
+        #print(self.mapper.queries)
         # TODO: build and test all queries and params
 
     def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):
         # TODO: create a test cast that will have one vertex as in insert, one
         # as an update
         pass
+
+    def test_can_call_callback_when_save_method_is_called(self):
+        variable = ''
+        updated = random()
+
+        def save_test_callback(model):
+            nonlocal variable
+            nonlocal updated
+            variable = updated
+
+        m = self.mapper.create_model({}, TestVertex)
+        self.mapper.save(m, callback=save_test_callback).send()
+
+        self.assertEqual(variable, updated)
+
+    def test_can_call_callback_when_delete_method_is_called(self):
+        variable = ''
+        updated = random()
+
+        def delete_test_callback(model):
+            nonlocal variable
+            nonlocal updated
+            variable = updated
+
+        m = self.mapper.create_model({'_id': 15}, TestVertex)
+        self.mapper.delete(m, callback=delete_test_callback).send()
+
+        self.assertEqual(variable, updated)
 
 
 class QueryTests(unittest.TestCase):
@@ -198,6 +227,24 @@ class CustomMapperTests(unittest.TestCase):
         self.gremlin = Gremlin()
         self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin)
+
+    def test_can_can_on_create_model_level_callback(self):
+        pass
+
+    def test_can_can_on_update_model_level_callback(self):
+        pass
+
+    def test_can_can_on_delete_model_level_callback(self):
+        pass
+
+    def test_can_can_on_create_model_level_callback_and_onetime_callback(self):
+        pass
+
+    def test_can_can_on_update_model_level_callback_and_onetime_callback(self):
+        pass
+
+    def test_can_can_on_delete_model_level_callback_and_onetime_callback(self):
+        pass
 
 
 class EventSourceTests(unittest.TestCase):
