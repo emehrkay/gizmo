@@ -23,6 +23,7 @@ class TestEdge(Edge):
 class TestUniqueEdge(Edge):
     _node_type = TEST_UNIQUE_EDGE
 
+
 class TestUndefinedVertex(Vertex):
     _node_type = TEST_UNDEFINED_VERTEX
     _allowed_undefined = True

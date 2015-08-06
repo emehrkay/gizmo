@@ -10,6 +10,7 @@ from gremlinpy.statement import GetEdge
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
+_MAPPER_INSTANCES = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
 query_count = 0
@@ -315,8 +316,14 @@ class Mapper(object):
 
         if name not in _MAPPER_MAP:
             name = GENERIC_MAPPER
+        
+        if name not in _MAPPER_INSTANCES:
+            instance = _MAPPER_MAP[name](self.gremlin, self)
+            _MAPPER_INSTANCES[name] = instance
+        else:
+            instance = _MAPPER_INSTANCES[name]
 
-        return _MAPPER_MAP[name](self.gremlin, self)
+        return instance
 
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries

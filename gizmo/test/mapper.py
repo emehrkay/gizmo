@@ -11,6 +11,9 @@ from gizmo.test.entity import TestVertex, TestEdge, TestUniqueEdge, TestUndefine
 import copy
 
 
+TEST_CALLBACK_VERTEX = 'test_callback_vertex'
+
+
 class TestUniqieMapper(_GenericMapper):
     model = TestUniqueEdge
     unique = True
@@ -37,6 +40,24 @@ def get_entity_entry(entity_queue, entity):
 class TestRequest(_Request):
     def __init__(self):
         pass
+
+
+class TestCallbackVertex(Vertex):
+    _node_type = TEST_CALLBACK_VERTEX
+    _allowed_undefined = True
+
+
+class TestCallbackMapper(_GenericMapper):
+    model = TestCallbackVertex
+
+    def on_create(self, model):
+        self.on_create_variable = model['on_create_variable']
+
+    def on_update(self, model):
+        self.on_update_variable = model['on_update_variable']
+
+    def on_delete(self, model):
+        self.on_delete_variable = model['on_delete_variable']
 
 
 DEFAULT_INSERT_FIELDS = [
@@ -229,7 +250,11 @@ class CustomMapperTests(unittest.TestCase):
         self.mapper = Mapper(self.request, self.gremlin)
 
     def test_can_can_on_create_model_level_callback(self):
-        pass
+        r = random()
+        v = TestCallbackVertex({'on_create_variable': r})
+        mapper = self.mapper.get_mapper(v)
+        self.mapper.save(v).send()
+        self.assertEqual(r, mapper.on_create_variable)
 
     def test_can_can_on_update_model_level_callback(self):
         pass
