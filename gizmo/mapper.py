@@ -88,12 +88,30 @@ class _GenericMapper(metaclass=_RootMapper):
             self.callbacks[model] = listed
 
         return self
+    
+    def on_create(self, model):
+        pass
 
+    def on_update(self, model):
+        pass
+
+    def on_delete(self, model):
+        pass
+    
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
 
+        if not isinstance(callback, (list, tuple)):
+            callback = [callback]
+
+        if model['_id']:
+            callback.insert(0, self.on_update)
+        else:
+            callback.insert(0, self.on_create)
+
         self._enqueue_callback(model, callback)
+
         return getattr(self, method)(model=model, bind_return=bind_return)
 
     def _save_vertex(self, model, bind_return=True):
@@ -204,7 +222,11 @@ class _GenericMapper(metaclass=_RootMapper):
     def delete(self, model, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
 
+        if not isinstance(callback, (list, tuple)):
+            callback = [callback]
+
         query.delete(model)
+        callback.insert(0, self.on_delete)
         self._enqueue_callback(model, callback)
 
         return self.enqueue(query, False)
@@ -419,6 +441,7 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
+
         print (script)
         print (params)
         if self.logger:
