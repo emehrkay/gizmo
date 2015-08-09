@@ -792,7 +792,7 @@ class Collection(object):
                     model.dirty = False
                     self._models[key] = model
                 else:
-                    raise Exception('Out of range')
+                    raise
             except Exception as e:
                 raise StopIteration()
 

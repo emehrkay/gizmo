@@ -142,6 +142,7 @@ class Async(_Request):
 class AsyncResponse(_Response):
 
     def _fix_data(self, resp):
+        #TODO: clean up this shit show
         if not resp:
             resp = {}
         response = []
@@ -171,7 +172,7 @@ class AsyncResponse(_Response):
                             fix_properties(v)
 
                             for field, value in v.items():
-                                data[field] = value[-1]['value'] if type(value) is list else value
+                                data[field] = value[-1]['value'] if type(value) is list and len(value) else value
 
                             if 'id' in data:
                                 data['_id'] = data['id']
@@ -190,7 +191,7 @@ class AsyncResponse(_Response):
                         del(data['id'])
 
                     response.append(data)
-
+        print('@@@@@@@@@@@@@@@@@@@@RESPDATA', response)
         return response
 
 
