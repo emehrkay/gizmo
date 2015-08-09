@@ -10,7 +10,6 @@ from gremlinpy.statement import GetEdge
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
-_MAPPER_INSTANCES = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
 query_count = 0
@@ -80,41 +79,21 @@ class _GenericMapper(metaclass=_RootMapper):
     def _enqueue_callback(self, model, callback):
         if callback:
             listed = self.callbacks.get(model, [])
-            self.callbacks[model] = listed
 
             if isinstance(callback, (list, tuple)):
-                for c in callback:
-                    self._enqueue_callback(model, c)
-            elif callback:
+                listed += list(callback)
+            else:
                 listed.append(callback)
 
             self.callbacks[model] = listed
 
         return self
 
-    def on_create(self, model):
-        pass
-
-    def on_update(self, model):
-        pass
-
-    def on_delete(self, model):
-        pass
-
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
 
-        if not isinstance(callback, (list, tuple)):
-            callback = [callback]
-
-        if model['_id']:
-            callback.insert(0, self.on_update)
-        else:
-            callback.insert(0, self.on_create)
-
         self._enqueue_callback(model, callback)
-
         return getattr(self, method)(model=model, bind_return=bind_return)
 
     def _save_vertex(self, model, bind_return=True):
@@ -144,12 +123,12 @@ class _GenericMapper(metaclass=_RootMapper):
             if '*' in self.unique_fields:
                 self.unique_fields = model.fields.keys()
 
-            gremlin.V.has(node_type, 'T.eq', model._node_type)
+            gremlin.V().has(node_type, model._node_type)
 
             for field in self.unique_fields:
                 g_field = '"%s"' % field
 
-                gremlin.has(g_field, 'T.eq', model[field])
+                gremlin.has(g_field, model[field])
 
             try:
                 first = self.mapper.query(gremlin=gremlin).first()
@@ -225,11 +204,7 @@ class _GenericMapper(metaclass=_RootMapper):
     def delete(self, model, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
 
-        if not isinstance(callback, (list, tuple)):
-            callback = [callback]
-
         query.delete(model)
-        callback.insert(0, self.on_delete)
         self._enqueue_callback(model, callback)
 
         return self.enqueue(query, False)
@@ -316,14 +291,8 @@ class Mapper(object):
 
         if name not in _MAPPER_MAP:
             name = GENERIC_MAPPER
-        
-        if name not in _MAPPER_INSTANCES:
-            instance = _MAPPER_MAP[name](self.gremlin, self)
-            _MAPPER_INSTANCES[name] = instance
-        else:
-            instance = _MAPPER_INSTANCES[name]
 
-        return instance
+        return _MAPPER_MAP[name](self.gremlin, self)
 
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries
@@ -351,7 +320,7 @@ class Mapper(object):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.delete(model, callback=callback)
+        mapper.delete(model, callback)
         # manually add the deleted model to the self.models collection for callbacks
         from random import randrange
         key = 'DELETED_%s_model' % str(randrange(0, 999999999))
@@ -430,7 +399,6 @@ class Mapper(object):
         params = self.params
         models = self.models
         callbacks = self.callbacks
-
         models.update(self.del_models)
         self.reset()
 
@@ -525,13 +493,13 @@ class Query(object):
                 if type(val) is dict or type(val) is list:
                     listed = self.iterable_to_graph(val, prefix)
                     value = "[%s]" % listed
-                    entry = "'%s': %s" % (key, value)
+                    entry = "'%s', %s" % (key, value)
 
                     self.fields.append(entry)
                 else:
                     bound = gremlin.bind_param(value)
 
-                    self.fields.append("'%s': %s" % (key, bound[0]))
+                    self.fields.append("'%s', %s" % (key, bound[0]))
 
         return self
 
@@ -590,9 +558,9 @@ class Query(object):
 
     def by_id(self, _id, model, set_variable=None):
         gremlin = self.gremlin
-        entity = 'e' if model['_type'] == 'edge' else 'v'
+        entity = 'E' if model['_type'] == 'edge' else 'V'
 
-        getattr(gremlin, entity)(_id)
+        getattr(gremlin, entity)(_id).next()
 
         if set_variable is not None:
             gremlin.set_ret_variable(set_variable)
@@ -612,8 +580,8 @@ class Query(object):
         # use the model.fields.data instead of model.data because
         # model.data can be monkey-patched with custom mappers
         self.build_fields(model.fields.data, IMMUTABLE['vertex'])
-
-        script = '%s.addVertex([%s])' % (gremlin.gv, ', '.join(self.fields))
+        self.fields.append('T.label, "someVertexXXXX"')
+        script = '%s.addV(%s).next()' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
 
@@ -636,12 +604,10 @@ class Query(object):
 
         self.build_fields(model.fields.data, IMMUTABLE['edge'])
 
-        if len(self.fields) > 0:
-            edge_fields = ', [%s]' % ', '.join(self.fields)
-
-        script = '%s.addEdge(%s, %s, %s%s)' % (gremlin.gv, out_v, in_v, label_bound[0], edge_fields)
-
-        gremlin.set_graph_variable('').raw(script)
+        g = Gremlin()
+        g.unbound('V', in_v).next()
+        gremlin.unbound('V', out_v).next().unbound('addEdge', label_bound[0], str(g), ', '.join(self.fields))
+        gremlin
 
         model.field_type = 'python'
 
@@ -682,17 +648,28 @@ class Query(object):
 
         gremlin = self.gremlin
         model.field_type = 'graph'
-        model_type = 'e' if model._type == 'edge' else 'v'
+        model_type = 'E' if model._type == 'edge' else 'V'
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        self.update_fields(model.fields.data, model._immutable, prefix=model.__class__.__name__)
+        getattr(gremlin, model_type)(model['_id'])
 
-        next_func = Function(gremlin, 'next')
+        for k, v in model.fields.data.items():
+            name = '%s_%s' % (model.__class__.__name__, k)
 
-        getattr(gremlin, model_type)(model['_id'])._().sideEffect.close('; '.join(self.fields)).add_token(next_func)
+            if k not in model._immutable:
+                if type(v) is dict or type(v) is list:
+                    #import pudb; pu.db
+                    gmap = self.iterable_to_graph(v, model.__class__.__name__)
+                    #entry = "it.setProperty('%s', [%s])" % (k, gmap)
+                    gremlin.property("'%s'" % k, gmap)
+                else:
+                    bound = gremlin.bind_param(v)
+                    entry = "it.setProperty('%s', %s)" % (k, bound[0])
+                    gremlin.property("'%s'" % k, bound[0])
 
+        gremlin.next()
         model.field_type = 'python'
 
         return self.add_gremlin_query(model)
@@ -724,9 +701,9 @@ class Query(object):
         if model._type is None:
             raise EntityException(['Models need to have a type defined'])
 
-        entity = 'e' if model._type == 'edge' else 'v'
+        entity = 'E' if model._type == 'edge' else 'V'
 
-        getattr(gremlin, entity)(_id).remove()
+        getattr(gremlin, entity)(_id).next().dump()
 
         return self.add_query(str(gremlin), gremlin.bound_params, model)
 
@@ -815,7 +792,7 @@ class Collection(object):
                     model.dirty = False
                     self._models[key] = model
                 else:
-                    raise
+                    raise Exception('Out of range')
             except Exception as e:
                 raise StopIteration()
 

@@ -196,7 +196,7 @@ class _BaseEntity(metaclass=_RootEntity):
     field_type = property(_get_data_type, _set_data_type)
 
     def get_rep(self):
-        entity = 'e' if self._type == 'edge' else 'v'
+        entity = 'E' if self._type == 'edge' else 'V'
 
         return entity, self['_id']
 

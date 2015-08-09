@@ -107,6 +107,93 @@ class _Response(object):
 
         return self
 
+class Async(_Request):
+
+    def __init__(self, uri, graph, username=None, password=None, port=8184):
+        import asyncio
+        from aiogremlin import GremlinClient
+
+        super(Async, self).__init__(uri, username, password)
+        self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
+        self.connection = GremlinClient()
+
+    def send(self, script=None, params=None, update_models=None):
+        import asyncio
+        
+        if not params:
+            params = {}
+
+        if not update_models:
+            update_models = {}
+        
+        loop = asyncio.get_event_loop()
+        execute = self.connection.execute(script, bindings=params)
+        resp = loop.run_until_complete(execute)
+        #loop.run_until_complete(self.connection.close())
+        #loop.close()
+
+        data = resp[0].data if resp[0].data else {}
+        response = AsyncResponse(resp[0].data, update_models)
+        response.script = script
+        response.params = params
+        return response
+
+
+class AsyncResponse(_Response):
+
+    def _fix_data(self, resp):
+        if not resp:
+            resp = {}
+        response = []
+        update_keys = list(self.update_models.keys())
+        print('%%%%!!!RESPONSE', resp)
+        def has_update(keys):
+            c = list(set(update_keys) - set(keys))
+            return len(c) > 0
+
+        def fix_properties(data_set):
+            if isinstance(data_set, dict) and 'properties' in data_set:
+                prop = data_set['properties']
+                del data_set['properties']
+                data_set.update(prop)
+
+            return data_set
+
+        for arg in resp:
+            if not hasattr(arg, '__iter__'):
+                response = [{'response': arg}]
+            elif isinstance(arg, dict):
+                if has_update(arg.keys()):
+                    for k, v in arg.items():
+                        if k in self.update_models:
+                            model = self.update_models[k]
+                            data = {}
+                            fix_properties(v)
+
+                            for field, value in v.items():
+                                data[field] = value[-1]['value'] if type(value) is list else value
+
+                            if 'id' in data:
+                                data['_id'] = data['id']
+                                model.fields['_id'].value = data['id']
+                                del(data['id'])
+
+                            response.append(data)
+                            model.hydrate(data)
+                else:
+                    data = fix_properties(arg)
+                    for field, value in data.items():
+                        data[field] = value[-1]['value'] if type(value) is list else value
+
+                    if 'id' in data:
+                        data['_id'] = data['id']
+                        del(data['id'])
+
+                    response.append(data)
+
+        return response
+
+
 
 class Binary(_Request):
 
