@@ -82,7 +82,7 @@ class _GenericMapper(metaclass=_RootMapper):
 
             if isinstance(callback, (list, tuple)):
                 listed += list(callback)
-            else:
+            elif callback:
                 listed.append(callback)
 
             self.callbacks[model] = listed
@@ -102,8 +102,10 @@ class _GenericMapper(metaclass=_RootMapper):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
 
-        if not isinstance(callback, (list, tuple)):
+        if not isinstance(callback, (list, tuple)) and callback:
             callback = [callback]
+        else:
+            callback = []
 
         if model['_id']:
             callback.insert(0, self.on_update)
@@ -222,8 +224,10 @@ class _GenericMapper(metaclass=_RootMapper):
     def delete(self, model, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
 
-        if not isinstance(callback, (list, tuple)):
+        if not isinstance(callback, (list, tuple)) and callback:
             callback = [callback]
+        else:
+            callback = []
 
         query.delete(model)
         callback.insert(0, self.on_delete)

@@ -147,7 +147,7 @@ class AsyncResponse(_Response):
             resp = {}
         response = []
         update_keys = list(self.update_models.keys())
-        print('%%%%!!!RESPONSE', resp)
+
         def has_update(keys):
             c = list(set(update_keys) - set(keys))
             return len(c) > 0
@@ -191,9 +191,8 @@ class AsyncResponse(_Response):
                         del(data['id'])
 
                     response.append(data)
-        print('@@@@@@@@@@@@@@@@@@@@RESPDATA', response)
-        return response
 
+        return response
 
 
 class Binary(_Request):
