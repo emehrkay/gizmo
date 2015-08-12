@@ -97,6 +97,11 @@ class _GenericMapper(metaclass=_RootMapper):
 
     def on_delete(self, model):
         pass
+
+    def by_id(self, _id, model, bind_return=True):
+        query = Query(self.gremlin, self.mapper)
+        query.by_id(_id, model)
+        return self.enqueue(query, bind_return)
     
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
@@ -175,7 +180,9 @@ class _GenericMapper(metaclass=_RootMapper):
         #TODO: send an edge to be saved multiple times
         edge_ref = self.mapper.get_model_variable(model)
         out_v = model.out_v
+        out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
         in_v = model.in_v
+        in_v_id = in_v['_id'] if isinstance(in_v, Vertex) else None
         out_v_ref = self.mapper.get_model_variable(out_v)
         in_v_ref = self.mapper.get_model_variable(in_v)
 
@@ -201,19 +208,30 @@ class _GenericMapper(metaclass=_RootMapper):
 
         out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
         in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
-
-        if model['_id'] and self.unique:
-            edge = GetEdge(out_v, in_v, model['_label'])
+        
+        if not model['_id'] and self.unique and in_v_id and out_v_id:
             gremlin = Gremlin(self.gremlin.gv)
+            gremlin.V(out_v_id)
+            
+            label = gremlin.bind_param(model['_label'], 'LABEL')
+            as_var = gremlin.bind_param('as_label', 'AS_LABEL')
+            as_func = Function(gremlin, 'as', [as_var[0]])
+            gremlin.bothE(model['_label']).add_token(as_func).bothV()
+            gremlin.has('T.id', in_v_id)
 
-            gremlin.apply_statement(edge)
+            gremlin.select('as_label')
 
             try:
-                edge = self.mapper.query(gremlin=gremlin).first()
+                result = self.mapper.query(gremlin=gremlin)
+                edge = result.first()
                 save = False
 
                 query.by_id(edge['_id'], model)
             except Exception as e:
+                import traceback
+                print(traceback.format_exc())
+                traceback.print_stack(file=sys.stdout)
+                print('\nEXCEPTION', e, '!!!')
                 save = True
 
         if save:
@@ -299,12 +317,22 @@ class Mapper(object):
         self.callbacks = {}
 
     def get_model_variable(self, model):
-        ret_key = None
+        def get_key():
+            ret = None
+            for key, def_model in self.models.items():
+                if model == def_model:
+                    return key
 
-        for key, def_model in self.models.items():
-            if model == def_model:
-                ret_key = key
-                break
+            return ret
+
+        ret_key = get_key()
+        
+        if not ret_key and model['_id']:
+            mapper = self.get_mapper(model)
+
+            mapper.by_id(model['_id'], model)
+            self._enqueue_mapper(mapper)
+            ret_key = get_key()
 
         return ret_key
 
@@ -538,7 +566,6 @@ class Query(object):
 
             if k not in _immutable:
                 if type(v) is dict or type(v) is list:
-                    #import pudb; pu.db
                     gmap = self.iterable_to_graph(v, prefix)
                     entry = "it.setProperty('%s', [%s])" % (k, gmap)
                 else:
@@ -585,7 +612,7 @@ class Query(object):
 
     def by_id(self, _id, model, set_variable=None):
         gremlin = self.gremlin
-        entity = 'E' if model['_type'] == 'edge' else 'V'
+        entity = 'E' if model._type == 'edge' else 'V'
 
         getattr(gremlin, entity)(_id).next()
 
@@ -687,7 +714,7 @@ class Query(object):
 
             if k not in model._immutable:
                 if type(v) is dict or type(v) is list:
-                    #import pudb; pu.db
+
                     gmap = self.iterable_to_graph(v, model.__class__.__name__)
                     #entry = "it.setProperty('%s', [%s])" % (k, gmap)
                     gremlin.property("'%s'" % k, gmap)
