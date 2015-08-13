@@ -208,30 +208,18 @@ class _GenericMapper(metaclass=_RootMapper):
 
         out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
         in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
-        
+
         if not model['_id'] and self.unique and in_v_id and out_v_id:
             gremlin = Gremlin(self.gremlin.gv)
-            gremlin.V(out_v_id)
-            
-            label = gremlin.bind_param(model['_label'], 'LABEL')
-            as_var = gremlin.bind_param('as_label', 'AS_LABEL')
-            as_func = Function(gremlin, 'as', [as_var[0]])
-            gremlin.bothE(model['_label']).add_token(as_func).bothV()
-            gremlin.has('T.id', in_v_id)
-
-            gremlin.select('as_label')
+            get_edge = GetEdge(out_v_id, in_v_id, model['_label'], self.unique)
+            gremlin.apply_statement(get_edge)
 
             try:
                 result = self.mapper.query(gremlin=gremlin)
                 edge = result.first()
                 save = False
-
                 query.by_id(edge['_id'], model)
             except Exception as e:
-                import traceback
-                print(traceback.format_exc())
-                traceback.print_stack(file=sys.stdout)
-                print('\nEXCEPTION', e, '!!!')
                 save = True
 
         if save:
@@ -326,13 +314,6 @@ class Mapper(object):
             return ret
 
         ret_key = get_key()
-        
-        if not ret_key and model['_id']:
-            mapper = self.get_mapper(model)
-
-            mapper.by_id(model['_id'], model)
-            self._enqueue_mapper(mapper)
-            ret_key = get_key()
 
         return ret_key
 

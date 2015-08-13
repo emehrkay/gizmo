@@ -147,7 +147,7 @@ class AsyncResponse(_Response):
             resp = {}
         response = []
         update_keys = list(self.update_models.keys())
-        
+
         def has_update(keys):
             c = list(set(update_keys) - set(keys))
             return len(c) > 0
