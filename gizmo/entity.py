@@ -204,9 +204,10 @@ class _BaseEntity(metaclass=_RootEntity):
     def _node_type(self):
         raise NotImplementedError('Vertices and Edges need a _node_type defined')
 
-    @property
-    def data(self):
-        return self.fields.data
+    def get_data(self, full=False):
+        return self.fields.get_data(full=full)
+    
+    data = property(get_data)
 
     @property
     def changed(self):

@@ -795,8 +795,18 @@ class Collection(object):
     def last(self):
         return self[-1]
 
+    def get_data(self, full=False):
+        if full:
+            data = [x.get_data(full) for x in self]
+        else:
+            data = [x for x in self.response.data]
+
+        return data
+    
+    data = property(get_data)
+
     @property
-    def data(self):
+    def datas(self):
         """
         method used to return the raw data from the
         response

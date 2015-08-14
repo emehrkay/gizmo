@@ -44,15 +44,16 @@ class _Fields(dict):
         
         return data
     
-    @property
-    def data(self, full=False):
+    def get_data(self, full=False):
         if not full:
             data = self._get_data()
 
             return OrderedDict(sorted(data.items()))
         else:
-            return self.full_data()
+            return self.full_data
 
+    data = property(get_data)
+    
     @property
     def full_data(self):
         data = {}
@@ -61,7 +62,7 @@ class _Fields(dict):
             data = callback(data)
 
             if not isinstance(data, dict):
-                error = """The value returned from an expander must be a dict. The expander returned a: %s""" % type(data)
+                error = """The value returned from an expander must be a dict. The expander function %s returned a: %s""" % (callback.__name__, type(data))
                 raise ValueError(error)
 
         # sorting field names do not matter
