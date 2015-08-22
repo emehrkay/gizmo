@@ -194,13 +194,13 @@ class _GenericMapper(metaclass=_RootMapper):
         if they have been used, use the reference variable in the create edge
         logic
         """
-        if not out_v_ref and isinstance(out_v, Vertex) and out_v['_id'] is None:
+        if not out_v_ref and isinstance(out_v, Vertex):
             self.mapper.save(out_v)
             out_v = self.mapper.get_model_variable(out_v)
         else:
             out_v = out_v_ref
 
-        if not in_v_ref and isinstance(in_v, Vertex) and in_v['_id'] is None:
+        if not in_v_ref and isinstance(in_v, Vertex):
             self.mapper.save(in_v)
             in_v = self.mapper.get_model_variable(in_v)
         else:
@@ -697,8 +697,7 @@ class Query(object):
                 if type(v) is dict or type(v) is list:
 
                     gmap = self.iterable_to_graph(v, model.__class__.__name__)
-                    #entry = "it.setProperty('%s', [%s])" % (k, gmap)
-                    gremlin.property("'%s'" % k, gmap)
+                    gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
                     bound = gremlin.bind_param(v)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
