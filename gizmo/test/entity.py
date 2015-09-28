@@ -2,35 +2,27 @@ import unittest
 from random import randrange
 from gizmo.entity import Vertex, Edge
 from gizmo.field import String
+from gizmo.utils import camel_to_underscore
 from gremlinpy.gremlin import Gremlin
 
-TEST_EDGE = 'test_edge'
-TEST_UNIQUE_EDGE = 'test_unique_edge'
-TEST_VERTEX = 'test_vertex'
-TEST_UNDEFINED_VERTEX = 'test_undefied_vertex'
-TEST_UNDEFINED_EDGE = 'test_undefied_edge'
 
 class TestVertex(Vertex):
     some_field = String()
-    _node_type = TEST_VERTEX
 
 
 class TestEdge(Edge):
     some_field = String()
-    _node_type = TEST_EDGE
 
 
 class TestUniqueEdge(Edge):
-    _node_type = TEST_UNIQUE_EDGE
+    pass
 
 
 class TestUndefinedVertex(Vertex):
-    _node_type = TEST_UNDEFINED_VERTEX
     _allowed_undefined = True
 
 
 class TestUndefinedEdge(Vertex):
-    _node_type = TEST_UNDEFINED_EDGE
     _allowed_undefined = True
 
 
@@ -57,7 +49,7 @@ class EntityTests(unittest.TestCase):
         e = TestEdge()
 
         self.assertTrue(isinstance(e, Edge))
-        self.assertEqual(e._type, 'edge')
+        self.assertEqual(e.label, camel_to_underscore(e.__class__.__name__))
 
     def test_can_create_edge_with_data(self):
         d = {'some_field': 1}

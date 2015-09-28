@@ -3,7 +3,7 @@ import copy
 
 class _Request(object):
 
-    def __init__(self, uri, graph, username=None, password=None):
+    def __init__(self, uri, graph, username=None, password=None, *args, **kwargs):
         self.responses = []
         self.uri = uri
         self.graph = graph
@@ -117,7 +117,7 @@ class Async(_Request):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
         self.connection = GremlinClient()
 
-    def send(self, script=None, params=None, update_models=None):
+    def send(self, script=None, params=None, update_models=None, rebindings=None, *args, **kwargs):
         import asyncio
         
         if not params:

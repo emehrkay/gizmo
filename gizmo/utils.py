@@ -1,4 +1,5 @@
 import time
+import re
 
 
 GIZMO_MODEL = 'gizmo_model'
@@ -6,12 +7,17 @@ GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
 GIZMO_NODE_TYPE = 'gizmo_node_type'
 GIZMO_TYPE = '_type'
-GIZMO_ID = '_id'
-GIZMO_LABEL = '_label'
+GIZMO_ID = 'T.id'
+GIZMO_LABEL = 'T.label'
 VERTEX = 'vertex'
 EDGE = 'edge'
 TYPES = {VERTEX: VERTEX, EDGE: EDGE}
 IMMUTABLE = {VERTEX: [GIZMO_ID, GIZMO_TYPE], EDGE: [GIZMO_ID, GIZMO_TYPE, GIZMO_LABEL, '_inV', '_outV']}
+
+
+def camel_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def get_object_items(obj):

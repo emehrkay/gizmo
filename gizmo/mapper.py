@@ -288,6 +288,13 @@ class Mapper(object):
         self.request = request
         self.gremlin = gremlin
         self.auto_commit = auto_commit
+
+        if not logger:
+            import logging
+            logging.basicConfig(format='%(levelname)s:%(message)s')
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG)
+        
         self.logger = logger
         self.reset()
 
@@ -454,15 +461,26 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
+        #
+        # print (script)
+        # print (params)
 
-        print (script)
-        print (params)
+        response = self.request.send(script, params, update_models)
+        def rep(s, d):
+            import re
+            if not len(d):
+                return s
+            pattern = re.compile(r'\b(' + '|'.join(d.keys()) + r')\b')
+            def su(x):
+                x = str(d[x.group()]) if d[x.group()] else ""
+                return '"%s"' % x
+            return pattern.sub(su, s)
+        
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
-
-        response = self.request.send(script, params, update_models)
-
+            self.logger.debug(rep(script, params))
+#        print("\n\n", rep(script, params).replace('\n', ' ').replace('\r', ''), "\n\n")
         # run the callbacks
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])

@@ -1,7 +1,7 @@
 from gizmo.field import String, DateTime, Boolean, List, Map, _Fields, Field, Enum
 from gizmo.utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
-from gizmo.utils import current_date_time
+from gizmo.utils import current_date_time, camel_to_underscore
 from inspect import isfunction
 import copy
 
@@ -31,6 +31,7 @@ class _RootEntity(type):
 
             self.dirty = False
             self.data_type = data_type
+            cls_label = camel_to_underscore(self.__class__.__name__)
 
             if '_allowed_undefined' in attrs:
                 self._allowed_undefined = attrs['_allowed_undefined']
@@ -48,7 +49,7 @@ class _RootEntity(type):
                     data_type=data_type, set_max=1, track_changes=False),
                 GIZMO_MODIFIED: DateTime(value=modified,\
                     data_type=data_type, track_changes=False),
-                GIZMO_NODE_TYPE: String(self._node_type, data_type=data_type,\
+                GIZMO_LABEL: String(cls_label, data_type=data_type,\
                     track_changes=False),
                 GIZMO_ID: String(data_type=data_type,\
                     track_changes=False),
@@ -84,7 +85,7 @@ class _RootEntity(type):
                 label = data.get('label', None)
 
                 if label is None:
-                    label = self._node_type
+                    label = cls_label
 
                 self.fields[GIZMO_LABEL] = String(value=label, data_type=data_type)
 
@@ -200,14 +201,14 @@ class _BaseEntity(metaclass=_RootEntity):
 
         return entity, self['_id']
 
-    @property
-    def _node_type(self):
-        raise NotImplementedError('Vertices and Edges need a _node_type defined')
-
     def get_data(self, full=False):
         return self.fields.get_data(full=full)
     
     data = property(get_data)
+
+    @property
+    def label(self):
+        return self.__getitem__(GIZMO_LABEL)
 
     @property
     def changed(self):
@@ -231,22 +232,10 @@ class Vertex(_BaseEntity):
 class GenericVertex(Vertex):
     _allowed_undefined = True
 
-    @property
-    def _node_type(self):
-        return 'generic_vertex'
-
 
 class Edge(_BaseEntity):
     _immutable = IMMUTABLE['edge']
 
-    @property
-    def _type(self):
-        return 'edge'
-
 
 class GenericEdge(Edge):
     _allowed_undefined = True
-
-    @property
-    def _node_type(self):
-        return 'generic_edge'
