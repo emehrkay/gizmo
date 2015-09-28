@@ -1,6 +1,6 @@
 Gizmo
 =====
-> This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second
+> This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second. I am in the process of making this already incomplete library a Tinkerpop3-only implementataion
 
 Gizmo is a lightweight Python Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster](http://www.tinkerpop.com) servers. 
 
@@ -48,7 +48,6 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
     
     class User(Vertex):
         _allowed_undefined = True
-        _node_type = 'user'
         	
     u = User({'name': 'mark', 'sex': 'male'})
     g = User({'name': 'sadé', 'sex': 'female'})
@@ -76,7 +75,6 @@ When creating custom models, Gizmo requires that you define a `node_type` proper
     class Article(Vertex):
         title = String()
         content = String()
-        _node_type = 'custom_article'
 
     
 ##### Fields
@@ -107,7 +105,6 @@ These are fields created and populated at class instantiation:
 * GIZMO_MODEL _:String_ -- the model that is used for the entity
 * GIZMO_CREATED _:DateTime_ -- the original date created. This cannot be overwritten
 * GIZMO_MODIFIED _:DateTime_ -- this is updated with every save
-* GIZMO_NODE_TYPE _:String_ -- the \_node_type property
 * GIZMO_ID _:String_ -- the _id from the graph. It is a string because different graphs store ids differently. OrientDB's ids have a : in them
 * GIZMO_LABEL _:String_ -- all edges have a _label member. This defines how the vertices are connected
 
