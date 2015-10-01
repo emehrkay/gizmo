@@ -224,9 +224,7 @@ class _BaseEntity(metaclass=_RootEntity):
 
 
 class Vertex(_BaseEntity):
-    @property
-    def _type(self):
-        return 'vertex'
+    _type = 'vertex'
 
 
 class GenericVertex(Vertex):
@@ -234,6 +232,7 @@ class GenericVertex(Vertex):
 
 
 class Edge(_BaseEntity):
+    _type = 'edge'
     _immutable = IMMUTABLE['edge']
 
 

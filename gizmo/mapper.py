@@ -1,7 +1,7 @@
 import json
 
 from gizmo.utils import get_qualified_name, get_qualified_instance_name
-from gizmo.utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
+from gizmo.utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_LABEL
 from gizmo.entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from gizmo.error import *
 
@@ -141,7 +141,7 @@ class _GenericMapper(metaclass=_RootMapper):
             query.add_query(ref, params=None, model=model)
             save = False
 
-        if model['_id'] is None and self.unique_fields is not None:
+        if not model['_id'] and self.unique_fields is not None:
             gremlin = Gremlin(self.gremlin.gv)
             node_type = "'%s'" % GIZMO_NODE_TYPE
 
@@ -211,7 +211,7 @@ class _GenericMapper(metaclass=_RootMapper):
 
         if not model['_id'] and self.unique and in_v_id and out_v_id:
             gremlin = Gremlin(self.gremlin.gv)
-            get_edge = GetEdge(out_v_id, in_v_id, model['_label'], self.unique)
+            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL], self.unique)
             gremlin.apply_statement(get_edge)
 
             try:
@@ -390,7 +390,7 @@ class Mapper(object):
         data['out_v'] = out_v
         data['in_v'] = in_v
         data['_type'] = 'edge'
-        data['_label'] = label
+        data[GIZMO_LABEL] = label
 
         return self.create_model(data=data, model_class=edge_model, data_type=data_type)
 
@@ -643,13 +643,13 @@ class Query(object):
         return self.add_gremlin_query(model)
 
     def add_edge(self, model, set_variable=False):
-        if model['_label'] is None:
+        if model[GIZMO_LABEL] is None:
             raise QueryException(['The edge must have a label before saving'])
 
         model.field_type = 'graph'
         gremlin = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
-        label_bound = gremlin.bind_param(model['_label'])
+        label_bound = gremlin.bind_param(model[GIZMO_LABEL])
         edge_fields = ''
 
         if set_variable:
