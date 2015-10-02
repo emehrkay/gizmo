@@ -325,6 +325,9 @@ class EventSourceTests(unittest.TestCase):
         self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
+    def test_can_source_an_event_when_model_is_saved(self):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
