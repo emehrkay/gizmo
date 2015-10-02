@@ -70,11 +70,19 @@ Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You 
 
 Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
 
-When creating custom models, Gizmo requires that you define a `node_type` property with each. This should be a unique string among your models as it will allow you to easily query for that model at a later date. 
+Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property. This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
 
     class Article(Vertex):
+        _node_label = 'some_article'
         title = String()
         content = String()
+    
+    #in another package
+    class Article(Vertex):
+        _node_label = 'some_other_article'
+    
+    
+    ...
 
     
 ##### Fields
@@ -113,7 +121,7 @@ These are fields created and populated at class instantiation:
 
 ### Mappers
 
-Mapper objects are the real workhorses in Gizmo, it is the entry and exit points for all interactions between your code and the graph. 
+Mapper objects are the real workhorses in Gizmo, it is the entry and exit points for all interactions between entities and the graph. 
 
 #### Queries and Statements
 
@@ -159,7 +167,17 @@ Statements are useful when you create complex queries often and want to referenc
 
 #### Custom Mappers
 
-Gizmo mappers do a few things: CRUD entity models. Gizmo allows you to create custom mappers and augment 
+The `Mapper` object acts as proxy for any `_GenericMapper` instances. When you write a custom mapper and subclass `_GenericMapper` you have to bind that mapper to an entity. 
+
+
+    class MyCustomVertex(Vertex):
+        my_name = String()
+
+
+    class MyCustomVertexMapper(_GenericMapper):
+        model = MyCustomVertex
+
+Anytime an instance of `MyCustomVertex` is acted against via the main `Mapper`, all actions are routed through to the `MyCustomVertexMapper` object.
 
 #### Traversal Object
 
