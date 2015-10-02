@@ -1,9 +1,13 @@
-from gizmo.field import String, DateTime, Boolean, List, Map, _Fields, Field, Enum
-from gizmo.utils import get_qualified_name, get_qualified_instance_name, TYPES, IMMUTABLE
-from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
-from gizmo.utils import current_date_time, camel_to_underscore
 from inspect import isfunction
-import copy
+from copy import deepcopy
+
+from gizmo.field import String, DateTime, Boolean, List
+from gizmo.field import Map, _Fields, Field, Enum
+from gizmo.utils import get_qualified_name
+from gizmo.utils import get_qualified_instance_name, TYPES, IMMUTABLE
+from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED
+from gizmo.utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
+from gizmo.utils import current_date_time, camel_to_underscore
 
 
 #Holds the model->object mappings
@@ -31,7 +35,11 @@ class _RootEntity(type):
 
             self.dirty = False
             self.data_type = data_type
-            cls_label = camel_to_underscore(self.__class__.__name__)
+
+            if hasattr(self, '_node_label'):
+                cls_label = self._node_label
+            else:
+                cls_label = camel_to_underscore(self.__class__.__name__)
 
             if '_allowed_undefined' in attrs:
                 self._allowed_undefined = attrs['_allowed_undefined']
@@ -94,7 +102,7 @@ class _RootEntity(type):
             ignore things that start with an underscore and methods
             this is done for all of the bases first, then the actual model
             """
-            undefined = copy.deepcopy(data)
+            undefined = deepcopy(data)
 
             def update_fields(obj):
                 for name, field in obj.items():

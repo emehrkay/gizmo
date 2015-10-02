@@ -42,24 +42,6 @@ class TestRequest(_Request):
         pass
 
 
-class TestCallbackVertex(Vertex):
-    _node_type = TEST_CALLBACK_VERTEX
-    _allowed_undefined = True
-
-
-class TestCallbackMapper(_GenericMapper):
-    model = TestCallbackVertex
-
-    def on_create(self, model):
-        self.on_create_variable = model['on_create_variable']
-
-    def on_update(self, model):
-        self.on_update_variable = model['on_update_variable']
-
-    def on_delete(self, model):
-        self.on_delete_variable = model['on_delete_variable']
-
-
 DEFAULT_INSERT_FIELDS = [
     GIZMO_MODEL,
     GIZMO_CREATED,
@@ -74,10 +56,10 @@ class MapperTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
-        self.mapper = Mapper(self.request, self.gremlin)
+        self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
     def test_mapper_instance(self):
-        m = Mapper(self.gremlin, self.request)
+        m = Mapper(self.gremlin, self.request, logger=False)
 
         self.assertTrue(type(m) == Mapper)
 
@@ -102,7 +84,7 @@ class MapperTests(unittest.TestCase):
             self.assertEqual(v, vd[k])
 
     def test_can_update_existing_vertex(self):
-        vid = 1111
+        vid = '1111'
         d = {
             GIZMO_ID: vid,
             'some_field': 'mark',
@@ -120,14 +102,14 @@ class MapperTests(unittest.TestCase):
         for k, v in v.data.items():
             if k not in _immutable:
                 value, paramsss = get_dict_key(params, v)
-                prop = "it.setProperty('%s', %s)" % (k, value)
+                prop = "property('%s', %s)" % (k, value)
                 query_ps.append(prop)
 
         propv, params = get_dict_key(sent_params, vid)
 
-        close = '._().sideEffect{%s}.next()' % '; '.join(query_ps)
+        close = '.'.join(query_ps)
         params = (list(entry_v1.keys())[0], propv, close)
-        expected = "%s = g.v(%s)%s" % params
+        expected = "%s = g.V(%s).%s.next()" % params
 
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
@@ -151,11 +133,10 @@ class MapperTests(unittest.TestCase):
         for k,v in v.data.items():
             if k not in _immutable:
                 value, params = get_dict_key(params, v, True)
-                prop = "'%s': %s" % (k, value)
+                prop = "'%s', %s" % (k, value)
                 props.append(prop)
 
-        expected = "%s = g.addVertex([%s])" % (list(entry_v1.keys())[0] ,', '.join(props))
-
+        expected = "%s = g.addV(%s).next()" % (list(entry_v1.keys())[0] ,', '.join(props))
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -240,21 +221,40 @@ class QueryTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
-        self.mapper = Mapper(self.request, self.gremlin)
+        self.mapper = Mapper(self.request, self.gremlin, logger=False)
+
+
+class TestCallbackVertex(Vertex):
+    _allowed_undefined = True
+
+
+class TestCallbackMapper(_GenericMapper):
+    model = TestCallbackVertex
+    on_create_variable = ''
+
+    def on_create(self, model):
+        TestCallbackMapper.on_create_variable = model['on_create_variable']
+
+    def on_update(self, model):
+        TestCallbackMapper.on_update_variable = model['on_update_variable']
+
+    def on_delete(self, model):
+        TestCallbackMapper.on_delete_variable = model['on_delete_variable']
 
 
 class CustomMapperTests(unittest.TestCase):
+
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
-        self.mapper = Mapper(self.request, self.gremlin)
+        self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
     def test_can_can_on_create_model_level_callback(self):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
-        mapper = self.mapper.get_mapper(v)
         self.mapper.save(v).send()
-        self.assertEqual(r, mapper.on_create_variable)
+        
+        self.assertEqual(r, TestCallbackMapper.on_create_variable)
 
     def test_can_can_on_update_model_level_callback(self):
         r = random()
@@ -323,7 +323,7 @@ class EventSourceTests(unittest.TestCase):
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
-        self.mapper = Mapper(self.request, self.gremlin)
+        self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
 
 if __name__ == '__main__':

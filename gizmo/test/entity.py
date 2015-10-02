@@ -1,8 +1,8 @@
 import unittest
-from random import randrange
+from random import randrange, random
 from gizmo.entity import Vertex, Edge
 from gizmo.field import String
-from gizmo.utils import camel_to_underscore
+from gizmo.utils import camel_to_underscore, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
 
 
@@ -77,6 +77,22 @@ class EntityTests(unittest.TestCase):
         for k, v in d.items():
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
+
+    def test_can_create_entity_with_and_without_label_override(self):
+        custom = 'custom_name' + str(random())
+
+        class CustomV(Vertex):
+            _node_label = custom
+
+        class V(Vertex):
+            pass
+
+        custom_v = CustomV()
+        v = V()
+        name = camel_to_underscore(v.__class__.__name__)
+
+        self.assertEqual(custom, custom_v[GIZMO_LABEL])
+        self.assertEqual(name, v[GIZMO_LABEL])
 
 
 if __name__ == '__main__':

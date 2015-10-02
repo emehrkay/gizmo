@@ -289,7 +289,7 @@ class Mapper(object):
         self.gremlin = gremlin
         self.auto_commit = auto_commit
 
-        if not logger:
+        if not logger and logger != False:
             import logging
             logging.basicConfig(format='%(levelname)s:%(message)s')
             logger = logging.getLogger()
@@ -362,7 +362,8 @@ class Mapper(object):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.delete(model, callback)
+        mapper.delete(model, callback=callback)
+
         # manually add the deleted model to the self.models collection for callbacks
         from random import randrange
         key = 'DELETED_%s_model' % str(randrange(0, 999999999))
@@ -461,27 +462,13 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        #
-        # print (script)
-        # print (params)
 
         response = self.request.send(script, params, update_models)
-        def rep(s, d):
-            import re
-            if not len(d):
-                return s
-            pattern = re.compile(r'\b(' + '|'.join(d.keys()) + r')\b')
-            def su(x):
-                x = str(d[x.group()]) if d[x.group()] else ""
-                return '"%s"' % x
-            return pattern.sub(su, s)
-        
+
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
-            self.logger.debug(rep(script, params))
-#        print("\n\n", rep(script, params).replace('\n', ' ').replace('\r', ''), "\n\n")
-        # run the callbacks
+        
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])
             for c in cbs:
@@ -633,7 +620,7 @@ class Query(object):
         # use the model.fields.data instead of model.data because
         # model.data can be monkey-patched with custom mappers
         self.build_fields(model.fields.data, IMMUTABLE['vertex'])
-        self.fields.append('T.label, "someVertexXXXX"')
+
         script = '%s.addV(%s).next()' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
