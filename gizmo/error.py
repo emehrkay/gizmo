@@ -1,6 +1,9 @@
 
+
 class GizmoException(Exception):
+
     def __init__(self, errors=None):
+
         if not errors:
             errors = []
         self.errors = errors
@@ -32,4 +35,3 @@ class CollectionException(MapperException):
 
 class TraversalException(MapperException):
     pass
-

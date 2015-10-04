@@ -29,23 +29,25 @@ class MapperMixin(object):
     this class to get the added functionality.
 
     The source must be defined before saving the model.
-    
+
     When using this mixin there are a few things that need to be
     considered:
         * If you're creating an entity for the first time and
-        want the changes to be captured, you do not pass the 
+        want the changes to be captured, you do not pass the
         values in with construction, but rather hydrate
-        * 
+        *
     """
 
-    def save(self, model, bind_return=True, callback=None, source=None, *args, **kwargs):
+    def save(self, model, bind_return=True, callback=None, source=None, \
+        *args, **kwargs):
         """
         Method used to save the original model and to add the
         source -> event and
         model -> event
         relationships
         """
-        super(MapperMixin, self).save(model=model, bind_return=bind_return, callback=callback, *args, **kwargs)
+        super(MapperMixin, self).save(model=model, bind_return=bind_return,\
+            callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 
         if source is not None:
@@ -54,7 +56,8 @@ class MapperMixin(object):
 
             #only create the source event if there were actual changes
             if fields_changed or fields_removed:
-                self.event = event = self.mapper.create_model(model_class=Entity,\
+                self.event = event = \
+                    self.mapper.create_model(model_class=Entity,\
                     data_type=model.data_type)
 
                 for field, change in model.changed.items():
@@ -63,7 +66,7 @@ class MapperMixin(object):
                 if model._atomic_changes and fields_removed:
                     #TODO: track the fields that were removed
                     pass
-                
+
                 source_edge = self.mapper.connect(out_v=source,\
                     in_v=event, label=TRIGGERED_SOURCE_EVENT)
                 event_edge = self.mapper.connect(out_v=model, in_v=event,\

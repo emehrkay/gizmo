@@ -1,9 +1,9 @@
 import json
 
-from gizmo.utils import get_qualified_name, get_qualified_instance_name
-from gizmo.utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_LABEL
-from gizmo.entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
-from gizmo.error import *
+from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
+from .utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE
+from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
+from .error import *
 
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
@@ -88,7 +88,7 @@ class _GenericMapper(metaclass=_RootMapper):
             self.callbacks[model] = listed
 
         return self
-    
+
     def on_create(self, model):
         pass
 
@@ -102,7 +102,7 @@ class _GenericMapper(metaclass=_RootMapper):
         query = Query(self.gremlin, self.mapper)
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
-    
+
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
@@ -159,7 +159,8 @@ class _GenericMapper(metaclass=_RootMapper):
                 first = self.mapper.query(gremlin=gremlin).first()
 
                 if self.error_on_non_unique:
-                    message = 'The fields: %s are not unique' % ', '.join(self.unique_fields)
+                    fields = ', '.join(self.unique_fields)
+                    message = 'The fields: %s are not unique' % fields
                     raise MapperException([message])
 
                 model.fields['_id'].value = first['_id']
@@ -211,7 +212,8 @@ class _GenericMapper(metaclass=_RootMapper):
 
         if not model['_id'] and self.unique and in_v_id and out_v_id:
             gremlin = Gremlin(self.gremlin.gv)
-            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL], self.unique)
+            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL], \
+                self.unique)
             gremlin.apply_statement(get_edge)
 
             try:
@@ -244,10 +246,10 @@ class _GenericMapper(metaclass=_RootMapper):
     def create_model(self, data=None, model_class=None, data_type='python'):
         """
         Method used to create a new model based on the data that is passed in.
-        If the kwarg model_class is passed in, it will be used to create the model
-        else if utils.GIZMO_MODEL is in data, that will be used
-        finally, entity.GenericVertex or entity.GenericEdge will be used to construct the model
-
+        If the kwarg model_class is passed in, it will be used to create the
+        model else if utils.GIZMO_MODEL is in data, that will be used
+        finally, entity.GenericVertex or entity.GenericEdge will be used to
+        construct the model
         """
         check = True
 
@@ -294,7 +296,7 @@ class Mapper(object):
             logging.basicConfig(format='%(levelname)s:%(message)s')
             logger = logging.getLogger()
             logger.setLevel(logging.DEBUG)
-        
+
         self.logger = logger
         self.reset()
 
@@ -312,6 +314,7 @@ class Mapper(object):
         self.callbacks = {}
 
     def get_model_variable(self, model):
+
         def get_key():
             ret = None
             for key, def_model in self.models.items():
@@ -345,12 +348,13 @@ class Mapper(object):
             exisiting = self.callbacks.get(model, [])
 
             self.callbacks[model] = exisiting + callbacks
-        
+
         mapper.reset()
 
         return self
 
-    def save(self, model, bind_return=True, mapper=None, callback=None, **kwargs):
+    def save(self, model, bind_return=True, mapper=None, \
+        callback=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
@@ -364,26 +368,30 @@ class Mapper(object):
 
         mapper.delete(model, callback=callback)
 
-        # manually add the deleted model to the self.models collection for callbacks
+        # manually add the deleted model to the self.models
+        # collection for callbacks
         from random import randrange
         key = 'DELETED_%s_model' % str(randrange(0, 999999999))
         self.del_models[key] = model
 
         return self._enqueue_mapper(mapper)
 
-    def connect(self, out_v, in_v, label=None, data=None, edge_model=None, data_type='python'):
+    def connect(self, out_v, in_v, label=None, data=None, edge_model=None, \
+        data_type='python'):
         """
         method used to connect two vertices and create an Edge object
-        the resulting edge is not saved to to graph until it is passed to save allowing
-        further augmentation
+        the resulting edge is not saved to to graph until it is passed to
+        save allowing further augmentation
         """
         if not isinstance(out_v, Vertex):
             if not isinstance(out_v, str):
-                raise ModelException(['The out_v needs to be eiter a Vertex or string id'])
+                err = ['The out_v needs to be eiter a Vertex or string id']
+                raise ModelException(err)
 
         if not isinstance(in_v, Vertex):
             if not isinstance(in_v, str):
-                raise ModelException(['The in_v needs to be eiter a Vertex or string id'])
+                err = 'The in_v needs to be eiter a Vertex or string id'
+                raise ModelException([err])
 
         if data is None:
             data = {}
@@ -393,7 +401,8 @@ class Mapper(object):
         data['_type'] = 'edge'
         data[GIZMO_LABEL] = label
 
-        return self.create_model(data=data, model_class=edge_model, data_type=data_type)
+        return self.create_model(data=data, model_class=edge_model, \
+            data_type=data_type)
 
     def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
@@ -405,7 +414,11 @@ class Mapper(object):
             name = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self.get_mapper(name=name)
 
-        kwargs = {'data': data, 'model_class': model_class, 'data_type': data_type}
+        kwargs = {
+            'data': data,
+            'model_class': model_class,
+            'data_type': data_type,
+        }
 
         return mapper.create_model(**kwargs)
 
@@ -445,9 +458,11 @@ class Mapper(object):
         models.update(self.del_models)
         self.reset()
 
-        return self.query(script=script, params=params, update_models=models, callbacks=callbacks)
+        return self.query(script=script, params=params, \
+            update_models=models, callbacks=callbacks)
 
-    def query(self, script=None, params=None, gremlin=None, update_models=None, callbacks=None):
+    def query(self, script=None, params=None, gremlin=None, \
+        update_models=None, callbacks=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -468,7 +483,7 @@ class Mapper(object):
         if self.logger:
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
-        
+
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])
             for c in cbs:
@@ -609,7 +624,8 @@ class Query(object):
 
     def add_vertex(self, model, set_variable=False):
         if model._type is None:
-            raise QueryException(['Models need to have a type defined in order to save'])
+            err = 'Models need to have a type defined in order to save'
+            raise QueryException([err])
 
         model.field_type = 'graph'
         gremlin = self.gremlin
@@ -646,8 +662,9 @@ class Query(object):
 
         g = Gremlin()
         g.unbound('V', in_v).next()
-        gremlin.unbound('V', out_v).next().unbound('addEdge', label_bound[0], str(g), ', '.join(self.fields))
-        gremlin
+        gremlin.unbound('V', out_v).next()
+        g_fields = str(g), ', '.join(self.fields)
+        gremlin.unbound('addEdge', label_bound[0], g_fields)
 
         model.field_type = 'python'
 
@@ -678,10 +695,12 @@ class Query(object):
 
     def update(self, model, set_variable=None):
         if model._type is None:
-            raise QueryException(['The model must have a type defined in order to update'])
+            err = 'The model must have a type defined in order to update'
+            raise QueryException([err])
 
         if model['_id'] is None:
-            raise QueryException(['The model must have an _id defined in order to update'])
+            err = 'The model must have an _id defined in order to update'
+            raise QueryException([err])
 
         if model.dirty == False:
             return self.by_id(model['_id'], model, set_variable)
@@ -735,7 +754,8 @@ class Query(object):
         _id = model['_id']
 
         if _id is None:
-            raise EntityException(['Models must have an _id before they are deleted'])
+            err = 'Models must have an _id before they are deleted'
+            raise EntityException([err])
 
         if model._type is None:
             raise EntityException(['Models need to have a type defined'])
@@ -806,7 +826,7 @@ class Collection(object):
             data = [x for x in self.response.data]
 
         return data
-    
+
     data = property(get_data)
 
     @property
@@ -837,7 +857,8 @@ class Collection(object):
                 data = self.response[key]
 
                 if data is not None:
-                    model = self.mapper.create_model(data=data, data_type=self._data_type)
+                    model = self.mapper.create_model(data=data, \
+                        data_type=self._data_type)
                     model.dirty = False
                     self._models[key] = model
                 else:

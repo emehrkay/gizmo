@@ -3,7 +3,8 @@ import copy
 
 class _Request(object):
 
-    def __init__(self, uri, graph, username=None, password=None, *args, **kwargs):
+    def __init__(self, uri, graph, username=None, password=None, \
+        *args, **kwargs):
         self.responses = []
         self.uri = uri
         self.graph = graph
@@ -107,6 +108,7 @@ class _Response(object):
 
         return self
 
+
 class Async(_Request):
 
     def __init__(self, uri, graph, username=None, password=None, port=8184):
@@ -117,15 +119,16 @@ class Async(_Request):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
         self.connection = GremlinClient()
 
-    def send(self, script=None, params=None, update_models=None, rebindings=None, *args, **kwargs):
+    def send(self, script=None, params=None, update_models=None, \
+        rebindings=None, *args, **kwargs):
         import asyncio
-        
+
         if not params:
             params = {}
 
         if not update_models:
             update_models = {}
-        
+
         loop = asyncio.get_event_loop()
         execute = self.connection.execute(script, bindings=params)
         resp = loop.run_until_complete(execute)
@@ -172,7 +175,9 @@ class AsyncResponse(_Response):
                             fix_properties(v)
 
                             for field, value in v.items():
-                                data[field] = value[-1]['value'] if type(value) is list and len(value) else value
+                                data[field] = value[-1]['value'] \
+                                    if type(value) is list\
+                                    and len(value) else value
 
                             if 'id' in data:
                                 data['_id'] = data['id']
@@ -184,7 +189,8 @@ class AsyncResponse(_Response):
                 else:
                     data = fix_properties(arg)
                     for field, value in data.items():
-                        data[field] = value[-1]['value'] if type(value) is list else value
+                        data[field] = value[-1]['value'] \
+                            if type(value) is list else value
 
                     if 'id' in data:
                         data['_id'] = data['id']

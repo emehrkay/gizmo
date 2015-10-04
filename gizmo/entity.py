@@ -1,13 +1,13 @@
 from inspect import isfunction
 from copy import deepcopy
 
-from gizmo.field import String, DateTime, Boolean, List
-from gizmo.field import Map, _Fields, Field, Enum
-from gizmo.utils import get_qualified_name
-from gizmo.utils import get_qualified_instance_name, TYPES, IMMUTABLE
-from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED
-from gizmo.utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
-from gizmo.utils import current_date_time, camel_to_underscore
+from .field import String, DateTime, Boolean, List
+from .field import Map, _Fields, Field, Enum
+from .utils import get_qualified_name
+from .utils import get_qualified_instance_name, TYPES, IMMUTABLE
+from .utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_LABEL
+from .utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID
+from .utils import current_date_time, camel_to_underscore
 
 
 #Holds the model->object mappings
@@ -19,6 +19,7 @@ DEFAULT_MODEL_FIELDS = [
     GIZMO_NODE_TYPE,
     GIZMO_ID,
 ]
+
 
 class _RootEntity(type):
     """
@@ -95,7 +96,8 @@ class _RootEntity(type):
                 if label is None:
                     label = cls_label
 
-                self.fields[GIZMO_LABEL] = String(value=label, data_type=data_type)
+                self.fields[GIZMO_LABEL] = String(value=label, \
+                    data_type=data_type)
 
             """"
             build the properties for the instance
@@ -109,7 +111,7 @@ class _RootEntity(type):
                     if not name.startswith('_'):
                         if isinstance(field, Field):
                             value = field.value
-                            
+
                             if name in data:
                                 value = data[name]
                                 del(undefined[name])
@@ -123,10 +125,10 @@ class _RootEntity(type):
                                 'set_max': field.set_max,
                                 'track_changes': field.track_changes,
                             }
-                            
+
                             if isinstance(field, Enum):
                                 kwargs['allowed'] = field.allowed
-                            
+
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
                         elif isfunction(field) == False:
@@ -134,7 +136,7 @@ class _RootEntity(type):
 
             for b in bases:
                 update_fields(b.__dict__)
-            
+
             update_fields(attrs)
             self.hydrate(undefined)
 
@@ -211,7 +213,7 @@ class _BaseEntity(metaclass=_RootEntity):
 
     def get_data(self, full=False):
         return self.fields.get_data(full=full)
-    
+
     data = property(get_data)
 
     @property

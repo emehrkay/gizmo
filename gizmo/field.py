@@ -41,9 +41,9 @@ class _Fields(dict):
         for name, field in self.items():
             field.data_type = self.data_type
             data[name] = field.value
-        
+
         return data
-    
+
     def get_data(self, full=False):
         if not full:
             data = self._get_data()
@@ -53,7 +53,7 @@ class _Fields(dict):
             return self.full_data
 
     data = property(get_data)
-    
+
     @property
     def full_data(self):
         data = {}
@@ -62,7 +62,9 @@ class _Fields(dict):
             data = callback(data)
 
             if not isinstance(data, dict):
-                error = """The value returned from an expander must be a dict. The expander function %s returned a: %s""" % (callback.__name__, type(data))
+                error = """The value returned from an expander must be a dict.
+                    The expander function %s returned a: %s""" % \
+                    (callback.__name__, type(data))
                 raise ValueError(error)
 
         # sorting field names do not matter
@@ -95,7 +97,7 @@ class _Fields(dict):
     def removed(self):
         changed = self.changed
         unchanged = self.unchanged
-        
+
         return set(changed.keys()) - set(unchanged.keys())
 
 
@@ -105,7 +107,7 @@ class Field(object):
         track_changes=True):
         if not value:
             value = self.default_value
-        
+
         self._changes = [value]
         self._initial_value = value
         self.set_count = 0
@@ -114,11 +116,11 @@ class Field(object):
         self.set_max = set_max
         self.value = value
         self.track_changes = track_changes
-    
+
     @property
     def default_value(self):
         return None
-    
+
     def changed(self):
         return self._initial_value != self.value
 
@@ -134,7 +136,7 @@ class Field(object):
         if self._can_set():
             if hasattr(value, '__call__'):
                 value = value()
-            
+
             if value != self.field_value:
                 self._changes.append(value)
             self.field_value = value
@@ -169,13 +171,13 @@ class Integer(Field):
 
     def to_python(self):
         return int(float(self.field_value)) if self.field_value else 0
-    
+
     def to_graph(self):
         return self.to_python()
 
 
 class Increment(Integer):
-    
+
     def to_graph(self):
         val = self.field_value if self.field_value else 0
         return int(val) + 1
@@ -195,19 +197,20 @@ class Boolean(Field):
             return bool(json.loads(value))
         except Exception as e:
             return False
-    
+
     def to_graph(self):
         return 'true' if self.field_value else 'false'
 
 
 class Map(Field):
-    
+
     @property
     def default_value(self):
         return {}
 
     def to_python(self):
-        if isinstance(self.field_value, str) and len(self.field_value.replace(" ", "")):
+        if isinstance(self.field_value, str) and\
+            len(self.field_value.replace(" ", "")):
             return json.load(self.field_value)
         else:
             return self.field_value
@@ -228,10 +231,12 @@ class DateTime(Field):
         return current_date_time
 
     def to_graph(self):
-        return '' if self.field_value is None or self.field_value == '' else int(float(self.field_value))
+        return '' if self.field_value is None or self.field_value == '' \
+            else int(float(self.field_value))
 
     def to_python(self):
-        value = 0 if self.field_value is None or self.field_value == '' else self.field_value
+        value = 0 if self.field_value is None or self.field_value == ''\
+            else self.field_value
         return int(value) / 1000
 
 
@@ -241,7 +246,8 @@ class TimeStamp(DateTime):
 
 class Enum(Field):
 
-    def __init__(self, allowed, value, data_type='python', set_max=None, track_changes=True):
+    def __init__(self, allowed, value, data_type='python', set_max=None, \
+        track_changes=True):
         if allowed is None:
             allowed = []
 
@@ -250,7 +256,8 @@ class Enum(Field):
         if value is None:
             value = self.allowed[0]
 
-        super(Enum, self).__init__(value=value, data_type=data_type, set_max=set_max, track_changes=track_changes)
+        super(Enum, self).__init__(value=value, data_type=data_type, \
+            set_max=set_max, track_changes=track_changes)
 
     def _set_value(self, value):
         if self._can_set() and value in self.allowed:
