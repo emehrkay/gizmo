@@ -18,7 +18,7 @@ setup(
     long_description = __doc__,
     install_requires = [
         'gremlinpy >= 0.2.0',
-        'rexpro'
+        'aiogremlin'
     ],
     classifiers      = [
         'License :: OSI Approved :: MIT License',

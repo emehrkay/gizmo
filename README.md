@@ -2,9 +2,7 @@ Gizmo
 =====
 > This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second. I am in the process of making this already incomplete library a Tinkerpop3-only implementataion
 
-Gizmo is a lightweight Python Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster](http://www.tinkerpop.com) servers. 
-
-##Table of Contents:
+Gizmo is a lightweight Python 3.x Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster 3.x](http://www.tinkerpop.com) servers. 
 
 
 ### About
@@ -19,7 +17,7 @@ Gremlin is the basis of all interactions between Gizmo and the Rexster server. G
 
 If you're new to Gremlin there are a few good resources to check out that will help you get the concept and allow you to hit the ground running with this library.
 
-* [Tinkerpop Gremlin](https://github.com/tinkerpop/gremlin/wiki) -- Tinkerpop's Gremlin documentation.
+* [Tinkerpop Gremlin](http://tinkerpop.incubator.apache.org/docs/3.0.0-incubating/#traversal) -- Tinkerpop's Gremlin documentation.
 * [SQL2Gremlin](http://sql2gremlin.com) -- A site dedicated to explaing how you can convert some simple SQL into Gremlin/Groovy scripts.
 * [GremlinDocs](http://gremlindocs.com) -- A site that goes over the core functions that you will use in your scripts.
 * [Tinkerpop mailing list](https://groups.google.com/forum/#!forum/gremlin-users) -- These guys/gals are cool. 
@@ -28,13 +26,14 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Dependencies
 
-* [Gremlinpy](https://github.com/emehrkay/gremlinpy) >= 0.2
-* [Requests](http://docs.python-requests.org/en/latest/) -- If you're connecting via HTTP.
-* [Rexpro](https://pypi.python.org/pypi/rexpro/) -- If you're connecting via the binary interface.
+* [gremlinpy](https://github.com/emehrkay/gremlinpy) >= 0.2
+* [aiogremlin](https://github.com/davebshow/aiogremlin)
 
 ### Installation
 
     python setup.py install
+   
+> pip/easy_install coming soon
 
 ### Quickstart
 
@@ -42,13 +41,16 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
     from gizmo.mapper import Mapper, GenericEdge
     from gizmo.request import Binary
     
+    #build the base mapper
     r = BinaryRequest('localhost', 8984, 'gizmo_test')
     g = Gremlin()
     m = Mapper(r, g)
     
+    #create a user vertex
     class User(Vertex):
         _allowed_undefined = True
-        	
+
+    # create a couple of users and connect them
     u = User({'name': 'mark', 'sex': 'male'})
     g = User({'name': 'sadé', 'sex': 'female'})
     d = {'out_v': u, 'in_v': g, 'since': 'last year'}
@@ -62,7 +64,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Entities
 
-A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly referred to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
+A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics\)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly referred to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
 
 Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You will extend these to create custom model definitions or you can use the `GenericVertex` for vertices and `GenericEdge` for edges.
 
@@ -95,7 +97,7 @@ If you want your model to have unstructured data, set the instance member `_allo
 
 **Field Types**
 
-Gizmo ships with a few self-explanatory types for fields. The field object main job is to convert the data from a Python type to a Groovy type (if necessary). 
+Gizmo ships with a few self-explanatory types for fields. The field object's main job is to convert the data from a Python type to a Groovy type (if necessary). 
 
 > You can always add more by extending `field.Field` and defining `to_python` and `to_graph` methods.
 
@@ -103,10 +105,12 @@ Gizmo ships with a few self-explanatory types for fields. The field object main 
 * Integer
 * Float
 * Boolean
-* Map -- converts a Python dict to Grooy map. {'key': 'val'} -> ['key': 'val']
-* List -- converts a Python tuple or list to Groovy list. (1, 2, '3') -> [1, 2, '3']
+* \* Map -- converts a Python dict to Grooy map. {'key': 'val'} -> ['key': 'val']
+* \* List -- converts a Python tuple or list to Groovy list. (1, 2, '3') -> [1, 2, '3']
 * DateTime
 * Enum -- this simply takes a pre-defined list and only allows its members to be used.
+
+> \* both Map and List do not handle the conversion to the Groovy type. This is done in the Query instance so that the values can be bound with the request. 
 
 These are fields created and populated at class instantiation:
 
@@ -114,7 +118,11 @@ These are fields created and populated at class instantiation:
 * GIZMO_CREATED _:DateTime_ -- the original date created. This cannot be overwritten
 * GIZMO_MODIFIED _:DateTime_ -- this is updated with every save
 * GIZMO_ID _:String_ -- the _id from the graph. It is a string because different graphs store ids differently. OrientDB's ids have a : in them
-* GIZMO_LABEL _:String_ -- all edges have a _label member. This defines how the vertices are connected
+* GIZMO_LABEL _:String_ -- as of Tinkerpop3 all entities have a _label member. This defines how the vertices are connected
+
+**Hooks**
+
+<<<TALK ABOUT THE HOOKS>>>
 
 
 ##### Edges
@@ -122,6 +130,13 @@ These are fields created and populated at class instantiation:
 ### Mappers
 
 Mapper objects are the real workhorses in Gizmo, it is the entry and exit points for all interactions between entities and the graph. 
+
+A Mapper instance exposes a few key methods which allow you to interact with the graph:
+
+* **save**(model<Entity>, data<Dict>, bind_return<Boolean>, mapper<_GenericMapper>, callback<callable>) -- this method is used to save the changes made againt the model to the graph
+* **delete**(model<Entity>, mapper<_GenericMapper>, callback<callable>) -- will detele the entity from the graph
+* **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_model<Entity class>, data_type<String>) -- utility method used to create a connection between two entities. 
+* **create_model**(data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
 
 #### Queries and Statements
 
@@ -179,10 +194,44 @@ The `Mapper` object acts as proxy for any `_GenericMapper` instances. When you w
 
 Anytime an instance of `MyCustomVertex` is acted against via the main `Mapper`, all actions are routed through to the `MyCustomVertexMapper` object.
 
+**Custom Properties**
+
+Custom mappers allow you to define certain properties that will affect how Gizmo saves and retrieves entity data.
+
+* **unique_fields** <List<String>> -- this is only applicable for Vertex objects. You can list the names of the fields that should be unique to the graph and the '_label' . Gizmo will run a query against the graph and determine if any vertieces are found with these properties, if there are results, an error is raised if **error_on_non_unique** is set to True.
+* **unique** <Boolean> -- this is only applicable for Edge objects. When this is set to true, it will first check to see if an edge exists with the given label between the two vertices passed into the method. If an edge is found, Gizmo will use that edge instead of creating a new one.
+
+**Callbacks**
+
+Gizmo triggers callbacks at certain events in the mapper lifecycle (each callback recieves the entity as an argument). There are two levels of callbacks for a custom mapper/mapper: mapper-wide and one-time. Mapper-wide callbacks are defined on the custom mapper itself and will be triggered whenever a certain event happens on that mapper. The one-time callbacks as passed into the save or delete methods and are only executed once.
+
+Mapper-wide callbacks:
+
+* **on_create** -- this is called after the entity is crated
+* **on_update** -- this is called after the entity is updated
+* **on_delete** -- this is called after the entity is deleted
+
+An example use-case for mapper-wide callbacks would be sending an email after a user is created:
+
+    class UserMapper(_GenericMapper):
+        model = User
+        
+        def on_create(self, user):
+            # everytime a user is successfully crated, an email will be sent out
+            send_email(user)
+
+If you wanted to only send an email in certain situations, you would define the callback and pass it when you call save against the mapper
+
+    user = mapper.create_model({})
+	def email_once(entity):
+	    send_email(entity)
+	
+	mapper.save(user, callback=send_once).send() #sends email
+    
+    user['email'] = 'somenew@email.address'
+    user.save(user).send() #does not send email
+
+
 #### Traversal Object
 
 The `mapper.Traversal` object allows you to build a query with a given `Vertex` or `Edge` as the starting point. Its main purpose is to bind the `Gremlin` instance with the `Mapper` and the given Entity.
-
-### Future releases
-
-I wasn't able to fit all of the features that I see will make this library useful in this initial relase.
