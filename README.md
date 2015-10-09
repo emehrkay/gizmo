@@ -146,47 +146,47 @@ A Mapper instance exposes a few key methods which allow you to interact with the
 You have the ability to send strings or Gremlin objects to the sever and entity `Vertex` or `Edge` objects are returned. 
 
 ~~~python
-    get_all_v = 'g.V'
-    collection = mapper.send(script=get_all_v)
+get_all_v = 'g.V'
+collection = mapper.send(script=get_all_v)
+
+for entity in collection:
+    print entity.data
     
-    for entity in collection:
-        print entity.data
-        
-    get_specific = 'g.v(ID)'
-    params = {'ID': 12}
-    
-    collection = mapper.send(script=get_specific, params=params)
-    ...
+get_specific = 'g.v(ID)'
+params = {'ID': 12}
+
+collection = mapper.send(script=get_specific, params=params)
+...
 ~~~
 
 You can augment the Gremlin object directly ([more details](https://github.com/emehrkay/gremlinpy)) and pass that as an argument instead.
 
 ~~~python
-    gremlin = Gremlin()
-    
-    g.V(12).out('knows')
-    
-    collection = mapper.send(gremlin=gremlin)
-    
-    ...
+gremlin = Gremlin()
+
+g.V(12).out('knows')
+
+collection = mapper.send(gremlin=gremlin)
+
+...
 ~~~
 
 Statements are useful when you create complex queries often and want to reference that logic in multiple places.
 
 ~~~python
-    from gremlinpy.statement import Statement
-    
-    #silly illustrative example
-    class HasOutVal(Statement):
-        def __init__(self, out_val):
-            self.out_val = out_val
-         
-        def build(self):
-            self.gremlin.out(self.out_val)
-    
-    # this will augment the gremlin instance on the mapper
-    mapper.apply_statement(HasOutVal('knows'))
-    mapper.send() #some query with your HasOutVal statement added
+from gremlinpy.statement import Statement
+
+#silly illustrative example
+class HasOutVal(Statement):
+    def __init__(self, out_val):
+        self.out_val = out_val
+     
+    def build(self):
+        self.gremlin.out(self.out_val)
+
+# this will augment the gremlin instance on the mapper
+mapper.apply_statement(HasOutVal('knows'))
+mapper.send() #some query with your HasOutVal statement added
 ~~~
 
 #### Custom Mappers
@@ -194,12 +194,12 @@ Statements are useful when you create complex queries often and want to referenc
 The `Mapper` object acts as proxy for any `_GenericMapper` instances. When you write a custom mapper and subclass `_GenericMapper` you have to bind that mapper to an entity. 
 
 ~~~python
-    class MyCustomVertex(Vertex):
-        my_name = String()
+class MyCustomVertex(Vertex):
+    my_name = String()
 
 
-    class MyCustomVertexMapper(_GenericMapper):
-        model = MyCustomVertex
+class MyCustomVertexMapper(_GenericMapper):
+    model = MyCustomVertex
 ~~~
 
 Anytime an instance of `MyCustomVertex` is acted against via the main `Mapper`, all actions are routed through to the `MyCustomVertexMapper` object.
@@ -224,25 +224,25 @@ Mapper-wide callbacks:
 An example use-case for mapper-wide callbacks would be sending an email after a user is created:
 
 ```python
-    class UserMapper(_GenericMapper):
-        model = User
-        
-        def on_create(self, user):
-            # everytime a user is successfully crated, an email will be sent out
-            send_email(user)
+class UserMapper(_GenericMapper):
+    model = User
+    
+    def on_create(self, user):
+        # everytime a user is successfully crated, an email will be sent out
+        send_email(user)
 ```
 
 If you wanted to only send an email in certain situations, you would define the callback and pass it when you call save against the mapper
 
 ~~~python
-    user = mapper.create_model({})
-	def email_once(entity):
-	    send_email(entity)
-	
-	mapper.save(user, callback=send_once).send() #sends email
-    
-    user['email'] = 'somenew@email.address'
-    user.save(user).send() #does not send email
+user = mapper.create_model({})
+def email_once(entity):
+    send_email(entity)
+
+mapper.save(user, callback=send_once).send() #sends email
+
+user['email'] = 'somenew@email.address'
+user.save(user).send() #does not send email
 ~~~
 
 #### Shortcuting
@@ -252,13 +252,13 @@ The main purpose of Gizmo's custom mappers is to allow entity-specific functiona
 Utilitizing custom mappers could be a bit cumbersome; you have to get the entity, retrieve the custom mapper, and then call the method that you're looking for (again passing in the entity):
 
 ~~~python
-    class UserMapper(_GenericMapper):
-    model = User
+class UserMapper(_GenericMapper):
+model = User
 
-    def get_emails(self, user):
-        g = self.mapper.start(user)
-        g.outE('user_email')
-        return self.mapper.query(gremlin=g)
+def get_emails(self, user):
+    g = self.mapper.start(user)
+    g.outE('user_email')
+    return self.mapper.query(gremlin=g)
 
 user = User()
 user_mapper = mapper.get_mapper(user)
