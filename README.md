@@ -277,3 +277,14 @@ email = mapper.get_emails(user)
 #### Traversal Object
 
 The `mapper.Traversal` object allows you to build a query with a given `Vertex` or `Edge` as the starting point. Its main purpose is to bind the `Gremlin` instance with the `Mapper` and the given Entity.
+
+~~~python
+user = User() # assume its _id is 1
+g = mapper.start(user)
+print(g) # g.V(BOUND_VAR_FOR_ID) 
+
+g.outE()
+print(g) # g.V(BOUND_VAR_FOR_ID).outE()
+~~~
+
+**Future: ** I plan on adding depth-frst vs bredth-first traversals via filtering functions to this class.
