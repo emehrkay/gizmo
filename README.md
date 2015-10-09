@@ -245,7 +245,7 @@ user['email'] = 'somenew@email.address'
 user.save(user).send() #does not send email
 ~~~
 
-#### Shortcuting
+#### Shortcutting
 
 The main purpose of Gizmo's custom mappers is to allow entity-specific functionality to be handled in one location. When entities are saved or deleted, Gizmo will first figure out if that entity has a customer mapper and use its respective save or delete methods. 
 
