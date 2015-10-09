@@ -253,12 +253,12 @@ Utilitizing custom mappers could be a bit cumbersome; you have to get the entity
 
 ~~~python
 class UserMapper(_GenericMapper):
-model = User
+    model = User
 
-def get_emails(self, user):
-    g = self.mapper.start(user)
-    g.outE('user_email')
-    return self.mapper.query(gremlin=g)
+    def get_emails(self, user):
+        g = self.mapper.start(user)
+        g.outE('user_email')
+        return self.mapper.query(gremlin=g)
 
 user = User()
 user_mapper = mapper.get_mapper(user)
