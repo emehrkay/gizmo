@@ -37,6 +37,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Quickstart
 
+~~~python
     from gizmo.entity import Vertex
     from gizmo.mapper import Mapper, GenericEdge
     from gizmo.request import Binary
@@ -61,6 +62,7 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
     
     #the entities have been updated with the response from the server
     print u['_id'], e.data
+~~~
 
 ### Entities
 
@@ -74,6 +76,7 @@ Gizmo allows you to interact with the graph server by either sending a string to
 
 Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property. This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
 
+~~~python
     class Article(Vertex):
         _node_label = 'some_article'
         title = String()
@@ -85,7 +88,7 @@ Gizmo uses the `_label` property to identify which entity should be loaded when 
     
     
     ...
-
+~~~
     
 ##### Fields
 
@@ -136,12 +139,13 @@ A Mapper instance exposes a few key methods which allow you to interact with the
 * **save**(model<Entity>, data<Dict>, bind_return<Boolean>, mapper<_GenericMapper>, callback<callable>) -- this method is used to save the changes made againt the model to the graph
 * **delete**(model<Entity>, mapper<_GenericMapper>, callback<callable>) -- will detele the entity from the graph
 * **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_model<Entity class>, data_type<String>) -- utility method used to create a connection between two entities. 
-* **create_model**(data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
+* **create_model (data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
 
 #### Queries and Statements
 
 You have the ability to send strings or Gremlin objects to the sever and entity `Vertex` or `Edge` objects are returned. 
 
+~~~python
     get_all_v = 'g.V'
     collection = mapper.send(script=get_all_v)
     
@@ -153,9 +157,11 @@ You have the ability to send strings or Gremlin objects to the sever and entity 
     
     collection = mapper.send(script=get_specific, params=params)
     ...
-  
+~~~
+
 You can augment the Gremlin object directly ([more details](https://github.com/emehrkay/gremlinpy)) and pass that as an argument instead.
 
+~~~python
     gremlin = Gremlin()
     
     g.V(12).out('knows')
@@ -163,9 +169,11 @@ You can augment the Gremlin object directly ([more details](https://github.com/e
     collection = mapper.send(gremlin=gremlin)
     
     ...
-    
+~~~
+
 Statements are useful when you create complex queries often and want to reference that logic in multiple places.
 
+~~~python
     from gremlinpy.statement import Statement
     
     #silly illustrative example
@@ -179,18 +187,20 @@ Statements are useful when you create complex queries often and want to referenc
     # this will augment the gremlin instance on the mapper
     mapper.apply_statement(HasOutVal('knows'))
     mapper.send() #some query with your HasOutVal statement added
+~~~
 
 #### Custom Mappers
 
 The `Mapper` object acts as proxy for any `_GenericMapper` instances. When you write a custom mapper and subclass `_GenericMapper` you have to bind that mapper to an entity. 
 
-
+~~~python
     class MyCustomVertex(Vertex):
         my_name = String()
 
 
     class MyCustomVertexMapper(_GenericMapper):
         model = MyCustomVertex
+~~~
 
 Anytime an instance of `MyCustomVertex` is acted against via the main `Mapper`, all actions are routed through to the `MyCustomVertexMapper` object.
 
@@ -213,15 +223,18 @@ Mapper-wide callbacks:
 
 An example use-case for mapper-wide callbacks would be sending an email after a user is created:
 
+```python
     class UserMapper(_GenericMapper):
         model = User
         
         def on_create(self, user):
             # everytime a user is successfully crated, an email will be sent out
             send_email(user)
+```
 
 If you wanted to only send an email in certain situations, you would define the callback and pass it when you call save against the mapper
 
+~~~python
     user = mapper.create_model({})
 	def email_once(entity):
 	    send_email(entity)
@@ -230,7 +243,36 @@ If you wanted to only send an email in certain situations, you would define the 
     
     user['email'] = 'somenew@email.address'
     user.save(user).send() #does not send email
+~~~
 
+#### Shortcuting
+
+The main purpose of Gizmo's custom mappers is to allow entity-specific functionality to be handled in one location. When entities are saved or deleted, Gizmo will first figure out if that entity has a customer mapper and use its respective save or delete methods. 
+
+Utilitizing custom mappers could be a bit cumbersome; you have to get the entity, retrieve the custom mapper, and then call the method that you're looking for (again passing in the entity):
+
+~~~python
+    class UserMapper(_GenericMapper):
+    model = User
+
+    def get_emails(self, user):
+        g = self.mapper.start(user)
+        g.outE('user_email')
+        return self.mapper.query(gremlin=g)
+
+user = User()
+user_mapper = mapper.get_mapper(user)
+emails = user_mapper.get_emails(user)
+~~~
+
+Making use of Python's magic methods, we can shortcut this process by calling the `get_emails` method against our main mapper instance. It will figure out which custom mapper to use and pass in any `*args` and `**kwargs`.
+
+~~~python
+user = User()
+email = mapper.get_emails(user)
+~~~
+
+> Note: Gizmo assumes that methods defined on custom mappers all take the entity as the first argument. So to utilize this shortcut, the code must be written in this fashion
 
 #### Traversal Object
 

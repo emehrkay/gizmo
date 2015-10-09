@@ -300,6 +300,29 @@ class Mapper(object):
         self.logger = logger
         self.reset()
 
+    def __getattr__(self, magic_method):
+        """magic method that works in conjunction with __call__ method
+        these two methods are used to shortcut the retrieval of an
+        entity's mapper and call a specific method against it
+
+        this chain:
+        user = User()
+        user_mapper = mapper.get_mapper(user)
+        emails = user_mapper.get_emails(user)
+
+        can be shortened into:
+        user = User()
+        emails = mapper.get_emails(user)
+        """
+        self._magic_method = magic_method
+
+        return self
+
+    def __call__(self, *args, **kwargs):
+        mapper = self.get_mapper(args[0])
+
+        return getattr(mapper, self._magic_method)(*args, **kwargs)
+
     def reset(self):
         self.gremlin.reset()
         global query_count
@@ -312,6 +335,7 @@ class Mapper(object):
         self.del_models = {}
         self.params = {}
         self.callbacks = {}
+        self._magic_method = None
 
     def get_model_variable(self, model):
 
