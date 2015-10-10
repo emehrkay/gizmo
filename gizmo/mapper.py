@@ -303,7 +303,7 @@ class Mapper(object):
     def __getattr__(self, magic_method):
         """magic method that works in conjunction with __call__ method
         these two methods are used to shortcut the retrieval of an
-        entity's mapper and call a specific method against it
+        entity's mapper and call a specific method against
 
         this chain:
         user = User()
@@ -502,11 +502,20 @@ class Mapper(object):
         if update_models is None:
             update_models = {}
 
-        response = self.request.send(script, params, update_models)
-
         if self.logger:
+            def rep(s, d):
+                import re
+                if not len(d):
+                    return s
+                pattern = re.compile(r'\b(' + '|'.join(d.keys()) + r')\b')
+                def su(x):
+                    x = str(d[x.group()]) if d[x.group()] else ""
+                    return '"%s"' % x
+                return pattern.sub(su, s)
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
+
+        response = self.request.send(script, params, update_models)
 
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])
@@ -687,8 +696,7 @@ class Query(object):
         g = Gremlin()
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        g_fields = str(g), ', '.join(self.fields)
-        gremlin.unbound('addEdge', label_bound[0], g_fields)
+        gremlin.unbound('addEdge', label_bound[0], str(g), ', '.join(self.fields))
 
         model.field_type = 'python'
 

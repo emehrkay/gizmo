@@ -38,30 +38,30 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 ### Quickstart
 
 ~~~python
-    from gizmo.entity import Vertex
-    from gizmo.mapper import Mapper, GenericEdge
-    from gizmo.request import Binary
-    
-    #build the base mapper
-    r = BinaryRequest('localhost', 8984, 'gizmo_test')
-    g = Gremlin()
-    m = Mapper(r, g)
-    
-    #create a user vertex
-    class User(Vertex):
-        _allowed_undefined = True
+from gizmo.entity import Vertex
+from gizmo.mapper import Mapper, GenericEdge
+from gizmo.request import Binary
 
-    # create a couple of users and connect them
-    u = User({'name': 'mark', 'sex': 'male'})
-    g = User({'name': 'sadé', 'sex': 'female'})
-    d = {'out_v': u, 'in_v': g, 'since': 'last year'}
-    e = GenericEdge(d, 'girl')
-    
-    m.save(e) #this will CRUD all entites
-    m.send() #builds query and sends to the server
-    
-    #the entities have been updated with the response from the server
-    print u['_id'], e.data
+#build the base mapper
+r = BinaryRequest('localhost', 8984, 'gizmo_test')
+g = Gremlin()
+m = Mapper(r, g)
+
+#create a user vertex
+class User(Vertex):
+    _allowed_undefined = True
+
+# create a couple of users and connect them
+u = User({'name': 'mark', 'sex': 'male'})
+g = User({'name': 'sadé', 'sex': 'female'})
+d = {'out_v': u, 'in_v': g, 'since': 'last year'}
+e = GenericEdge(d, 'girl')
+
+m.save(e) #this will CRUD all entites
+m.send() #builds query and sends to the server
+
+#the entities have been updated with the response from the server
+print u['_id'], e.data
 ~~~
 
 ### Entities
@@ -77,17 +77,17 @@ Gizmo allows you to interact with the graph server by either sending a string to
 Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property. This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
 
 ~~~python
-    class Article(Vertex):
-        _node_label = 'some_article'
-        title = String()
-        content = String()
-    
-    #in another package
-    class Article(Vertex):
-        _node_label = 'some_other_article'
-    
-    
-    ...
+class Article(Vertex):
+    _node_label = 'some_article'
+    title = String()
+    content = String()
+
+#in another package
+class Article(Vertex):
+    _node_label = 'some_other_article'
+
+
+...
 ~~~
     
 ##### Fields
