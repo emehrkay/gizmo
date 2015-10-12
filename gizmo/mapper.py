@@ -283,7 +283,7 @@ class _GenericMapper(metaclass=_RootMapper):
 class Mapper(object):
     VARIABLE = 'gizmo_var'
 
-    def __init__(self, request, gremlin=None, auto_commit=False, logger=None):
+    def __init__(self, request, gremlin=None, auto_commit=True, logger=None):
         if gremlin is None:
             gremlin = Gremlin()
 
@@ -447,8 +447,8 @@ class Mapper(object):
         return mapper.create_model(**kwargs)
 
     def _build_queries(self):
-        if self.auto_commit is False:
-            commit = '.'.join([self.gremlin.gv, 'commit()'])
+        if not self.auto_commit:
+            commit = '.'.join([self.gremlin.gv, 'tx()', 'commit()'])
 
             self.queries.append(commit)
 
@@ -514,7 +514,7 @@ class Mapper(object):
                 return pattern.sub(su, s)
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
-
+            self.logger.debug(rep(script, params))
         response = self.request.send(script, params, update_models)
 
         for k, model in update_models.items():
