@@ -760,7 +760,8 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        getattr(gremlin, model_type)(model['_id'])
+        eye_d = gremlin.bind_param(model['_id'], 'EDGE_ID')
+        getattr(gremlin, model_type)(eye_d[0])
 
         for k, v in model.fields.data.items():
             name = '%s_%s' % (model.__class__.__name__, k)
@@ -770,7 +771,8 @@ class Query(object):
                     gmap = self.iterable_to_graph(v, model.__class__.__name__, model)
                     gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
-                    bound = gremlin.bind_param(v)
+                    variable = self._entity_variable(model, k)
+                    bound = gremlin.bind_param(v, variable)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     gremlin.property("'%s'" % k, bound[0])
 
