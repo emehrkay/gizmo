@@ -1,6 +1,7 @@
 import json
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
+from .utils import camel_to_underscore
 from .utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE
 from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
@@ -10,9 +11,21 @@ from gremlinpy.statement import GetEdge
 
 #Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
+_ENTITY_USED = {}
 GENERIC_MAPPER = 'generic.mapper'
 count = 0
 query_count = 0
+
+
+def get_entity_var(entity, field):
+    if entity not in _ENTITY_USED:
+        _ENTITY_USED[entity] = -1
+
+    _ENTITY_USED[entity] += 1
+    name = camel_to_underscore(entity.__class__.__name__)
+    count = _ENTITY_USED[entity]
+
+    return '%s_%s_%s' % (name, field, count)
 
 
 class _RootMapper(type):
@@ -327,9 +340,11 @@ class Mapper(object):
         self.gremlin.reset()
         global query_count
         global count
+        global _ENTITY_USED
 
         query_count = 0
         count = 0
+        _ENTITY_USED = {}
         self.queries = []
         self.models = {}
         self.del_models = {}
@@ -503,6 +518,7 @@ class Mapper(object):
             update_models = {}
 
         if self.logger:
+
             def rep(s, d):
                 import re
                 if not len(d):
@@ -570,8 +586,9 @@ class Query(object):
 
         return self.reset()
 
-    def build_fields(self, data, _immutable, prefix=''):
+    def build_fields(self, entity, _immutable):
         gremlin = self.gremlin
+        data = entity.fields.data
 
         for key, val in data.items():
             name = '%s_%s' % (prefix, key)
@@ -586,6 +603,8 @@ class Query(object):
 
                     self.fields.append(entry)
                 else:
+                    variable = get_entity_var(entity, key)
+                    print('!!!!\n\n\VARIBLE EXPECTED', variable, '\n\n\n')
                     bound = gremlin.bind_param(value)
 
                     self.fields.append("'%s', %s" % (key, bound[0]))
@@ -691,12 +710,13 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        self.build_fields(model.fields.data, IMMUTABLE['edge'])
+        self.build_fields(model, IMMUTABLE['edge'])
 
         g = Gremlin()
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        gremlin.unbound('addEdge', label_bound[0], str(g), ', '.join(self.fields))
+        gremlin.unbound('addEdge', label_bound[0], str(g), \
+            ', '.join(self.fields))
 
         model.field_type = 'python'
 
@@ -817,8 +837,9 @@ class Traversal(Gremlin):
         self._mapper = mapper
         self._model = model
         entity, _id = model.get_rep()
+        bound_id = self.bind_param(_id, 'EYE_DEE')
 
-        getattr(self, entity)(_id)
+        getattr(self, entity)(bound_id[0])
 
     def define_traversal(self, traversal):
         if hasattr(traversal, '__call__'):
