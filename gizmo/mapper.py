@@ -617,55 +617,37 @@ class Query(object):
 
         return self
 
-    def update_fields(self, data, _immutable, prefix=''):
-        gremlin = self.gremlin
-
-        for k, v in data.items():
-            name = '%s_%s' % (prefix, k)
-
-            if k not in _immutable:
-                if type(v) is dict or type(v) is list:
-                    gmap = self.iterable_to_graph(v, prefix)
-                    entry = "it.setProperty('%s', [%s])" % (k, gmap)
-                else:
-                    bound = self.gremlin.bind_param(v)
-                    entry = "it.setProperty('%s', %s)" % (k, bound[0])
-
-                self.fields.append(entry)
-
-        return self
-
-    def iterable_to_graph(self, iterable, prefix=''):
+    def iterable_to_graph(self, iterable, field):
         if isinstance(iterable, dict):
-            return self._dict_to_graph(iterable, prefix)
+            return self._dict_to_graph(iterable, field)
         else:
-            return self._list_to_graph(iterable, prefix)
+            return self._list_to_graph(iterable, field)
 
-    def _dict_to_graph(self, iterable, prefix=''):
+    def _dict_to_graph(self, iterable, field):
         gremlin = self.gremlin
         gval = []
 
         for key, value in iterable.items():
             if type(value) is dict or type(value) is list:
-                gval.append(self.iterable_to_graph(value, prefix))
+                gval.append(self.iterable_to_graph(value, field + key))
             else:
-                bound = gremlin.bind_param(value)
+                variable = self._entity_variable(entity, key)
 
-                gval.append("'%s': %s" % (key, bound[0]))
+                gval.append("'%s': %s" % (key, variable))
 
         return ','.join(gval)
 
-    def _list_to_graph(self, iterable, prefix=''):
+    def _list_to_graph(self, iterable, field):
         gremlin = self.gremlin
         gval = []
 
         for key, value in enumerate(iterable):
             if type(value) is dict or type(value) is list:
-                gval.append(self.iterable_to_graph(value, prefix))
+                gval.append(self.iterable_to_graph(value, field))
             else:
-                bound = gremlin.bind_param(value)
+                variable = self._entity_variable(entity, field)
 
-                gval.append(bound[0])
+                gval.append(variable)
 
         return ','.join(gval)
 
