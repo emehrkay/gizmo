@@ -237,7 +237,8 @@ class DateTime(Field):
     def to_python(self):
         value = 0 if self.field_value is None or self.field_value == ''\
             else self.field_value
-        return int(value) / 1000
+
+        return int(float(value)) / 1000
 
 
 class TimeStamp(DateTime):

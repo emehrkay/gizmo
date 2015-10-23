@@ -604,26 +604,26 @@ class Query(object):
                 value = val
 
                 if type(val) is dict or type(val) is list:
-                    listed = self.iterable_to_graph(val, '')
+                    listed = self.iterable_to_graph(val, '', entity)
                     value = "[%s]" % listed
                     entry = "'%s', %s" % (key, value)
 
                     self.fields.append(entry)
                 else:
                     variable = self._entity_variable(entity, key)
-                    bound = gremlin.bind_param(value)
+                    bound = gremlin.bind_param(value, variable)
 
                     self.fields.append("'%s', %s" % (key, bound[0]))
 
         return self
 
-    def iterable_to_graph(self, iterable, field):
+    def iterable_to_graph(self, iterable, field, entity):
         if isinstance(iterable, dict):
-            return self._dict_to_graph(iterable, field)
+            return self._dict_to_graph(iterable, field, entity)
         else:
-            return self._list_to_graph(iterable, field)
+            return self._list_to_graph(iterable, field, entity)
 
-    def _dict_to_graph(self, iterable, field):
+    def _dict_to_graph(self, iterable, field, entity):
         gremlin = self.gremlin
         gval = []
 
@@ -632,20 +632,22 @@ class Query(object):
                 gval.append(self.iterable_to_graph(value, field + key))
             else:
                 variable = self._entity_variable(entity, key)
+                bound = gremlin.bind_param(value, variable)
 
-                gval.append("'%s': %s" % (key, variable))
+                gval.append("'%s': %s" % (key, bound[0]))
 
         return ','.join(gval)
 
-    def _list_to_graph(self, iterable, field):
+    def _list_to_graph(self, iterable, field, entity):
         gremlin = self.gremlin
         gval = []
 
         for key, value in enumerate(iterable):
             if type(value) is dict or type(value) is list:
-                gval.append(self.iterable_to_graph(value, field))
+                gval.append(self.iterable_to_graph(value, field, entity))
             else:
                 variable = self._entity_variable(entity, field)
+                bound = gremlin.bind_param(value, variable)
 
                 gval.append(variable)
 
@@ -738,6 +740,8 @@ class Query(object):
         return out_v_mod, in_v_mod
 
     def update(self, model, set_variable=None):
+        self._register_entity(model)
+
         if model._type is None:
             err = 'The model must have a type defined in order to update'
             raise QueryException([err])
@@ -763,8 +767,7 @@ class Query(object):
 
             if k not in model._immutable:
                 if type(v) is dict or type(v) is list:
-
-                    gmap = self.iterable_to_graph(v, model.__class__.__name__)
+                    gmap = self.iterable_to_graph(v, model.__class__.__name__, model)
                     gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
                     bound = gremlin.bind_param(v)
