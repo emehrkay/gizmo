@@ -17,15 +17,13 @@ count = 0
 query_count = 0
 
 
-def get_entity_var(entity, field):
+def get_entity_count(entity):
     if entity not in _ENTITY_USED:
         _ENTITY_USED[entity] = -1
 
     _ENTITY_USED[entity] += 1
-    name = camel_to_underscore(entity.__class__.__name__)
-    count = _ENTITY_USED[entity]
-
-    return '%s_%s_%s' % (name, field, count)
+    
+    return _ENTITY_USED[entity]
 
 
 class _RootMapper(type):
@@ -552,6 +550,17 @@ class Query(object):
         self.mapper = mapper
         self.fields = []
         self.queries = []
+        self.entity_count = {}
+
+    def _register_entity(self, entity):
+        count = get_entity_count(entity)
+        self.entity_count[entity] = count
+
+    def _entity_variable(self, entity, field):
+        name = camel_to_underscore(entity.__class__.__name__)
+        count = self.entity_count[entity]
+
+        return '%s__%s__%s' % (name, field, count)
 
     def reset(self):
         self.fields = []
@@ -591,20 +600,17 @@ class Query(object):
         data = entity.fields.data
 
         for key, val in data.items():
-            name = '%s_%s' % (prefix, key)
-
             if key not in _immutable:
                 value = val
 
                 if type(val) is dict or type(val) is list:
-                    listed = self.iterable_to_graph(val, prefix)
+                    listed = self.iterable_to_graph(val, '')
                     value = "[%s]" % listed
                     entry = "'%s', %s" % (key, value)
 
                     self.fields.append(entry)
                 else:
-                    variable = get_entity_var(entity, key)
-                    print('!!!!\n\n\VARIBLE EXPECTED', variable, '\n\n\n')
+                    variable = self._entity_variable(entity, key)
                     bound = gremlin.bind_param(value)
 
                     self.fields.append("'%s', %s" % (key, bound[0]))
@@ -675,6 +681,8 @@ class Query(object):
         return self.add_gremlin_query(model)
 
     def add_vertex(self, model, set_variable=False):
+        self._register_entity(model)
+
         if model._type is None:
             err = 'Models need to have a type defined in order to save'
             raise QueryException([err])
@@ -687,7 +695,7 @@ class Query(object):
 
         # use the model.fields.data instead of model.data because
         # model.data can be monkey-patched with custom mappers
-        self.build_fields(model.fields.data, IMMUTABLE['vertex'])
+        self.build_fields(model, IMMUTABLE['vertex'])
 
         script = '%s.addV(%s).next()' % (gremlin.gv, ', '.join(self.fields))
 
@@ -698,6 +706,8 @@ class Query(object):
         return self.add_gremlin_query(model)
 
     def add_edge(self, model, set_variable=False):
+        self._register_entity(model)
+
         if model[GIZMO_LABEL] is None:
             raise QueryException(['The edge must have a label before saving'])
 

@@ -124,7 +124,6 @@ class MapperTests(unittest.TestCase):
 
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
-
         _immutable = v._immutable
         props = []
         entry_v1 = get_entity_entry(self.mapper.models, v)
@@ -161,7 +160,7 @@ class MapperTests(unittest.TestCase):
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
-        print(self.mapper.queries)
+        # print(self.mapper.queries)
 
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
         v1 = {'_id': 15}
