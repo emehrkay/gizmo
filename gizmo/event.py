@@ -1,6 +1,5 @@
 from gizmo.entity import Vertex
 from gizmo.mapper import _GenericMapper
-from types import MethodType
 
 
 TRIGGERED_SOURCE_EVENT = 'triggered_source_event'
@@ -78,5 +77,5 @@ class MapperMixin(object):
         return self
 
     def get_event_history(self, model, range_start=None, range_end=None):
-        gremlin = self.mapper.gremlin
         #TODO: fill this query out
+        pass

@@ -1,12 +1,11 @@
 from inspect import isfunction
 from copy import deepcopy
 
-from .field import String, DateTime, Boolean, List
+from .field import String, DateTime, List
 from .field import Map, _Fields, Field, Enum
-from .utils import get_qualified_name
-from .utils import get_qualified_instance_name, TYPES, IMMUTABLE
+from .utils import get_qualified_instance_name, IMMUTABLE
 from .utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_LABEL
-from .utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID
+from .utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_ID
 from .utils import current_date_time, camel_to_underscore
 
 
@@ -193,7 +192,7 @@ class _BaseEntity(metaclass=_RootEntity):
         if name in self.fields:
             value = self.fields[name].value
         elif self._allowed_undefined:
-            field = self._add_undefined_field(name, value)
+            value = self._add_undefined_field(name, value)
 
         return value
 

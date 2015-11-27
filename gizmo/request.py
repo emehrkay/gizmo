@@ -112,7 +112,6 @@ class _Response(object):
 class Async(_Request):
 
     def __init__(self, uri, graph, username=None, password=None, port=8184):
-        import asyncio
         from aiogremlin import GremlinClient
 
         super(Async, self).__init__(uri, username, password)
@@ -136,7 +135,7 @@ class Async(_Request):
         #loop.close()
 
         data = resp[0].data if resp[0].data else {}
-        response = AsyncResponse(resp[0].data, update_models)
+        response = AsyncResponse(data, update_models)
         response.script = script
         response.params = params
         return response

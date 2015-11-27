@@ -195,7 +195,7 @@ class Boolean(Field):
         try:
             value = str(self.field_value).lower().strip()
             return bool(json.loads(value))
-        except Exception as e:
+        except:
             return False
 
     def to_graph(self):
