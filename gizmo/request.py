@@ -131,13 +131,11 @@ class Async(_Request):
         loop = asyncio.get_event_loop()
         execute = self.connection.execute(script, bindings=params)
         resp = loop.run_until_complete(execute)
-        #loop.run_until_complete(self.connection.close())
-        #loop.close()
-
         data = resp[0].data if resp[0].data else {}
         response = AsyncResponse(data, update_models)
         response.script = script
         response.params = params
+
         return response
 
 

@@ -2,11 +2,11 @@ import json
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore
-from .utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE
-from .entity import Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
+from .utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE
+from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
 
-from gremlinpy.gremlin import Gremlin
+from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
 
 #Holds the model->mapper mappings for custom mappers
@@ -154,12 +154,12 @@ class _GenericMapper(metaclass=_RootMapper):
 
         if not model['_id'] and self.unique_fields is not None:
             gremlin = Gremlin(self.gremlin.gv)
-            node_type = "'%s'" % GIZMO_NODE_TYPE
+            node_type = "'%s'" % GIZMO_LABEL
 
             if '*' in self.unique_fields:
                 self.unique_fields = model.fields.keys()
 
-            gremlin.V().has(node_type, model._node_type)
+            gremlin.V().has(node_type, model[GIZMO_LABEL])
 
             for field in self.unique_fields:
                 g_field = '"%s"' % field
@@ -179,7 +179,7 @@ class _GenericMapper(metaclass=_RootMapper):
 
                 save = False
             except StopIteration as e:
-                raise e
+                pass
 
         if save:
             query.save(model)
@@ -190,6 +190,7 @@ class _GenericMapper(metaclass=_RootMapper):
         query = Query(self.gremlin, self.mapper)
         save = True
         #TODO: send an edge to be saved multiple times
+        edge_ref = self.mapper.get_model_variable(model)
         out_v = model.out_v
         out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
         in_v = model.in_v
@@ -231,7 +232,7 @@ class _GenericMapper(metaclass=_RootMapper):
                 edge = result.first()
                 save = False
                 query.by_id(edge['_id'], model)
-            except:
+            except Exception as e:
                 save = True
 
         if save:
@@ -270,7 +271,7 @@ class _GenericMapper(metaclass=_RootMapper):
             try:
                 model = model_class(data, data_type=data_type)
                 check = False
-            except:
+            except Exception as e:
                 pass
 
         if check:
@@ -280,7 +281,7 @@ class _GenericMapper(metaclass=_RootMapper):
                     model = _MAP[name](data, data_type=data_type)
                 else:
                     raise
-            except:
+            except Exception as e:
                 # all else fails create a GenericVertex unless _type is 'edge'
                 if data.get('_type', None) == 'edge':
                     model = GenericEdge(data, data_type=data_type)
@@ -638,6 +639,7 @@ class Query(object):
         return ','.join(gval)
 
     def _list_to_graph(self, iterable, field, entity):
+        gremlin = self.gremlin
         gval = []
 
         for key, value in enumerate(iterable):
@@ -645,6 +647,7 @@ class Query(object):
                 gval.append(self.iterable_to_graph(value, field, entity))
             else:
                 variable = self._entity_variable(entity, field)
+                bound = gremlin.bind_param(value, variable)
 
                 gval.append(variable)
 
@@ -696,6 +699,7 @@ class Query(object):
         gremlin = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
         label_bound = gremlin.bind_param(model[GIZMO_LABEL])
+        edge_fields = ''
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
@@ -760,6 +764,8 @@ class Query(object):
         getattr(gremlin, model_type)(eye_d[0])
 
         for k, v in model.fields.data.items():
+            name = '%s_%s' % (model.__class__.__name__, k)
+
             if k not in model._immutable:
                 if type(v) is dict or type(v) is list:
                     gmap = self.iterable_to_graph(v, model.__class__.__name__, model)
@@ -767,6 +773,7 @@ class Query(object):
                 else:
                     variable = self._entity_variable(model, k)
                     bound = gremlin.bind_param(v, variable)
+                    entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     gremlin.property("'%s'" % k, bound[0])
 
         gremlin.next()
@@ -907,7 +914,7 @@ class Collection(object):
                 else:
                     raise
             except Exception as e:
-                raise StopIteration(e)
+                raise StopIteration()
 
         return model
 
