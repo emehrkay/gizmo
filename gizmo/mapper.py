@@ -18,12 +18,14 @@ query_count = 0
 
 
 def get_entity_count(entity):
-    if entity not in _ENTITY_USED:
-        _ENTITY_USED[entity] = -1
+    name = str(entity)
 
-    _ENTITY_USED[entity] += 1
+    if name not in _ENTITY_USED:
+        _ENTITY_USED[name] = -1
 
-    return _ENTITY_USED[entity]
+    _ENTITY_USED[name] += 1
+
+    return _ENTITY_USED[name]
 
 
 class _RootMapper(type):
@@ -555,6 +557,9 @@ class Query(object):
 
     def _register_entity(self, entity):
         count = get_entity_count(entity)
+        print('>>>>>>>>>>>>>>>>>>>>\n\n\n')
+        print(str(entity), count)
+        print('\n>>>>>>>>>>>>>>>>>>>>\n\n\n')
         self.entity_count[entity] = count
 
     def _entity_variable(self, entity, field):
@@ -570,11 +575,12 @@ class Query(object):
 
         return self
 
-    def next_var(self):
+    def next_var(self, prefix=None):
         global query_count
         query_count += 1
+        prefix = prefix or ''
 
-        return '%s_%s' % (self.QUERY_VAR, query_count)
+        return '%s_%s_%s' % (prefix, self.QUERY_VAR, query_count)
 
     def add_query(self, script, params=None, model=None):
         if params is None:
@@ -702,7 +708,8 @@ class Query(object):
         model.field_type = 'graph'
         gremlin = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
-        label_bound = gremlin.bind_param(model[GIZMO_LABEL])
+        label_var = self.next_var('EDGE_LABEL')
+        label_bound = gremlin.bind_param(model[GIZMO_LABEL], label_var)
         edge_fields = ''
 
         if set_variable:
@@ -729,6 +736,9 @@ class Query(object):
                 the edge'
 
             raise QueryException([error])
+
+        self._register_entity(out_v)
+        self._register_entity(in_v)
 
         out_v_mod = self.mapper.get_model_variable(out_v)
         in_v_mod = self.mapper.get_model_variable(in_v)
@@ -760,11 +770,13 @@ class Query(object):
         gremlin = self.gremlin
         model.field_type = 'graph'
         model_type = 'E' if model._type == 'edge' else 'V'
+        ent_var = 'EDGE_ID' if model_type == 'E' else 'VERTEX_ID'
+        ent_var = self.next_var(ent_var)
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        eye_d = gremlin.bind_param(model['_id'], 'EDGE_ID')
+        eye_d = gremlin.bind_param(model['_id'], ent_var)
         getattr(gremlin, model_type)(eye_d[0])
 
         for k, v in model.fields.data.items():

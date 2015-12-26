@@ -27,6 +27,7 @@ class TestUndefinedEdge(Vertex):
 
 
 class EntityTests(unittest.TestCase):
+
     def set_up(self):
         pass
 

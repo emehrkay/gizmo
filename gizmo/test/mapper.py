@@ -5,9 +5,11 @@ from time import sleep
 from collections import OrderedDict
 from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
 from gizmo.request import _Request
-from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
+from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
+    GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
-from gizmo.test.entity import TestVertex, TestEdge, TestUniqueEdge, TestUndefinedVertex
+from gizmo.test.entity import TestVertex, TestEdge, TestUniqueEdge, \
+    TestUndefinedVertex
 import copy
 
 
@@ -54,6 +56,7 @@ DEFAULT_UPDATE_FIELDS = [GIZMO_ID] + DEFAULT_INSERT_FIELDS
 
 
 class MapperTests(unittest.TestCase):
+
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
@@ -130,13 +133,14 @@ class MapperTests(unittest.TestCase):
         entry_v1 = get_entity_entry(self.mapper.models, v)
         v.field_type = 'graph'
 
-        for k,v in v.data.items():
+        for k, v in v.data.items():
             if k not in _immutable:
                 value, params = get_dict_key(params, v, True)
                 prop = "'%s', %s" % (k, value)
                 props.append(prop)
 
-        expected = "%s = g.addV(%s).next()" % (list(entry_v1.keys())[0] ,', '.join(props))
+        expected = "%s = g.addV(%s).next()" % \
+            (list(entry_v1.keys())[0], ', '.join(props))
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -161,7 +165,10 @@ class MapperTests(unittest.TestCase):
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.save(edge)._build_queries()
-        # print(self.mapper.queries)
+        params = copy.deepcopy(self.mapper.params)
+        print(params)
+        print(self.mapper.queries)
+        self.assertTrue(False)
 
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
         v1 = {'_id': 15}
@@ -179,6 +186,7 @@ class MapperTests(unittest.TestCase):
 
         self.mapper.save(edge)._build_queries()
         #print(self.mapper.queries)
+        self.assertTrue(False)
 
     def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
@@ -193,11 +201,12 @@ class MapperTests(unittest.TestCase):
         self.mapper.save(edge)._build_queries()
         #print(self.mapper.queries)
         # TODO: build and test all queries and params
+        self.assertTrue(False)
 
     def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):
         # TODO: create a test cast that will have one vertex as in insert, one
         # as an update
-        pass
+        self.assertTrue(False)
 
     def test_can_call_callback_when_save_method_is_called(self):
         variable = ''
@@ -229,6 +238,7 @@ class MapperTests(unittest.TestCase):
 
 
 class QueryTests(unittest.TestCase):
+
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
@@ -264,7 +274,7 @@ class CustomMapperTests(unittest.TestCase):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
         self.mapper.save(v).send()
-        
+
         self.assertEqual(r, TestCallbackMapper.on_create_variable)
 
     def test_can_can_on_update_model_level_callback(self):
@@ -331,6 +341,7 @@ class CustomMapperTests(unittest.TestCase):
 
 
 class EventSourceTests(unittest.TestCase):
+
     def setUp(self):
         self.gremlin = Gremlin()
         self.request = TestRequest()
