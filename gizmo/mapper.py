@@ -22,7 +22,7 @@ def get_entity_count(entity):
         _ENTITY_USED[entity] = -1
 
     _ENTITY_USED[entity] += 1
-    
+
     return _ENTITY_USED[entity]
 
 
@@ -522,6 +522,7 @@ class Mapper(object):
                 if not len(d):
                     return s
                 pattern = re.compile(r'\b(' + '|'.join(d.keys()) + r')\b')
+
                 def su(x):
                     x = str(d[x.group()]) if d[x.group()] else ""
                     return '"%s"' % x
@@ -635,6 +636,9 @@ class Query(object):
                 bound = gremlin.bind_param(value, variable)
 
                 gval.append("'%s': %s" % (key, bound[0]))
+
+        if not len(iterable):
+            gval.append(':')
 
         return ','.join(gval)
 
@@ -768,7 +772,9 @@ class Query(object):
 
             if k not in model._immutable:
                 if type(v) is dict or type(v) is list:
-                    gmap = self.iterable_to_graph(v, model.__class__.__name__, model)
+                    field = model.__class__.__name__
+                    gmap = self.iterable_to_graph(v, field, model)
+
                     gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
                     variable = self._entity_variable(model, k)

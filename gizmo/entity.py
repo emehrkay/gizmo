@@ -39,7 +39,7 @@ class _RootEntity(type):
             if hasattr(self, '_node_label'):
                 cls_label = self._node_label
             else:
-                cls_label = camel_to_underscore(self.__class__.__name__)
+                cls_label = str(self)
 
             if '_allowed_undefined' in attrs:
                 self._allowed_undefined = attrs['_allowed_undefined']
@@ -195,6 +195,12 @@ class _BaseEntity(metaclass=_RootEntity):
             value = self._add_undefined_field(name, value)
 
         return value
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return camel_to_underscore(self.__class__.__name__)
 
     def _get_data_type(self):
         return self.data_type

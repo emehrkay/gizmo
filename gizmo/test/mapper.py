@@ -38,6 +38,7 @@ def get_entity_entry(entity_queue, entity):
 
 
 class TestRequest(_Request):
+
     def __init__(self):
         pass
 
