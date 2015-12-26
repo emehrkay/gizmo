@@ -39,6 +39,56 @@ def get_entity_entry(entity_queue, entity):
     return None
 
 
+def build_vertex_create_query(entity, params=None, models=None):
+    params = copy.deepcopy(params or {})
+    _immutable = entity._immutable
+    props = []
+    entity.field_type = 'graph'
+
+    for k, v in entity.data.items():
+        if k not in _immutable:
+            value, params = get_dict_key(params, v, True)
+            prop = "'%s', %s" % (k, value)
+            props.append(prop)
+
+    if models:
+        entry_v1 = get_entity_entry(models, entity)
+        expected = "%s = g.addV(%s).next()" % \
+            (list(entry_v1.keys())[0], ', '.join(props))
+    else:
+        expected = "g.addV(%s).next()" % \
+            (', '.join(props))
+
+    return expected
+
+
+def build_vertex_update_query(entity, eid, params=None, models=None):
+    params = copy.deepcopy(params or {})
+    _immutable = entity._immutable
+    query_ps = []
+    entity.field_type = 'graph'
+
+    for k, v in entity.data.items():
+        if k not in _immutable:
+            value, paramsss = get_dict_key(params, v)
+            prop = "property('%s', %s)" % (k, value)
+            query_ps.append(prop)
+
+    propv, params = get_dict_key(params, eid)
+
+    close = '.'.join(query_ps)
+
+    if models:
+        entry_v1 = get_entity_entry(models, entity)
+        params = (list(entry_v1.keys())[0], propv, close)
+        expected = "%s = g.V(%s).%s.next()" % params
+    else:
+        params = (propv, close)
+        expected = "g.V(%s).%s.next()" % params
+
+    return expected
+
+
 class TestRequest(_Request):
 
     def __init__(self):
@@ -96,25 +146,9 @@ class MapperTests(unittest.TestCase):
         v = self.mapper.create_model(d, TestVertex)
         self.mapper.save(v)._build_queries()
 
-        params = self.mapper.params
         sent_params = copy.deepcopy(self.mapper.params)
-        _immutable = v._immutable
-        query_ps = []
-        entry_v1 = get_entity_entry(self.mapper.models, v)
-        v.field_type = 'graph'
-
-        for k, v in v.data.items():
-            if k not in _immutable:
-                value, paramsss = get_dict_key(params, v)
-                prop = "property('%s', %s)" % (k, value)
-                query_ps.append(prop)
-
-        propv, params = get_dict_key(sent_params, vid)
-
-        close = '.'.join(query_ps)
-        params = (list(entry_v1.keys())[0], propv, close)
-        expected = "%s = g.V(%s).%s.next()" % params
-
+        expected = build_vertex_update_query(v, vid, \
+            sent_params, self.mapper.models)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -128,19 +162,8 @@ class MapperTests(unittest.TestCase):
 
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
-        _immutable = v._immutable
-        props = []
-        entry_v1 = get_entity_entry(self.mapper.models, v)
-        v.field_type = 'graph'
-
-        for k, v in v.data.items():
-            if k not in _immutable:
-                value, params = get_dict_key(params, v, True)
-                prop = "'%s', %s" % (k, value)
-                props.append(prop)
-
-        expected = "%s = g.addV(%s).next()" % \
-            (list(entry_v1.keys())[0], ', '.join(props))
+        expected = build_vertex_create_query(v, sent_params, \
+            self.mapper.models)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -168,6 +191,8 @@ class MapperTests(unittest.TestCase):
         params = copy.deepcopy(self.mapper.params)
         print(params)
         print(self.mapper.queries)
+        expected = build_vertex_create_query(out_v, params, self.mapper.models)
+        print('\n\n\n', expected)
         self.assertTrue(False)
 
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):

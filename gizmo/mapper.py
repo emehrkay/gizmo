@@ -556,11 +556,7 @@ class Query(object):
         self.entity_count = {}
 
     def _register_entity(self, entity):
-        count = get_entity_count(entity)
-        print('>>>>>>>>>>>>>>>>>>>>\n\n\n')
-        print(str(entity), count)
-        print('\n>>>>>>>>>>>>>>>>>>>>\n\n\n')
-        self.entity_count[entity] = count
+        self.entity_count[entity] = get_entity_count(entity)
 
     def _entity_variable(self, entity, field):
         name = camel_to_underscore(entity.__class__.__name__)
