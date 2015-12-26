@@ -89,6 +89,14 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
     return expected
 
 
+def build_edge_create_query(entity):
+    pass
+
+
+def build_edge_update_query(entity):
+    pass
+
+
 class TestRequest(_Request):
 
     def __init__(self):
