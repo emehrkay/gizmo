@@ -189,7 +189,7 @@ class MapperTests(unittest.TestCase):
 
     def test_can_create_edge_with_existing_vertices_query(self):
         v1 = {'_id': 15}
-        v2 = {'_id': 10}
+        v2 = {'_id': 10, 'some_field': str(random())}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}

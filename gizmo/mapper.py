@@ -166,6 +166,7 @@ class _GenericMapper(metaclass=_RootMapper):
             for field in self.unique_fields:
                 g_field = '"%s"' % field
 
+                # if model[field]:
                 gremlin.has(g_field, model[field])
 
             try:
@@ -365,6 +366,16 @@ class Mapper(object):
         ret_key = get_key()
 
         return ret_key
+
+    def get_param_key(self, value):
+        key = None
+
+        for k, v in self.params.items():
+            if value == v:
+                key = k
+                break
+
+        return key
 
     def get_mapper(self, model=None, name=GENERIC_MAPPER):
         if model is not None:
@@ -614,11 +625,16 @@ class Query(object):
                     self.fields.append(entry)
                 else:
                     variable = self._entity_variable(entity, key)
-                    bound = gremlin.bind_param(value, variable)
+                    bound = self.bind_param(value, variable)
 
                     self.fields.append("'%s', %s" % (key, bound[0]))
 
         return self
+
+    def bind_param(self, value, key=None):
+        key = self.mapper.get_param_key(value) or key
+
+        return self.gremlin.bind_param(value, key)
 
     def iterable_to_graph(self, iterable, field, entity):
         if isinstance(iterable, dict):
@@ -635,7 +651,7 @@ class Query(object):
                 gval.append(self.iterable_to_graph(value, field + key))
             else:
                 variable = self._entity_variable(entity, key)
-                bound = gremlin.bind_param(value, variable)
+                bound = self.bind_param(value, variable)
 
                 gval.append("'%s': %s" % (key, bound[0]))
 
@@ -653,7 +669,7 @@ class Query(object):
                 gval.append(self.iterable_to_graph(value, field, entity))
             else:
                 variable = self._entity_variable(entity, field)
-                bound = gremlin.bind_param(value, variable)
+                bound = self.bind_param(value, variable)
 
                 gval.append(variable)
 
@@ -705,7 +721,7 @@ class Query(object):
         gremlin = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
         label_var = self.next_var('EDGE_LABEL')
-        label_bound = gremlin.bind_param(model[GIZMO_LABEL], label_var)
+        label_bound = self.bind_param(model[GIZMO_LABEL], label_var)
         edge_fields = ''
 
         if set_variable:
@@ -772,7 +788,7 @@ class Query(object):
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        eye_d = gremlin.bind_param(model['_id'], ent_var)
+        eye_d = self.bind_param(model['_id'], ent_var)
         getattr(gremlin, model_type)(eye_d[0])
 
         for k, v in model.fields.data.items():
@@ -786,7 +802,7 @@ class Query(object):
                     gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
                     variable = self._entity_variable(model, k)
-                    bound = gremlin.bind_param(v, variable)
+                    bound = self.bind_param(v, variable)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     gremlin.property("'%s'" % k, bound[0])
 
