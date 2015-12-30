@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore
@@ -337,6 +338,11 @@ class Mapper(object):
 
         return getattr(mapper, self._magic_method)(*args, **kwargs)
 
+    @property
+    def ordered_models(self):
+        return OrderedDict(sorted(self.models.items()))
+        
+
     def reset(self):
         self.gremlin.reset()
         global query_count
@@ -481,10 +487,10 @@ class Mapper(object):
         if len(self.models) > 0:
             returns = []
 
-            for k in self.models.keys():
+            for k in self.ordered_models.keys():
                 returns.append("'%s': %s" % (k, k))
 
-            ret = '[%s]' % ','.join(returns)
+            ret = '[%s]' % ', '.join(returns)
 
             self.queries.append(ret)
 
@@ -503,7 +509,7 @@ class Mapper(object):
 
         script = ";\n".join(self.queries)
         params = self.params
-        models = self.models
+        models = self.ordered_models
         callbacks = self.callbacks
         models.update(self.del_models)
         self.reset()

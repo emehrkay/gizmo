@@ -21,6 +21,10 @@ class TestUniqieMapper(_GenericMapper):
     unique = True
 
 
+def g_v(id):
+    return 'g.V({}).next()'.format(id)
+
+
 def get_dict_key(params, value, unset=False):
     for k, v in params.items():
         if v == value:
@@ -64,12 +68,12 @@ def build_vertex_create_query(entity, params=None, models=None):
 
 def build_vertex_update_query(entity, eid, params=None, models=None):
     params = copy.deepcopy(params or {})
-    _immutable = entity._immutable
+    immutable = entity._immutable
     query_ps = []
     entity.field_type = 'graph'
 
     for k, v in entity.data.items():
-        if k not in _immutable:
+        if k not in immutable:
             value, paramsss = get_dict_key(params, v)
             prop = "property('%s', %s)" % (k, value)
             query_ps.append(prop)
@@ -89,12 +93,40 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
     return expected
 
 
-def build_edge_create_query(entity):
-    pass
+def build_edge_create_query(entity, out_v, in_v, label, params, models):
+    params = copy.deepcopy(params or {})
+    entity.field_type = 'graph'
+    immutable = entity._immutable
+    out = g_v(out_v)
+    inn = g_v(in_v)
+    l, _ = get_dict_key(params, label)
+    a = [l, inn]
 
+    for k, v in entity.data.items():
+        if k not in immutable:
+            value, paramsss = get_dict_key(params, v or '')
+            a.append("'{}'".format(k))
+            a.append(value or '""')
+
+    if models:
+        entry_v1 = list(get_entity_entry(models, entity))[0]
+        return "{} = {}.addEdge({})".format(entry_v1, out, ', '.join(a))
+    else:
+        return "{}.addEdge({})".format(out, ', '.join(a))
 
 def build_edge_update_query(entity):
     pass
+
+
+def build_return_query(entities, models):
+    ret = []
+
+    for e in entities:
+        entry = list(get_entity_entry(models, e))[0]
+        s = "'{}': {}".format(entry, entry)
+        ret.append(s)
+
+    return '[{}]'.format(', '.join(ret))
 
 
 class TestRequest(_Request):
@@ -156,7 +188,7 @@ class MapperTests(unittest.TestCase):
 
         sent_params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_update_query(v, vid, \
-            sent_params, self.mapper.models)
+            sent_params, self.mapper.ordered_models)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -171,7 +203,7 @@ class MapperTests(unittest.TestCase):
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_create_query(v, sent_params, \
-            self.mapper.models)
+            self.mapper.ordered_models)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -194,14 +226,26 @@ class MapperTests(unittest.TestCase):
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
         edge = self.mapper.create_model(ed, TestEdge)
+        label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
         params = copy.deepcopy(self.mapper.params)
-        print(params)
-        print(self.mapper.queries)
-        expected = build_vertex_create_query(out_v, params, self.mapper.models)
-        print('\n\n\n', expected)
-        self.assertTrue(False)
+        queries = self.mapper.queries
+        out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
+            self.mapper.ordered_models)
+        in_v_query = build_vertex_update_query(in_v, v2['_id'], params, \
+            self.mapper.ordered_models)
+        out_entry = list(get_entity_entry(self.mapper.ordered_models, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.ordered_models, in_v).keys())[0]
+        edge_query = build_edge_create_query(edge, out_entry, in_entry, \
+            label, params, self.mapper.ordered_models)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.ordered_models)
+
+        self.assertEqual(len(queries), 4)
+        self.assertEqual(out_v_query, queries[0])
+        self.assertEqual(in_v_query, queries[1])
+        self.assertEqual(edge_query, queries[2])
+        self.assertEqual(return_query, queries[3])
 
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
         v1 = {'_id': 15}
