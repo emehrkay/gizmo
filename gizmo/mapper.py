@@ -338,11 +338,6 @@ class Mapper(object):
 
         return getattr(mapper, self._magic_method)(*args, **kwargs)
 
-    @property
-    def ordered_models(self):
-        return OrderedDict(sorted(self.models.items()))
-        
-
     def reset(self):
         self.gremlin.reset()
         global query_count
@@ -353,7 +348,7 @@ class Mapper(object):
         count = 0
         _ENTITY_USED = {}
         self.queries = []
-        self.models = {}
+        self.models = OrderedDict() #ensure FIFO for testing
         self.del_models = {}
         self.params = {}
         self.callbacks = {}
@@ -487,7 +482,7 @@ class Mapper(object):
         if len(self.models) > 0:
             returns = []
 
-            for k in self.ordered_models.keys():
+            for k in self.models.keys():
                 returns.append("'%s': %s" % (k, k))
 
             ret = '[%s]' % ', '.join(returns)
@@ -509,7 +504,7 @@ class Mapper(object):
 
         script = ";\n".join(self.queries)
         params = self.params
-        models = self.ordered_models
+        models = self.models
         callbacks = self.callbacks
         models.update(self.del_models)
         self.reset()
