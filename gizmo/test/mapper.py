@@ -255,35 +255,53 @@ class MapperTests(unittest.TestCase):
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
         edge = self.mapper.create_model(ed, TestEdge)
-
-        get_vertex_query = ""
-        add_vertex_query = ""
-        add_edge_query = ""
-
+        label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
-        #print(self.mapper.queries)
-        self.assertTrue(False)
+        params = copy.deepcopy(self.mapper.params)
+        queries = self.mapper.queries
+        out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
+            self.mapper.models)
+        in_v_query = build_vertex_create_query(in_v, params, self.mapper.models)
+        out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
+        edge_query = build_edge_create_query(edge, out_entry, in_entry, \
+            label, params, self.mapper.models)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
+
+        self.assertEqual(len(queries), 4)
+        self.assertEqual(out_v_query, queries[0])
+        self.assertEqual(in_v_query, queries[1])
+        self.assertEqual(edge_query, queries[2])
+        self.assertEqual(return_query, queries[3])
 
     def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
         v2 = {'_id': 10}
         out_v = self.mapper.create_model(v1, TestVertex)
-        sleep(0.5) #sleep so that the times will be unique across entities
         in_v = self.mapper.create_model(v2, TestVertex)
-        sleep(0.5)
-        ed = {'out_v': out_v, 'in_v': in_v, '_label': 'knows'}
+        ed = {'out_v': out_v, 'in_v': in_v}
         edge = self.mapper.create_model(ed, TestEdge)
+        label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
-        #print(self.mapper.queries)
-        # TODO: build and test all queries and params
-        self.assertTrue(False)
+        params = copy.deepcopy(self.mapper.params)
+        queries = self.mapper.queries
+        out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
+            self.mapper.models)
+        in_v_query = build_vertex_update_query(in_v, v2['_id'], params, \
+            self.mapper.models)
+        out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
+        edge_query = build_edge_create_query(edge, out_entry, in_entry, \
+            label, params, self.mapper.models)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
 
-    def test_can_queue_save_edge_with_one_new_and_one_update_vertex(self):
-        # TODO: create a test cast that will have one vertex as in insert, one
-        # as an update
-        self.assertTrue(False)
+        self.assertEqual(len(queries), 4)
+        self.assertEqual(out_v_query, queries[0])
+        self.assertEqual(in_v_query, queries[1])
+        self.assertEqual(edge_query, queries[2])
+        self.assertEqual(return_query, queries[3])
 
     def test_can_call_callback_when_save_method_is_called(self):
         variable = ''
