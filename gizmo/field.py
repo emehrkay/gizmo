@@ -133,7 +133,7 @@ class Field(object):
         return value
 
     def _set_value(self, value):
-        if self._can_set():
+        if self._can_set(value):
             if hasattr(value, '__call__'):
                 value = value()
 
@@ -144,7 +144,7 @@ class Field(object):
     def _del_value(self):
         self.field_value = None
 
-    def _can_set(self):
+    def _can_set(self, *args, **kwargs):
         can_set = True
 
         if self.set_max is not None:
@@ -160,17 +160,22 @@ class Field(object):
         return self.field_value
 
     def to_graph(self):
-        return '' if self.field_value is None else self.field_value
+        return '' if self.to_python() is None else self.to_python()
 
 
 class String(Field):
-    pass
+
+    def to_graph(self):
+        return '' if self.field_value is None else str(self.field_value)
 
 
 class Integer(Field):
 
     def to_python(self):
-        return int(float(self.field_value)) if self.field_value else 0
+        try:
+            return int(float(self.field_value)) if self.field_value else 0
+        except:
+            return 0
 
     def to_graph(self):
         return self.to_python()
@@ -180,16 +185,31 @@ class Increment(Integer):
 
     def to_graph(self):
         val = self.field_value if self.field_value else 0
-        return int(val) + 1
+        self.field_value = int(val) + 1
+
+        return self.field_value
 
 
 class Float(Field):
 
-    def to_ptyhon(self):
-        return float(self.field_value) if self.field_value else 0
+    def to_python(self):
+        try:
+            return float(self.field_value) if self.field_value else 0.0
+        except:
+            return 0.0
+
+    def to_graph(self):
+        return self.to_python()
 
 
 class Boolean(Field):
+
+    def __init__(self, value=None, data_type='python', set_max=None,\
+        track_changes=True):
+        super(Boolean, self).__init__(value=value, data_type=data_type, \
+            set_max=set_max, track_changes=track_changes)
+
+        self.field_value = bool(value)
 
     def to_python(self):
         try:
@@ -241,25 +261,21 @@ class DateTime(Field):
         return int(float(value)) / 1000
 
 
-class TimeStamp(DateTime):
-    pass
-
-
 class Enum(Field):
 
-    def __init__(self, allowed, value, data_type='python', set_max=None, \
+    def __init__(self, allowed, value=None, data_type='python', set_max=None, \
         track_changes=True):
         if allowed is None:
             allowed = []
 
         self.allowed = allowed
 
-        if value is None:
+        if value is None or value not in self.allowed:
             value = self.allowed[0]
 
         super(Enum, self).__init__(value=value, data_type=data_type, \
             set_max=set_max, track_changes=track_changes)
 
-    def _set_value(self, value):
-        if self._can_set() and value in self.allowed:
+    def _can_set(self, value):
+        if super(Enum, self)._can_set(value) and value in self.allowed:
             self.field_value = value
