@@ -6,7 +6,7 @@ from collections import OrderedDict
 from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
 from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
-    GIZMO_NODE_TYPE, GIZMO_TYPE, GIZMO_ID, GIZMO_LABEL
+    GIZMO_NODE_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
 from gizmo.test.entity import TestVertex, TestEdge, TestUniqueEdge, \
     TestUndefinedVertex

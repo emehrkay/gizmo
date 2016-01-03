@@ -5,7 +5,7 @@ from .field import String, DateTime, List
 from .field import Map, _Fields, Field, Enum
 from .utils import get_qualified_instance_name, IMMUTABLE
 from .utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_LABEL
-from .utils import GIZMO_MODIFIED, GIZMO_NODE_TYPE, GIZMO_ID
+from .utils import GIZMO_MODIFIED, GIZMO_ID
 from .utils import current_date_time, camel_to_underscore
 
 
@@ -15,7 +15,6 @@ DEFAULT_MODEL_FIELDS = [
     GIZMO_MODEL,
     GIZMO_CREATED,
     GIZMO_MODIFIED,
-    GIZMO_NODE_TYPE,
     GIZMO_ID,
 ]
 

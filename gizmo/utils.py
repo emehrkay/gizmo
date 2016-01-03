@@ -6,15 +6,14 @@ GIZMO_MODEL = 'gizmo_model'
 GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
 GIZMO_NODE_TYPE = 'gizmo_node_type'
-GIZMO_TYPE = '_type'
 GIZMO_ID = '_id'
 GIZMO_LABEL = '_label'
 VERTEX = 'vertex'
 EDGE = 'edge'
 TYPES = {VERTEX: VERTEX, EDGE: EDGE}
 IMMUTABLE = {
-    VERTEX: [GIZMO_ID, GIZMO_TYPE],
-    EDGE: [GIZMO_ID, GIZMO_TYPE, GIZMO_LABEL, '_inV', '_outV']}
+    VERTEX: [GIZMO_ID],
+    EDGE: [GIZMO_ID, GIZMO_LABEL, '_inV', '_outV']}
 
 
 def camel_to_underscore(name):

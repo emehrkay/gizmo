@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore
-from .utils import IMMUTABLE, GIZMO_MODEL, GIZMO_NODE_TYPE, GIZMO_TYPE
+from .utils import IMMUTABLE, GIZMO_MODEL
 from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
 
@@ -291,6 +291,9 @@ class _GenericMapper(metaclass=_RootMapper):
                     model = GenericEdge(data, data_type=data_type)
                 else:
                     model = GenericVertex(data, data_type=data_type)
+
+        if '_id' in data:
+            model.fields['_id'].value = data['_id']
 
         return model
 

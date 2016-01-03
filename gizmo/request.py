@@ -149,8 +149,15 @@ class AsyncResponse(_Response):
         update_keys = list(self.update_models.keys())
 
         def has_update(keys):
-            c = list(set(update_keys) - set(keys))
-            return len(c) > 0
+            # TODO: look into why subtracting sets doesnt work for single entry
+            # items
+            # c = list(set(update_keys) - set(keys))
+            # return len(c) > 0
+            for k in keys:
+                if k in update_keys:
+                    return True
+
+            return False
 
         def fix_properties(data_set):
             if isinstance(data_set, dict) and 'properties' in data_set:
