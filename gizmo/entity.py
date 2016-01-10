@@ -9,7 +9,7 @@ from .utils import GIZMO_MODIFIED, GIZMO_ID
 from .utils import current_date_time, camel_to_underscore
 
 
-#Holds the model->object mappings
+# Holds the model->object mappings
 _MAP = {}
 DEFAULT_MODEL_FIELDS = [
     GIZMO_MODEL,
@@ -48,18 +48,22 @@ class _RootEntity(type):
 
             # the modified field is a microsecond later than the created
             # this is done for testing purposes
-            modified = lambda: current_date_time(0.001)
+            def modified():
+                return current_date_time(0.001)
+
             self.fields = _Fields({
-                GIZMO_MODEL: String(get_qualified_instance_name(self),\
-                    data_type=data_type, track_changes=False),
-                GIZMO_CREATED: DateTime(value=current_date_time,\
-                    data_type=data_type, set_max=1, track_changes=False),
-                GIZMO_MODIFIED: DateTime(value=modified,\
-                    data_type=data_type, track_changes=False),
-                GIZMO_LABEL: String(cls_label, data_type=data_type,\
-                    track_changes=False),
-                GIZMO_ID: String(data_type=data_type,\
-                    track_changes=False),
+                GIZMO_MODEL: String(get_qualified_instance_name(self),
+                                    data_type=data_type, track_changes=False),
+                GIZMO_CREATED: DateTime(value=current_date_time,
+                                        data_type=data_type,
+                                        set_max=1, track_changes=False),
+                GIZMO_MODIFIED: DateTime(value=modified,
+                                         data_type=data_type,
+                                         track_changes=False),
+                GIZMO_LABEL: String(cls_label, data_type=data_type,
+                                    track_changes=False),
+                GIZMO_ID: String(data_type=data_type,
+                                 track_changes=False),
             })
 
             if isinstance(self, Edge):
@@ -94,8 +98,8 @@ class _RootEntity(type):
                 if label is None:
                     label = cls_label
 
-                self.fields[GIZMO_LABEL] = String(value=label, \
-                    data_type=data_type)
+                self.fields[GIZMO_LABEL] = String(value=label,
+                                                  data_type=data_type)
 
             """"
             build the properties for the instance

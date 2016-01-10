@@ -103,8 +103,8 @@ class _Fields(dict):
 
 class Field(object):
 
-    def __init__(self, value=None, data_type='python', set_max=None,\
-        track_changes=True):
+    def __init__(self, value=None, data_type='python', set_max=None,
+                 track_changes=True):
         if not value:
             value = self.default_value
 
@@ -204,10 +204,11 @@ class Float(Field):
 
 class Boolean(Field):
 
-    def __init__(self, value=None, data_type='python', set_max=None,\
-        track_changes=True):
-        super(Boolean, self).__init__(value=value, data_type=data_type, \
-            set_max=set_max, track_changes=track_changes)
+    def __init__(self, value=None, data_type='python', set_max=None,
+                 track_changes=True):
+        super(Boolean, self).__init__(value=value, data_type=data_type,
+                                      set_max=set_max,
+                                      track_changes=track_changes)
 
         self.field_value = bool(value)
 
@@ -230,7 +231,7 @@ class Map(Field):
 
     def to_python(self):
         if isinstance(self.field_value, str) and\
-            len(self.field_value.replace(" ", "")):
+                len(self.field_value.replace(" ", "")):
             return json.load(self.field_value)
         else:
             return self.field_value
@@ -263,8 +264,8 @@ class DateTime(Field):
 
 class Enum(Field):
 
-    def __init__(self, allowed, value=None, data_type='python', set_max=None, \
-        track_changes=True):
+    def __init__(self, allowed, value=None, data_type='python', set_max=None,
+                 track_changes=True):
         if allowed is None:
             allowed = []
 
@@ -273,8 +274,9 @@ class Enum(Field):
         if value is None or value not in self.allowed:
             value = self.allowed[0]
 
-        super(Enum, self).__init__(value=value, data_type=data_type, \
-            set_max=set_max, track_changes=track_changes)
+        super(Enum, self).__init__(value=value, data_type=data_type,
+                                   set_max=set_max,
+                                   track_changes=track_changes)
 
     def _can_set(self, value):
         if super(Enum, self)._can_set(value) and value in self.allowed:

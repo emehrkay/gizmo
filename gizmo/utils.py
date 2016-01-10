@@ -22,8 +22,8 @@ def camel_to_underscore(name):
 
 
 def get_object_items(obj):
-    return [a for a in dir(obj) if not a.startswith('__') \
-        and not callable(getattr(obj, a))]
+    return [a for a in dir(obj) if not a.startswith('__') and
+            not callable(getattr(obj, a))]
 
 
 def get_qualified_name(obj):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .error import *
 from .entity import *
 from .event import *

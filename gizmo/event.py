@@ -37,39 +37,40 @@ class MapperMixin(object):
         *
     """
 
-    def save(self, model, bind_return=True, callback=None, source=None, \
-        *args, **kwargs):
+    def save(self, model, bind_return=True, callback=None, source=None,
+             *args, **kwargs):
         """
         Method used to save the original model and to add the
         source -> event and
         model -> event
         relationships
         """
-        super(MapperMixin, self).save(model=model, bind_return=bind_return,\
-            callback=callback, *args, **kwargs)
+        super(MapperMixin, self).save(model=model, bind_return=bind_return,
+                                      callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 
         if source is not None:
             fields_changed = len(model.changed) > 0
             fields_removed = len(model.removed) > 0
 
-            #only create the source event if there were actual changes
+            # only create the source event if there were actual changes
             if fields_changed or fields_removed:
                 self.event = event = \
-                    self.mapper.create_model(model_class=Entity,\
-                    data_type=model.data_type)
+                    self.mapper.create_model(model_class=Entity,
+                                             data_type=model.data_type)
 
                 for field, change in model.changed.items():
                     event[field] = change
 
                 if model._atomic_changes and fields_removed:
-                    #TODO: track the fields that were removed
+                    # TODO: track the fields that were removed
                     pass
 
-                source_edge = self.mapper.connect(out_v=source,\
-                    in_v=event, label=TRIGGERED_SOURCE_EVENT)
-                event_edge = self.mapper.connect(out_v=model, in_v=event,\
-                    label=SOURCE_EVENT_ENTRY)
+                source_edge = self.mapper.connect(out_v=source,
+                                                  in_v=event,
+                                                  label=TRIGGERED_SOURCE_EVENT)
+                event_edge = self.mapper.connect(out_v=model, in_v=event,
+                                                 label=SOURCE_EVENT_ENTRY)
 
                 self.mapper.save(source_edge, bind_return=True)
                 self.mapper.save(event_edge, bind_return=True)
@@ -77,5 +78,5 @@ class MapperMixin(object):
         return self
 
     def get_event_history(self, model, range_start=None, range_end=None):
-        #TODO: fill this query out
+        # TODO: fill this query out
         pass

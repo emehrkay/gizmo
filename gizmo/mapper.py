@@ -10,7 +10,7 @@ from .error import *
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
 
-#Holds the model->mapper mappings for custom mappers
+# Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
 _ENTITY_USED = {}
 GENERIC_MAPPER = 'generic.mapper'
@@ -193,7 +193,7 @@ class _GenericMapper(metaclass=_RootMapper):
     def _save_edge(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
-        #TODO: send an edge to be saved multiple times
+        # TODO: send an edge to be saved multiple times
         edge_ref = self.mapper.get_model_variable(model)
         out_v = model.out_v
         out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
@@ -227,8 +227,8 @@ class _GenericMapper(metaclass=_RootMapper):
 
         if not model['_id'] and self.unique and in_v_id and out_v_id:
             gremlin = Gremlin(self.gremlin.gv)
-            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL], \
-                self.unique)
+            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL],
+                               self.unique)
             gremlin.apply_statement(get_edge)
 
             try:
@@ -309,7 +309,7 @@ class Mapper(object):
         self.gremlin = gremlin
         self.auto_commit = auto_commit
 
-        if not logger and logger != False:
+        if not logger and logger is not False:
             import logging
             logging.basicConfig(format='%(levelname)s:%(message)s')
             logger = logging.getLogger()
@@ -351,7 +351,7 @@ class Mapper(object):
         count = 0
         _ENTITY_USED = {}
         self.queries = []
-        self.models = OrderedDict() #ensure FIFO for testing
+        self.models = OrderedDict()  # ensure FIFO for testing
         self.del_models = {}
         self.params = {}
         self.callbacks = {}
@@ -407,8 +407,8 @@ class Mapper(object):
 
         return self
 
-    def save(self, model, bind_return=True, mapper=None, \
-        callback=None, **kwargs):
+    def save(self, model, bind_return=True, mapper=None,
+             callback=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
@@ -430,8 +430,8 @@ class Mapper(object):
 
         return self._enqueue_mapper(mapper)
 
-    def connect(self, out_v, in_v, label=None, data=None, edge_model=None, \
-        data_type='python'):
+    def connect(self, out_v, in_v, label=None, data=None, edge_model=None,
+                data_type='python'):
         """
         method used to connect two vertices and create an Edge object
         the resulting edge is not saved to to graph until it is passed to
@@ -455,8 +455,8 @@ class Mapper(object):
         data['_type'] = 'edge'
         data[GIZMO_LABEL] = label
 
-        return self.create_model(data=data, model_class=edge_model, \
-            data_type=data_type)
+        return self.create_model(data=data, model_class=edge_model,
+                                 data_type=data_type)
 
     def create_model(self, data=None, model_class=None, data_type='python'):
         if data is None:
@@ -512,11 +512,11 @@ class Mapper(object):
         models.update(self.del_models)
         self.reset()
 
-        return self.query(script=script, params=params, \
-            update_models=models, callbacks=callbacks)
+        return self.query(script=script, params=params,
+                          update_models=models, callbacks=callbacks)
 
-    def query(self, script=None, params=None, gremlin=None, \
-        update_models=None, callbacks=None):
+    def query(self, script=None, params=None, gremlin=None,
+              update_models=None, callbacks=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -736,8 +736,8 @@ class Query(object):
         g = Gremlin()
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        gremlin.unbound('addEdge', label_bound[0], str(g), \
-            ', '.join(self.fields))
+        gremlin.unbound('addEdge', label_bound[0], str(g),
+                        ', '.join(self.fields))
 
         model.field_type = 'python'
 
@@ -780,7 +780,7 @@ class Query(object):
             err = 'The model must have an _id defined in order to update'
             raise QueryException([err])
 
-        if model.dirty == False:
+        if model.dirty is False:
             return self.by_id(model['_id'], model, set_variable)
 
         gremlin = self.gremlin
@@ -941,8 +941,8 @@ class Collection(object):
                 data = self.response[key]
 
                 if data is not None:
-                    model = self.mapper.create_model(data=data, \
-                        data_type=self._data_type)
+                    model = self.mapper.create_model(data=data,
+                                                     data_type=self._data_type)
                     model.dirty = False
                     self._models[key] = model
                 else:
