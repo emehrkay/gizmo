@@ -1,7 +1,7 @@
 from inspect import isfunction
 from copy import deepcopy
 
-from .field import String, DateTime, List
+from .field import String, DateTime, List, Integer, Float
 from .field import Map, _Fields, Field, Enum
 from .utils import get_qualified_instance_name, IMMUTABLE
 from .utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_LABEL
@@ -169,12 +169,8 @@ class _BaseEntity(metaclass=_RootEntity):
         elif isinstance(value, list):
             field = List(value, self.data_type)
         elif isinstance(value, int):
-            from .field import Integer
-
             field = Integer(value, self.data_type)
         elif isinstance(value, float):
-            from .field import Float
-
             field = Float(value, self.data_type)
         else:
             field = String(value, self.data_type)

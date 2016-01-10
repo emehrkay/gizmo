@@ -4,7 +4,6 @@ from random import randrange, random
 from time import sleep
 from collections import OrderedDict
 from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
-from gizmo.request import _Request
 from gizmo.utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
     GIZMO_NODE_TYPE, GIZMO_ID, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
@@ -129,9 +128,12 @@ def build_return_query(entities, models):
     return '[{}]'.format(', '.join(ret))
 
 
-class TestRequest(_Request):
+class TestRequest(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def send(self, *args, **kwargs):
         pass
 
 
@@ -153,7 +155,7 @@ class MapperTests(unittest.TestCase):
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
     def test_mapper_instance(self):
-        m = Mapper(self.gremlin, self.request, logger=False)
+        m = Mapper(self.request, self.gremlin, logger=False)
 
         self.assertTrue(type(m) == Mapper)
 

@@ -22,8 +22,6 @@ class BaseTests(unittest.TestCase):
 class ConnectionTests(BaseTests):
 
     def test_can_establish_mapper(self):
-        # TODO: fix this test. It assumes that it is run in isolation and there
-        # will be no other interactions with the graph beforehand
         c = '%s.V()' % self.gremlin.gv
         r = self.mapper.query(script=c)
 
