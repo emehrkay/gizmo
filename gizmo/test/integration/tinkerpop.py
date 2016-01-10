@@ -165,10 +165,20 @@ class EntityTests(BaseTests):
         self.entity_save_assertions(e)
 
 
-class MapperTests(object):
+class MapperTests(BaseTests):
 
     def test_can_utilitze_custom_mapper(self):
-        pass
+        self.assertTrue(False)
+
+    def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
+        self.assertTrue(False)
+
+    def test_can_restrict_multiple_model_connections(self):
+        self.assertTrue(False)
+
+    def test_can_throw_exception_on_nonunquie_model_connection(self):
+        self.assertTrue(False)
+
 
 if __name__ == '__main__':
     unittest.main()
