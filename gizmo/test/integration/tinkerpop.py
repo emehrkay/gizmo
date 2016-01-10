@@ -1,7 +1,9 @@
 import unittest
+import random
 
 from gremlinpy import Gremlin
 from gizmo import Mapper, Async, Collection, Vertex, Edge
+from gizmo.mapper import _GenericMapper
 
 
 class BaseTests(unittest.TestCase):
@@ -168,10 +170,66 @@ class EntityTests(BaseTests):
 class MapperTests(BaseTests):
 
     def test_can_utilitze_custom_mapper(self):
-        self.assertTrue(False)
+        variable = str(random.random())
+
+        class MapperTestVertex(Vertex):
+            _allowed_undefined = True
+
+
+        class MapperTestMapper(_GenericMapper):
+            model = MapperTestVertex
+
+            def create_model(self, *args, **kwargs):
+                entity = super(MapperTestMapper, self).create_model(*args, **kwargs)
+                entity['variable'] = variable
+                return entity
+
+        v = self.mapper.create_model(model_class=MapperTestVertex)
+        d = v.data
+
+        self.assertIsInstance(v, MapperTestVertex)
+        self.assertIn('variable', d)
+        self.assertEqual(d['variable'], variable)
 
     def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
-        self.assertTrue(False)
+
+        class MapperTestVertex(Vertex):
+            _allowed_undefined = True
+
+
+        class MapperTestMapper(_GenericMapper):
+            model = MapperTestVertex
+            unique_fields = ['first_name',]
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        r = self.mapper.save(v1).send()
+        r2 = self.mapper.save(v2).send()
+        gremlin = self.mapper.gremlin.V()
+        res = self.mapper.query(gremlin=gremlin)
+
+        self.assertEqual(1, len(res))
+
+    def test_can_restrict_model_creation_based_on_duplicate_field_values_with_exception(self):
+        from gizmo.error import MapperException
+
+        class MapperTestVertex(Vertex):
+            _allowed_undefined = True
+
+
+        class MapperTestMapper(_GenericMapper):
+            model = MapperTestVertex
+            unique_fields = ['first_name',]
+            error_on_non_unique = True
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        r = self.mapper.save(v1).send()
+        mapper = self.mapper
+
+        self.assertRaises(MapperException, lambda: mapper.save(v2).send())
 
     def test_can_restrict_multiple_model_connections(self):
         self.assertTrue(False)
