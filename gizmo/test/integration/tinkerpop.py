@@ -10,6 +10,7 @@ class BaseTests(unittest.TestCase):
         self.request = Async('localhost', 'gizmo_testing', port=8182)
         self.gremlin = Gremlin('gizmo_testing')
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
+
         super(BaseTests, self).setUp()
 
     def tearDown(self):
@@ -36,7 +37,11 @@ class ConnectionTests(BaseTests):
         self.assertIsInstance(r[0], Vertex)
 
     def test_can_get_database_time(self):
-        self.assertTrue(False)
+        script = 'def x = new Date(); x'
+        r = self.mapper.query(script=script)
+
+        self.assertTrue(r[0]['response'] != '')
+        self.assertIsInstance(r[0]['response'], int)
 
     def test_can_send_math_equation_to_server_and_retrieve_genderic_vertex_with_respnose_to_result(self):
         script = 'b = 1 + 1;'
