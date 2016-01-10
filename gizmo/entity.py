@@ -164,10 +164,18 @@ class _BaseEntity(metaclass=_RootEntity):
         return self
 
     def _add_undefined_field(self, name, value):
-        if type(value) is dict:
+        if isinstance(value, dict):
             field = Map(value, self.data_type)
-        elif type(value) is list:
+        elif isinstance(value, list):
             field = List(value, self.data_type)
+        elif isinstance(value, int):
+            from .field import Integer
+
+            field = Integer(value, self.data_type)
+        elif isinstance(value, float):
+            from .field import Float
+
+            field = Float(value, self.data_type)
         else:
             field = String(value, self.data_type)
 

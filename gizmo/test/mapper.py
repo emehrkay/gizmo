@@ -369,7 +369,6 @@ class CustomMapperTests(unittest.TestCase):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
         self.mapper.save(v).send()
-
         self.assertEqual(r, TestCallbackMapper.on_create_variable)
 
     def test_can_can_on_update_model_level_callback(self):
