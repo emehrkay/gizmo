@@ -232,7 +232,29 @@ class MapperTests(BaseTests):
         self.assertRaises(MapperException, lambda: mapper.save(v2).send())
 
     def test_can_restrict_multiple_model_connections(self):
-        self.assertTrue(False)
+
+        class MapperTestVertex(Vertex):
+            _allowed_undefined = True
+
+        class MapperTestEdge(Edge):
+            _allowed_undefined = True
+
+        class MapperTestEdgeMapper(_GenericMapper):
+            model = MapperTestEdge
+            unique = 'both'
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
+        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
+        e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
+        res = self.mapper.save(e).send()
+        res2 = self.mapper.save(e2).send()
+        gremlin = self.mapper.gremlin.E()
+        result = self.mapper.query(gremlin=gremlin)
+
+        self.assertEqual(1, len(result))
+        
 
     def test_can_throw_exception_on_nonunquie_model_connection(self):
         self.assertTrue(False)

@@ -5,7 +5,6 @@ import re
 GIZMO_MODEL = 'gizmo_model'
 GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
-GIZMO_NODE_TYPE = 'gizmo_node_type'
 GIZMO_ID = '_id'
 GIZMO_LABEL = '_label'
 VERTEX = 'vertex'

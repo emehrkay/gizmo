@@ -40,6 +40,8 @@ class _RootEntity(type):
             else:
                 cls_label = str(self)
 
+            data[GIZMO_LABEL] = cls_label
+
             if '_allowed_undefined' in attrs:
                 self._allowed_undefined = attrs['_allowed_undefined']
 
