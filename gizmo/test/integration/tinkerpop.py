@@ -67,7 +67,6 @@ class EntityTests(BaseTests):
             self.assertIsNotNone(entity[f])
             self.assertNotIn(entity[f], empty)
 
-
     def test_can_save_generic_vertex_and_update_its_id(self):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data)
@@ -254,6 +253,14 @@ class MapperTests(BaseTests):
         result = self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(result))
+
+
+class CollectionTests(BaseTests):
+    pass
+
+
+class TraversalTests(BaseTests):
+    pass
 
 
 if __name__ == '__main__':
