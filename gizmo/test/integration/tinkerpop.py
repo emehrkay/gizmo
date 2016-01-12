@@ -254,10 +254,6 @@ class MapperTests(BaseTests):
         result = self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(result))
-        
-
-    def test_can_throw_exception_on_nonunquie_model_connection(self):
-        self.assertTrue(False)
 
 
 if __name__ == '__main__':
