@@ -258,7 +258,6 @@ class MapperTests(BaseTests):
 class CollectionTests(BaseTests):
     pass
 
-
 class TraversalTests(BaseTests):
     pass
 
