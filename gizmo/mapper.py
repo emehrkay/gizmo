@@ -1,14 +1,16 @@
 import json
 from collections import OrderedDict
 
+from six import with_metaclass
+from gremlinpy.gremlin import Gremlin, Function
+from gremlinpy.statement import GetEdge
+
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore
 from .utils import IMMUTABLE, GIZMO_MODEL
 from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
 
-from gremlinpy.gremlin import Gremlin, Function
-from gremlinpy.statement import GetEdge
 
 # Holds the model->mapper mappings for custom mappers
 _MAPPER_MAP = {}
@@ -52,7 +54,7 @@ class _RootMapper(type):
         return cls
 
 
-class _GenericMapper(metaclass=_RootMapper):
+class _GenericMapper(with_metaclass(_RootMapper, object)):
     VARIABLE = 'gizmo_var'
     unique = False
     unique_fields = None

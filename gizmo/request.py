@@ -1,21 +1,24 @@
 import copy
-import asyncio
-
-from aiogremlin import GremlinClient
 
 
-class Async(object):
+class xAsync(object):
 
     def __init__(self, uri, graph, username=None, password=None, port=8184):
+        import asyncio
+
+        from aiogremlin import GremlinClient
+
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
         self.loop = asyncio.get_event_loop()
         self.connection = GremlinClient(loop=self.loop)
 
     def __del__(self):
-        self.loop.run_until_complete(self.connection.close())
+        if self.loop:
+            self.loop.run_until_complete(self.connection.close())
 
     def send(self, script=None, params=None, update_models=None,
              rebindings=None, *args, **kwargs):
+
         if not params:
             params = {}
 
@@ -30,6 +33,44 @@ class Async(object):
         response.params = params
 
         return response
+
+
+class Async(object):
+
+    def __init__(self, uri, graph, username=None, password=None, port=8184):
+        self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
+
+    def send(self, script=None, params=None, update_models=None, *args,
+             **kwargs):
+        from tornado import gen
+        from tornado.ioloop import IOLoop
+        from gremlinclient.client import submit
+
+        loop = IOLoop.current()
+
+        if not params:
+            params = {}
+
+        if not update_models:
+            update_models = {}
+
+        resp_data = {'data': []}
+
+        @gen.coroutine
+        def run():
+            resp = yield submit(gremlin=script, bindings=params)
+
+            while True:
+                msg = yield resp.read()
+
+                if msg is None:
+                    break
+                
+                if msg.data:
+                    resp_data['data'] += msg.data
+
+        loop.run_sync(run)
+        return Response(resp_data['data'], update_models)
 
 
 class Response(object):

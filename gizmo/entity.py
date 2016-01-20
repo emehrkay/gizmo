@@ -1,6 +1,8 @@
 from inspect import isfunction
 from copy import deepcopy
 
+from six import with_metaclass
+
 from .field import String, DateTime, List, Integer, Float
 from .field import Map, _Fields, Field, Enum
 from .utils import get_qualified_instance_name, IMMUTABLE
@@ -155,7 +157,7 @@ class _RootEntity(type):
         return cls
 
 
-class _BaseEntity(metaclass=_RootEntity):
+class _BaseEntity(with_metaclass(_RootEntity, object)):
     _immutable = IMMUTABLE['vertex']
     _allowed_undefined = False
     _atomic_changes = False
