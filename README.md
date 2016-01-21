@@ -46,7 +46,7 @@ from gremlinpy import Gremlin
 
 
 #build the base mapper
-r = Reqeust('localhost', 8984, 'gizmo_test')
+r = Request('localhost', 8984, 'gizmo_test')
 g = Gremlin('gizmo_testing')
 m = Mapper(r, g)
 
@@ -65,7 +65,7 @@ m.save(e) #this will CRUD all entites
 m.send() #builds query and sends to the server
 
 #the entities have been updated with the response from the server
-print u['_id'], e.data
+print(u['_id'], e.data)
 ~~~
 
 
