@@ -2,7 +2,7 @@ Gizmo
 =====
 > This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second. I am in the process of making this already incomplete library a Tinkerpop3-only implementataion
 
-Gizmo is a lightweight Python 3.x Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster 3.x](http://www.tinkerpop.com) servers. 
+Gizmo is a lightweight Python >=2.7 Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster 3.x](http://www.tinkerpop.com) servers. 
 
 
 ### About
@@ -40,10 +40,13 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 ~~~python
 from gizmo.entity import Vertex
 from gizmo.mapper import Mapper, GenericEdge
-from gizmo.request import Binary
+from gizmo.request import Request
+
+from gremlinpy import Gremlin
+
 
 #build the base mapper
-r = BinaryRequest('localhost', 8984, 'gizmo_test')
+r = Reqeust('localhost', 8984, 'gizmo_test')
 g = Gremlin()
 m = Mapper(r, g)
 
@@ -51,11 +54,12 @@ m = Mapper(r, g)
 class User(Vertex):
     _allowed_undefined = True
 
+
 # create a couple of users and connect them
 u = User({'name': 'mark', 'sex': 'male'})
 g = User({'name': 'sadé', 'sex': 'female'})
 d = {'out_v': u, 'in_v': g, 'since': 'last year'}
-e = GenericEdge(d, 'girl')
+e = GenericEdge(d, 'girlfriend')
 
 m.save(e) #this will CRUD all entites
 m.send() #builds query and sends to the server

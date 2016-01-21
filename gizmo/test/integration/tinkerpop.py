@@ -2,14 +2,14 @@ import unittest
 import random
 
 from gremlinpy import Gremlin
-from gizmo import Mapper, Async, Collection, Vertex, Edge
+from gizmo import Mapper, Request, Collection, Vertex, Edge
 from gizmo.mapper import _GenericMapper
 
 
 class BaseTests(unittest.TestCase):
 
     def setUp(self):
-        self.request = Async('localhost', 'gizmo_testing', port=8182)
+        self.request = Request('localhost', 'gizmo_testing', port=8182)
         self.gremlin = Gremlin('gizmo_testing')
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 

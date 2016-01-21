@@ -1,41 +1,7 @@
 import copy
 
 
-class xAsync(object):
-
-    def __init__(self, uri, graph, username=None, password=None, port=8184):
-        import asyncio
-
-        from aiogremlin import GremlinClient
-
-        self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
-        self.loop = asyncio.get_event_loop()
-        self.connection = GremlinClient(loop=self.loop)
-
-    def __del__(self):
-        if self.loop:
-            self.loop.run_until_complete(self.connection.close())
-
-    def send(self, script=None, params=None, update_models=None,
-             rebindings=None, *args, **kwargs):
-
-        if not params:
-            params = {}
-
-        if not update_models:
-            update_models = {}
-
-        execute = self.connection.execute(script, bindings=params)
-        resp = self.loop.run_until_complete(execute)
-        data = resp[0].data if resp[0].data else {}
-        response = Response(data, update_models)
-        response.script = script
-        response.params = params
-
-        return response
-
-
-class Async(object):
+class Request(object):
 
     def __init__(self, uri, graph, username=None, password=None, port=8184):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
