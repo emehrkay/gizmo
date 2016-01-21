@@ -47,7 +47,7 @@ from gremlinpy import Gremlin
 
 #build the base mapper
 r = Reqeust('localhost', 8984, 'gizmo_test')
-g = Gremlin()
+g = Gremlin('gizmo_testing')
 m = Mapper(r, g)
 
 #create a user vertex
@@ -67,6 +67,27 @@ m.send() #builds query and sends to the server
 #the entities have been updated with the response from the server
 print u['_id'], e.data
 ~~~
+
+
+### Testing
+
+The test suite can be run by calling:
+
+~~~python
+python setup.py test
+~~~
+
+This will run all of the tests defined in the test package. However, you do need to update some settings in your local Gremlin server instance.
+
+* Add a new file to the `conf/` directory of your gremlin server outlining the settings for the testing graph
+
+~~~
+gremlin.graph=org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
+gremlin.tinkergraph.vertexIdManager=LONG
+gremlin.tinkergraph.edgeIdManager=LONG
+~~~
+
+* Gizmo operates on the graph's traversal instance, to make this 
 
 ### Entities
 
