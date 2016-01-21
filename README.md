@@ -77,9 +77,9 @@ The test suite can be run by calling:
 python setup.py test
 ~~~
 
-This will run all of the tests defined in the test package. However, you do need to update some settings in your local Gremlin server instance.
+This will run all of the tests defined in the test package. However, you do need to update some settings in your local Gremlin server instance in order to run the integration tests.
 
-* Add a new file to the `conf/` directory of your gremlin server outlining the settings for the testing graph
+* Add a new file 'tinkergraph-gizmo-testing.properties' to the `conf/` directory of your gremlin server outlining the settings for the testing graph 
 
 ~~~
 gremlin.graph=org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
@@ -87,7 +87,21 @@ gremlin.tinkergraph.vertexIdManager=LONG
 gremlin.tinkergraph.edgeIdManager=LONG
 ~~~
 
-* Gizmo operates on the graph's traversal instance, to make this 
+* Open up the configuration yaml that you are using with your Gremlin server (gremlin-server.yaml by default) and find the `graphs` section. Add the gizmo\_test\_graph to it (take note of the `scripts` section and see which script is being called during startup of the server).
+
+~~~
+graphs: {
+  graph: conf/tinkergraph-empty.properties,
+  ...
+  gizmo_test_graph: conf/tinkergraph-gizmo-testing.properties,
+  }
+~~~
+
+* Gizmo operates on the graph's traversal instance. Add to the startup script (or create a new one) that exposes the gizmo_testing graph traversal to the global remote server instance.
+
+~~~
+gizmo_testing = gizmo_test_graph.traversal()
+~~~
 
 ### Entities
 
