@@ -38,8 +38,8 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 ### Quickstart
 
 ~~~python
-from gizmo.entity import Vertex
-from gizmo.mapper import Mapper, GenericEdge
+from gizmo.entity import Vertex, GenericEdge
+from gizmo.mapper import Mapper
 from gizmo.request import Request
 
 from gremlinpy import Gremlin
