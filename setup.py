@@ -6,7 +6,6 @@ Gizmo is an object graph mapper for Rexster-based graph servers.
 
 """
 import sys
-
 from setuptools import setup, find_packages
 
 install_requires = [
@@ -15,13 +14,16 @@ install_requires = [
     'six',
 ]
 
-if sys.version_info <= (2, 7):
+if sys.version_info < (3, 0):
     install_requires.append('trollius')
+
+# get the version information
+exec(open('gizmo/version.py').read())
 
 setup(
     name = 'gizmo',
     packages = find_packages(),
-    version = '0.1.0',
+    version = __version__,
     description = 'Python OGM for Rexster-based graph servers',
     url = 'https://github.com/emehrkay/gizmo',
     author = 'Mark Henderson',
