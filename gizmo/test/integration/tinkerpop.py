@@ -59,13 +59,19 @@ class EntityTests(BaseTests):
         from gizmo import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
             GIZMO_ID, GIZMO_LABEL
 
-        empty = ['', None]
+        empty = ['', 0, None]
+        non_zero = ['', None]
         fields = [GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
             GIZMO_ID, GIZMO_LABEL]
 
         for f in fields:
+            if f is GIZMO_ID:
+                check = non_zero
+            else:
+                check = empty
+
             self.assertIsNotNone(entity[f])
-            self.assertNotIn(entity[f], empty)
+            self.assertNotIn(entity[f], check)
 
     def test_can_save_generic_vertex_and_update_its_id(self):
         data = {'name': 'mark', 'sex': 'male'}
