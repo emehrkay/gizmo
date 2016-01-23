@@ -59,7 +59,7 @@ class EntityTests(BaseTests):
         from gizmo import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
             GIZMO_ID, GIZMO_LABEL
 
-        empty = ['', 0, None]
+        empty = ['', None]
         fields = [GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
             GIZMO_ID, GIZMO_LABEL]
 
