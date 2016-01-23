@@ -3,16 +3,20 @@ import copy
 
 class Request(object):
 
-    def __init__(self, uri, graph, username=None, password=None, port=8184):
+    def __init__(self, uri, graph, username=None, password=None, port=8184,
+                 ioloop=None):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
+
+        if not ioloop:
+            from tornado.ioloop import IOLoop
+            ioloop = IOLoop.current()
+
+        self.ioloop = ioloop
 
     def send(self, script=None, params=None, update_models=None, *args,
              **kwargs):
         from tornado import gen
-        from tornado.ioloop import IOLoop
         from gremlinclient.client import submit
-
-        loop = IOLoop.current()
 
         if not params:
             params = {}
@@ -35,7 +39,7 @@ class Request(object):
                 if msg.data:
                     resp_data['data'] += msg.data
 
-        loop.run_sync(run)
+        self.ioloop.run_sync(run)
         return Response(resp_data['data'], update_models)
 
 
