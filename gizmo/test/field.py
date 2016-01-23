@@ -46,6 +46,13 @@ class FieldTests(unittest.TestCase):
 
         self.assertEqual(f.value, v)
 
+    def test_can_determine_if_field_has_changed(self):
+        f = Field()
+
+        self.assertFalse(f.changed())
+        f.value = random.random()
+        self.assertTrue(f.changed())
+
 
 class StringTests(unittest.TestCase):
 

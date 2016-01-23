@@ -95,10 +95,13 @@ class _Fields(dict):
 
     @property
     def removed(self):
-        changed = self.changed
-        unchanged = self.unchanged
+        removed = []
 
-        return set(changed.keys()) - set(unchanged.keys())
+        for name, field in self.items():
+            if not field.value and field.track_changes and field.changed():
+                removed.append(name)
+
+        return removed
 
 
 class Field(object):

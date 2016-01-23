@@ -1,7 +1,8 @@
 import unittest
 from random import randrange, random
+
 from gizmo.entity import Vertex, Edge
-from gizmo.field import String
+from gizmo.field import *
 from gizmo.utils import camel_to_underscore, GIZMO_LABEL
 from gremlinpy.gremlin import Gremlin
 
@@ -95,6 +96,79 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(custom, custom_v[GIZMO_LABEL])
         self.assertEqual(name, v[GIZMO_LABEL])
 
+    def test_can_get_the_fields_that_were_changed(self):
+
+        class V(Vertex):
+            name = String(track_changes=True)
+
+        i = {'name': 'initial' + str(random())}
+        v = V()
+        f = {'name': str(random())}
+
+        v.hydrate(f)
+        changed = v.changed
+        unchanged = v.unchanged
+        self.assertEqual(len(changed), len(f))
+        self.assertEqual(len(unchanged), 0)
+
+    def test_can_get_the_fields_that_were_removed(self):
+
+        class V(Vertex):
+            name = String(track_changes=True)
+            age = Integer(track_changes=True)
+
+        i = {'name': 'initial' + str(random()), 'age': int(random()) + 3}
+        v = V()
+        f = {'name': str(random()), 'age': None}
+
+        v.hydrate(f)
+        removed = v.removed
+        self.assertTrue(len(removed), 1)
+
+    def test_can_get_rep_of_entity(self):
+        d = {'_id': 1}
+        v = TestVertex(d)
+        entity, id = v.get_rep()
+
+        self.assertEqual('V', entity)
+        self.assertEqual(d['_id'], id)
+
+    def test_can_change_datatype_for_entity(self):
+        v = TestVertex()
+        t = 'graph'
+        v.field_type = t
+
+        self.assertEqual(t, v.field_type)
+
+    def test_can_add_undefined_fields(self):
+        v = TestUndefinedVertex()
+        fields = v.fields
+        dic = {'name': str(random())}
+        flo = random()
+        inte = int(random())
+        li = ['1', '2', '3']
+        s = str(random())
+        d = {
+            'dic': dic,
+            'flo': flo,
+            'inte': inte,
+            'li': li,
+            's': s,
+        }
+        v.hydrate(d)
+
+        self.assertIsInstance(fields['dic'], Map)
+        self.assertIsInstance(fields['flo'], Float)
+        self.assertIsInstance(fields['inte'], Integer)
+        self.assertIsInstance(fields['li'], List)
+        self.assertIsInstance(fields['s'], String)
+
+    def test_can_get_undefiend_field(self):
+        v = TestUndefinedVertex()
+        n = 'name'
+        val = v[n]
+
+        self.assertIsNone(val)
 
 if __name__ == '__main__':
     unittest.main()

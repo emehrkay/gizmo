@@ -203,7 +203,7 @@ class _BaseEntity(with_metaclass(_RootEntity, object)):
         if name in self.fields:
             value = self.fields[name].value
         elif self._allowed_undefined:
-            value = self._add_undefined_field(name, value)
+            value = self._add_undefined_field(name, value).value
 
         return value
 
