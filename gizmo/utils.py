@@ -7,6 +7,7 @@ GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
 GIZMO_ID = '_id'
 GIZMO_LABEL = '_label'
+GIZMO_TYPE = '_type'
 VERTEX = 'vertex'
 EDGE = 'edge'
 TYPES = {VERTEX: VERTEX, EDGE: EDGE}
