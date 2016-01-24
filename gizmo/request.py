@@ -6,12 +6,13 @@ class Request(object):
     def __init__(self, uri, graph, username=None, password=None, port=8184,
                  ioloop=None):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
+        self._own_loop = False
+        self.ioloop = ioloop
 
         if not ioloop:
             from tornado.ioloop import IOLoop
-            ioloop = IOLoop.current()
-
-        self.ioloop = ioloop
+            self._own_loop = True
+            self.ioloop = IOLoop.instance()
 
     def send(self, script=None, params=None, update_models=None, *args,
              **kwargs):
@@ -28,22 +29,27 @@ class Request(object):
 
         @gen.coroutine
         def run():
-            resp = yield submit(gremlin=script, bindings=params)
+            resp = yield submit(gremlin=script, bindings=params, *args, **kwargs)
 
             while True:
                 msg = yield resp.read()
 
                 if msg is None:
                     break
-                
+
                 if msg.data:
                     resp_data['data'] += msg.data
 
-        self.ioloop.run_sync(run)
+        if self._own_loop:
+            self.ioloop.run_sync(run)
+        else:
+            self.ioloop.add_callback(run)
+
         return Response(resp_data['data'], update_models)
 
 
 class Response(object):
+
     def __init__(self, data=None, update_models=None):
         if not update_models:
             update_models = {}
