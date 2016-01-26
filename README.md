@@ -26,8 +26,9 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 
 ### Dependencies
 
-* [gremlinpy](https://github.com/emehrkay/gremlinpy) >= 0.2
-* [aiogremlin](https://github.com/davebshow/aiogremlin)
+* [gremlinpy](https://github.com/emehrkay/gremlinpy)
+* [gremlinclient](https://github.com/davebshow/gremlinclient)
+* [tornado](https://github.com/tornadoweb/tornado)
 
 ### Installation
 
