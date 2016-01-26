@@ -10,6 +10,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'gremlinpy',
+    'tornado',
     'gremlinclient',
     'six',
 ]

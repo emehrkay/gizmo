@@ -2,6 +2,9 @@ import json
 from collections import OrderedDict
 
 from six import with_metaclass
+
+from tornado import gen
+
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge
 
@@ -119,6 +122,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
+    @gen.coroutine
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
@@ -135,8 +139,9 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         self._enqueue_callback(model, callback)
 
-        return getattr(self, method)(model=model, bind_return=bind_return)
+        return (yield getattr(self, method)(model=model, bind_return=bind_return))
 
+    @gen.coroutine
     def _save_vertex(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields
@@ -169,11 +174,11 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             for field in self.unique_fields:
                 g_field = '"%s"' % field
 
-                # if model[field]:
                 gremlin.has(g_field, model[field])
 
             try:
-                first = self.mapper.query(gremlin=gremlin).first()
+                res = yield self.mapper.query(gremlin=gremlin)
+                first = res.first()
 
                 if self.error_on_non_unique:
                     fields = ', '.join(self.unique_fields)
@@ -192,6 +197,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         return self.enqueue(query, bind_return)
 
+    @gen.coroutine
     def _save_edge(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
@@ -213,13 +219,13 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         logic
         """
         if not out_v_ref and isinstance(out_v, Vertex):
-            self.mapper.save(out_v)
+            yield self.mapper.save(out_v)
             out_v = self.mapper.get_model_variable(out_v)
         else:
             out_v = out_v_ref
 
         if not in_v_ref and isinstance(in_v, Vertex):
-            self.mapper.save(in_v)
+            yield self.mapper.save(in_v)
             in_v = self.mapper.get_model_variable(in_v)
         else:
             in_v = in_v_ref
@@ -234,7 +240,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             gremlin.apply_statement(get_edge)
 
             try:
-                result = self.mapper.query(gremlin=gremlin)
+                result = yield self.mapper.query(gremlin=gremlin)
                 edge = result.first()
                 save = False
                 query.by_id(edge['_id'], model)
@@ -409,15 +415,17 @@ class Mapper(object):
 
         return self
 
+    @gen.coroutine
     def save(self, model, bind_return=True, mapper=None,
              callback=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        mapper.save(model, bind_return, callback, **kwargs)
+        yield mapper.save(model, bind_return, callback, **kwargs)
 
         return self._enqueue_mapper(mapper)
 
+    @gen.coroutine
     def delete(self, model, mapper=None, callback=None):
         if mapper is None:
             mapper = self.get_mapper(model)
@@ -504,19 +512,23 @@ class Mapper(object):
 
         return self
 
+    @gen.coroutine
     def send(self):
         self._build_queries()
 
-        script = ";\n".join(self.queries)
+        script = ";".join(self.queries)
         params = self.params
         models = self.models
         callbacks = self.callbacks
         models.update(self.del_models)
         self.reset()
 
-        return self.query(script=script, params=params,
+        res = yield self.query(script=script, params=params,
                           update_models=models, callbacks=callbacks)
 
+        return res
+
+    @gen.coroutine
     def query(self, script=None, params=None, gremlin=None,
               update_models=None, callbacks=None):
         if gremlin is not None:
@@ -533,7 +545,8 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-
+        # print("\n", script)
+#         print("\n", params, '\n\n')
         if self.logger:
 
             def rep(s, d):
@@ -546,10 +559,12 @@ class Mapper(object):
                     x = str(d[x.group()]) if d[x.group()] else ""
                     return '"%s"' % x
                 return pattern.sub(su, s)
+
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
             self.logger.debug(rep(script, params))
-        response = self.request.send(script, params, update_models)
+
+        response = yield self.request.send(script, params, update_models)
 
         for k, model in update_models.items():
             cbs = callbacks.get(model, [])

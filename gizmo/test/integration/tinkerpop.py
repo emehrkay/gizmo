@@ -1,51 +1,59 @@
 import unittest
 import random
 
+from tornado.testing import AsyncTestCase, gen_test
 from gremlinpy import Gremlin
 from gizmo import Mapper, Request, Collection, Vertex, Edge
 from gizmo.mapper import _GenericMapper
 
 
-class BaseTests(unittest.TestCase):
+class BaseTests(AsyncTestCase):
 
     def setUp(self):
         self.request = Request('localhost', 'gizmo_testing', port=8182)
         self.gremlin = Gremlin('gizmo_testing')
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
-
         super(BaseTests, self).setUp()
 
+
     def tearDown(self):
-        script = "%s.V().map{it.get().remove()}" % self.gremlin.gv
-        self.mapper.query(script=script)
         super(BaseTests, self).tearDown()
+
+    def purge(self):
+        script = "%s.V().map{it.get().remove()}" % self.gremlin.gv
+        return self.mapper.query(script=script)
 
 
 class ConnectionTests(BaseTests):
 
+    @gen_test
     def test_can_establish_mapper(self):
+        yield self.purge()
         c = '%s.V()' % self.gremlin.gv
-        r = self.mapper.query(script=c)
+        r = yield self.mapper.query(script=c)
 
         self.assertEqual(0, len(r))
 
+    @gen_test
     def test_can_send_request_and_retrieve_collection_objec(self):
         script = 'a = 1'
-        r = self.mapper.query(script=script)
+        r = yield self.mapper.query(script=script)
 
         self.assertIsInstance(r, Collection)
         self.assertIsInstance(r[0], Vertex)
 
+    @gen_test
     def test_can_get_database_time(self):
         script = 'def x = new Date(); x'
-        r = self.mapper.query(script=script)
+        r = yield self.mapper.query(script=script)
 
         self.assertTrue(r[0]['response'] != '')
         self.assertIsInstance(r[0]['response'], int)
 
+    @gen_test
     def test_can_send_math_equation_to_server_and_retrieve_genderic_vertex_with_respnose_to_result(self):
         script = 'b = 1 + 1;'
-        r = self.mapper.query(script=script)
+        r = yield self.mapper.query(script=script)
         r1 = r[0]
 
         self.assertIsInstance(r1, Vertex)
@@ -71,23 +79,29 @@ class EntityTests(BaseTests):
                 check = empty
 
             self.assertIsNotNone(entity[f])
-            self.assertNotIn(entity[f], check)
+            self.assertNotIn(entity[f], check, msg='{} is `{}`'.format(f, entity[f]))
 
+    @gen_test(timeout=10)
     def test_can_save_generic_vertex_and_update_its_id(self):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data)
 
-        self.mapper.save(v).send()
+        yield self.mapper.save(v)
+
+        res = yield self.mapper.send()
         self.entity_save_assertions(v)
 
+    @gen_test
     def test_can_save_generic_vertex_and_get_response_entity_with_id(self):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data)
-        r = self.mapper.save(v).send()
+        yield self.mapper.save(v)
+        r = yield self.mapper.send()
         v1 = r.first()
 
         self.entity_save_assertions(v1)
 
+    @gen_test
     def test_can_save_defined_vertex_and_update_its_id(self):
         class TestVertex(Vertex):
             _allowed_undefined = True
@@ -95,31 +109,37 @@ class EntityTests(BaseTests):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data, model_class=TestVertex)
 
-        self.mapper.save(v).send()
+        yield self.mapper.save(v)
+        yield self.mapper.send()
         self.entity_save_assertions(v)
 
+    @gen_test
     def test_can_save_defined_vertex_and_get_response_entity_with_id(self):
         class TestVertex(Vertex):
             _allowed_undefined = True
 
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data, model_class=TestVertex)
-        r = self.mapper.save(v).send()
+        yield self.mapper.save(v)
+        r = yield self.mapper.send()
         v1 = r.first()
 
         self.entity_save_assertions(v1)
 
+    @gen_test
     def test_can_save_generic_edge_with_two_generic_vertices_all_at_once_and_update_all_ids(self):
         label = 'some_label'
         v1 = self.mapper.create_model()
         v2 = self.mapper.create_model()
         e = self.mapper.connect(v1, v2, label)
 
-        self.mapper.save(e).send()
+        yield self.mapper.save(e)
+        yield self.mapper.send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
 
+    @gen_test
     def test_can_save_generic_edge_with_one_generic_vertex_all_at_once_and_update_all_ids(self):
         class TestVertex(Vertex):
             _allowed_undefined = True
@@ -129,11 +149,13 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model()
         e = self.mapper.connect(v1, v2, label)
 
-        self.mapper.save(e).send()
+        yield self.mapper.save(e)
+        yield self.mapper.send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
 
+    @gen_test
     def test_can_save_generic_edge_with_two_defined_vertices_all_at_once_and_update_all_ids(self):
         class TestVertex(Vertex):
             _allowed_undefined = True
@@ -146,11 +168,13 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model(model_class=TestVertex2)
         e = self.mapper.connect(v1, v2, label)
 
-        self.mapper.save(e).send()
+        yield self.mapper.save(e)
+        yield self.mapper.send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
 
+    @gen_test
     def test_can_save_defined_edge_with_two_defined_vertices_all_at_once_and_update_all_ids(self):
         class TestVertex(Vertex):
             _allowed_undefined = True
@@ -166,7 +190,8 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model(model_class=TestVertex2)
         e = self.mapper.connect(v1, v2, label, edge_model=TestEdge)
 
-        self.mapper.save(e).send()
+        yield self.mapper.save(e)
+        yield self.mapper.send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
@@ -174,6 +199,7 @@ class EntityTests(BaseTests):
 
 class MapperTests(BaseTests):
 
+    @gen_test
     def test_can_utilitze_custom_mapper(self):
         variable = str(random.random())
 
@@ -196,7 +222,9 @@ class MapperTests(BaseTests):
         self.assertIn('variable', d)
         self.assertEqual(d['variable'], variable)
 
+    @gen_test
     def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
+        yield self.purge()
 
         class MapperTestVertex(Vertex):
             _allowed_undefined = True
@@ -209,13 +237,16 @@ class MapperTests(BaseTests):
         d = {'first_name': 'mark' + str(random.random())}
         v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        r = self.mapper.save(v1).send()
-        r2 = self.mapper.save(v2).send()
+        yield self.mapper.save(v1)
+        yield self.mapper.send()
+        yield self.mapper.save(v2)
+        yield self.mapper.send()
         gremlin = self.mapper.gremlin.V()
-        res = self.mapper.query(gremlin=gremlin)
+        res = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(res))
 
+    @gen_test
     def test_can_restrict_model_creation_based_on_duplicate_field_values_with_exception(self):
         from gizmo.error import MapperException
 
@@ -231,7 +262,8 @@ class MapperTests(BaseTests):
         d = {'first_name': 'mark' + str(random.random())}
         v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        r = self.mapper.save(v1).send()
+        r = self.mapper.save(v1)
+        r = yield self.mapper.send()
         mapper = self.mapper
 
         try:
@@ -239,7 +271,9 @@ class MapperTests(BaseTests):
         except:
             pass
 
+    @gen_test
     def test_can_restrict_multiple_model_connections(self):
+        yield self.purge()
 
         class MapperTestVertex(Vertex):
             _allowed_undefined = True
@@ -256,10 +290,12 @@ class MapperTests(BaseTests):
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
         e = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
         e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
-        res = self.mapper.save(e).send()
-        res2 = self.mapper.save(e2).send()
+        res = yield self.mapper.save(e)
+        res = yield self.mapper.send()
+        res2 = yield self.mapper.save(e2)
+        res2 = yield self.mapper.send()
         gremlin = self.mapper.gremlin.E()
-        result = self.mapper.query(gremlin=gremlin)
+        result = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(result))
 

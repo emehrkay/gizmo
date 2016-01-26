@@ -1,55 +1,44 @@
 import copy
 
+from tornado import gen
+from tornado.concurrent import Future
+
+from gremlinclient.client import submit
+
 
 class Request(object):
 
-    def __init__(self, uri, graph, username=None, password=None, port=8184,
-                 ioloop=None):
+    def __init__(self, uri, graph, username=None, password=None, port=8184):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
-        self._own_loop = False
-        self.ioloop = ioloop
 
-        if not ioloop:
-            from tornado.ioloop import IOLoop
-            self._own_loop = True
-            self.ioloop = IOLoop.instance()
-
+    @gen.coroutine
     def send(self, script=None, params=None, update_models=None, *args,
              **kwargs):
-        from tornado import gen
-        from gremlinclient.client import submit
-
         if not params:
             params = {}
 
         if not update_models:
             update_models = {}
 
-        resp_data = {'data': []}
+        data = []
+        # import pudb; pu.db
+        resp = yield submit(gremlin=script, bindings=params)
 
-        @gen.coroutine
-        def run():
-            resp = yield submit(gremlin=script, bindings=params, *args, **kwargs)
+        while True:
+            msg = yield resp.read()
 
-            while True:
-                msg = yield resp.read()
+            if not msg:
+                break
+            
+            if msg.data:
+                data += msg.data
 
-                if msg is None:
-                    break
-
-                if msg.data:
-                    resp_data['data'] += msg.data
-
-        if self._own_loop:
-            self.ioloop.run_sync(run)
-        else:
-            self.ioloop.add_callback(run)
-
-        return Response(resp_data['data'], update_models)
+        response = Response(data, update_models)
+        return response
+        # raise gen.Return(response)
 
 
 class Response(object):
-
     def __init__(self, data=None, update_models=None):
         if not update_models:
             update_models = {}
@@ -66,10 +55,6 @@ class Response(object):
         update_keys = list(self.update_models.keys())
 
         def has_update(keys):
-            # TODO: look into why subtracting sets doesnt work for single entry
-            # items
-            # c = list(set(update_keys) - set(keys))
-            # return len(c) > 0
             for k in keys:
                 if k in update_keys:
                     return True
