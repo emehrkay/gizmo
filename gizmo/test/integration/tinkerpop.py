@@ -86,7 +86,7 @@ class EntityTests(BaseTests):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data)
 
-        yield self.mapper.save(v)
+        self.mapper.save(v)
 
         res = yield self.mapper.send()
         self.entity_save_assertions(v)
@@ -95,7 +95,7 @@ class EntityTests(BaseTests):
     def test_can_save_generic_vertex_and_get_response_entity_with_id(self):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data)
-        yield self.mapper.save(v)
+        self.mapper.save(v)
         r = yield self.mapper.send()
         v1 = r.first()
 
@@ -109,8 +109,7 @@ class EntityTests(BaseTests):
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data, model_class=TestVertex)
 
-        yield self.mapper.save(v)
-        yield self.mapper.send()
+        yield self.mapper.save(v).send()
         self.entity_save_assertions(v)
 
     @gen_test
@@ -120,7 +119,7 @@ class EntityTests(BaseTests):
 
         data = {'name': 'mark', 'sex': 'male'}
         v = self.mapper.create_model(data=data, model_class=TestVertex)
-        yield self.mapper.save(v)
+        self.mapper.save(v)
         r = yield self.mapper.send()
         v1 = r.first()
 
@@ -133,8 +132,7 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model()
         e = self.mapper.connect(v1, v2, label)
 
-        yield self.mapper.save(e)
-        yield self.mapper.send()
+        yield self.mapper.save(e).send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
@@ -149,8 +147,7 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model()
         e = self.mapper.connect(v1, v2, label)
 
-        yield self.mapper.save(e)
-        yield self.mapper.send()
+        yield self.mapper.save(e).send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
@@ -168,8 +165,7 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model(model_class=TestVertex2)
         e = self.mapper.connect(v1, v2, label)
 
-        yield self.mapper.save(e)
-        yield self.mapper.send()
+        yield self.mapper.save(e).send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
@@ -190,8 +186,7 @@ class EntityTests(BaseTests):
         v2 = self.mapper.create_model(model_class=TestVertex2)
         e = self.mapper.connect(v1, v2, label, edge_model=TestEdge)
 
-        yield self.mapper.save(e)
-        yield self.mapper.send()
+        yield self.mapper.save(e).send()
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
@@ -203,22 +198,22 @@ class MapperTests(BaseTests):
     def test_can_utilitze_custom_mapper(self):
         variable = str(random.random())
 
-        class MapperTestVertex(Vertex):
+        class MapperTestVertexCutsom(Vertex):
             _allowed_undefined = True
 
 
-        class MapperTestMapper(_GenericMapper):
-            model = MapperTestVertex
+        class MapperTestMapperCustom(_GenericMapper):
+            model = MapperTestVertexCutsom
 
             def create_model(self, *args, **kwargs):
-                entity = super(MapperTestMapper, self).create_model(*args, **kwargs)
+                entity = super(MapperTestMapperCustom, self).create_model(*args, **kwargs)
                 entity['variable'] = variable
                 return entity
 
-        v = self.mapper.create_model(model_class=MapperTestVertex)
+        v = self.mapper.create_model(model_class=MapperTestVertexCutsom)
         d = v.data
 
-        self.assertIsInstance(v, MapperTestVertex)
+        self.assertIsInstance(v, MapperTestVertexCutsom)
         self.assertIn('variable', d)
         self.assertEqual(d['variable'], variable)
 
@@ -226,74 +221,48 @@ class MapperTests(BaseTests):
     def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
         yield self.purge()
 
-        class MapperTestVertex(Vertex):
+        class MapperTestVertexDuplicate(Vertex):
             _allowed_undefined = True
 
 
         class MapperTestMapper(_GenericMapper):
-            model = MapperTestVertex
+            model = MapperTestVertexDuplicate
             unique_fields = ['first_name',]
 
+
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        yield self.mapper.save(v1)
-        yield self.mapper.send()
-        yield self.mapper.save(v2)
-        yield self.mapper.send()
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
+
+        yield self.mapper.save(v1).send()
+        yield self.mapper.save(v2).send()
+
         gremlin = self.mapper.gremlin.V()
         res = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(res))
 
     @gen_test
-    def test_can_restrict_model_creation_based_on_duplicate_field_values_with_exception(self):
-        from gizmo.error import MapperException
-
-        class MapperTestVertex(Vertex):
-            _allowed_undefined = True
-
-
-        class MapperTestMapper(_GenericMapper):
-            model = MapperTestVertex
-            unique_fields = ['first_name',]
-            error_on_non_unique = True
-
-        d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        r = self.mapper.save(v1)
-        r = yield self.mapper.send()
-        mapper = self.mapper
-
-        try:
-            self.assertRaises(MapperException, lambda: mapper.save(v2).send())
-        except:
-            pass
-
-    @gen_test
     def test_can_restrict_multiple_model_connections(self):
         yield self.purge()
 
-        class MapperTestVertex(Vertex):
+        class MapperTestVertexRestrict(Vertex):
             _allowed_undefined = True
 
-        class MapperTestEdge(Edge):
+        class MapperTestEdgeRestrict(Edge):
             _allowed_undefined = True
 
-        class MapperTestEdgeMapper(_GenericMapper):
-            model = MapperTestEdge
+        class MapperTestEdgeMapperRestrict(_GenericMapper):
+            model = MapperTestEdgeRestrict
             unique = 'both'
-
+        # import pudb; pu.db
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertex)
-        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
-        e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdge)
-        res = yield self.mapper.save(e)
-        res = yield self.mapper.send()
-        res2 = yield self.mapper.save(e2)
-        res2 = yield self.mapper.send()
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
+        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
+        e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
+        res = yield self.mapper.save(e).send()
+        res2 = yield self.mapper.save(e2).send()
         gremlin = self.mapper.gremlin.E()
         result = yield self.mapper.query(gremlin=gremlin)
 

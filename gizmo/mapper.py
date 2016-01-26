@@ -6,7 +6,7 @@ from six import with_metaclass
 from tornado import gen
 
 from gremlinpy.gremlin import Gremlin, Function
-from gremlinpy.statement import GetEdge
+from gremlinpy.statement import GetEdge, Conditional
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore
@@ -61,7 +61,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
     VARIABLE = 'gizmo_var'
     unique = False
     unique_fields = None
-    error_on_non_unique = False
 
     def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
@@ -78,6 +77,8 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         self.callbacks = {}
 
     def enqueue(self, query, bind_return=True):
+        query.done()
+
         for entry in query.queries:
             global count
             count += 1
@@ -122,7 +123,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
-    @gen.coroutine
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
@@ -139,9 +139,8 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         self._enqueue_callback(model, callback)
 
-        return (yield getattr(self, method)(model=model, bind_return=bind_return))
+        return getattr(self, method)(model=model, bind_return=bind_return)
 
-    @gen.coroutine
     def _save_vertex(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields
@@ -162,42 +161,31 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             query.add_query(ref, params=None, model=model)
             save = False
 
-        if not model['_id'] and self.unique_fields is not None:
+        if not model['_id'] and self.unique_fields:
             gremlin = Gremlin(self.gremlin.gv)
             node_type = "'%s'" % GIZMO_LABEL
+            action = _QueryAction(Gremlin(self.gremlin.gv), self.mapper)
+            ret_var = action.next_var()
 
             if '*' in self.unique_fields:
                 self.unique_fields = model.fields.keys()
 
-            gremlin.V().has(node_type, model[GIZMO_LABEL])
+            gremlin.set_ret_variable(ret_var).V().has(node_type, model[GIZMO_LABEL])
 
             for field in self.unique_fields:
                 g_field = '"%s"' % field
 
                 gremlin.has(g_field, model[field])
 
-            try:
-                res = yield self.mapper.query(gremlin=gremlin)
-                first = res.first()
+            action.set_before(gremlin)
+            action.set_if(ret_var, ret_var).set_else(query.save(model))
 
-                if self.error_on_non_unique:
-                    fields = ', '.join(self.unique_fields)
-                    message = 'The fields: %s are not unique' % fields
-                    raise MapperException([message])
-
-                model.fields['_id'].value = first['_id']
-                query.by_id(model['_id'], model)
-
-                save = False
-            except StopIteration as e:
-                pass
-
-        if save:
+            return self.enqueue(action, False)
+        else:
             query.save(model)
 
-        return self.enqueue(query, bind_return)
+            return self.enqueue(query, bind_return)
 
-    @gen.coroutine
     def _save_edge(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
@@ -219,13 +207,13 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         logic
         """
         if not out_v_ref and isinstance(out_v, Vertex):
-            yield self.mapper.save(out_v)
+            self.mapper.save(out_v)
             out_v = self.mapper.get_model_variable(out_v)
         else:
             out_v = out_v_ref
 
         if not in_v_ref and isinstance(in_v, Vertex):
-            yield self.mapper.save(in_v)
+            self.mapper.save(in_v)
             in_v = self.mapper.get_model_variable(in_v)
         else:
             in_v = in_v_ref
@@ -234,23 +222,21 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
 
         if not model['_id'] and self.unique and in_v_id and out_v_id:
+            action = _QueryAction(Gremlin(self.gremlin.gv), self.mapper)
+            ret_var = action.next_var()
             gremlin = Gremlin(self.gremlin.gv)
             get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL],
                                self.unique)
-            gremlin.apply_statement(get_edge)
 
-            try:
-                result = yield self.mapper.query(gremlin=gremlin)
-                edge = result.first()
-                save = False
-                query.by_id(edge['_id'], model)
-            except Exception as e:
-                save = True
+            gremlin.set_ret_variable(ret_var).apply_statement(get_edge)
+            action.set_before(gremlin)
+            action.set_if(ret_var, ret_var).set_else(query.save(model))
 
-        if save:
+            return self.enqueue(action, False)
+        else:
             query.save(model)
 
-        return self.enqueue(query, bind_return)
+            return self.enqueue(query, bind_return)
 
     def delete(self, model, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
@@ -415,17 +401,15 @@ class Mapper(object):
 
         return self
 
-    @gen.coroutine
     def save(self, model, bind_return=True, mapper=None,
              callback=None, **kwargs):
         if mapper is None:
             mapper = self.get_mapper(model)
 
-        yield mapper.save(model, bind_return, callback, **kwargs)
+        mapper.save(model, bind_return, callback, **kwargs)
 
         return self._enqueue_mapper(mapper)
 
-    @gen.coroutine
     def delete(self, model, mapper=None, callback=None):
         if mapper is None:
             mapper = self.get_mapper(model)
@@ -545,8 +529,7 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
-        # print("\n", script)
-#         print("\n", params, '\n\n')
+
         if self.logger:
 
             def rep(s, d):
@@ -574,7 +557,7 @@ class Mapper(object):
         return Collection(self, response)
 
 
-class Query(object):
+class _QueryInterface(object):
     QUERY_VAR = 'query_var'
 
     def __init__(self, gremlin=None, mapper=None):
@@ -629,6 +612,83 @@ class Query(object):
         self.add_query(script, params, model)
 
         return self.reset()
+
+    def done(self):
+        pass
+
+
+class _QueryAction(_QueryInterface):
+
+    def __init__(self, gremlin=None, mapper=None):
+        super(_QueryAction, self).__init__(gremlin=gremlin, mapper=mapper)
+        self.conditional = Conditional()
+        self.conditional.set_gremlin(Gremlin())
+        self._action_params = {}
+        self._action_models = {}
+
+    def resolve(self, item):
+        script = []
+        params = []
+        models = []
+
+        if type(item) is str:
+            script.append(item)
+            params.append({})
+            models.append(None)
+        elif type(item) is Gremlin:
+            script.append(str(item))
+            self._action_params.update(item.bound_params.copy())
+            models.append(None)
+        elif type(item) is Query:
+            script += [s['script'] for s in item.queries]
+            params += [p['params'] for p in item.queries]
+            models += [m['model'] for m in item.queries]
+
+            for p in item.queries:
+                self._action_params.update(p['params'].copy())
+            
+            # for m in item.queries:
+            #     self._action_models.update(m['model'])
+            
+        return ';'.join(script), params
+
+    def set_before(self, before):
+        script, params = self.resolve(before)
+        self.add_query(script, params)
+
+        return self
+
+    def set_if(self, condition, body):
+        condition, _ = self.resolve(condition)
+        body, _ = self.resolve(body)
+
+        self.conditional.set_if(condition=condition, body=body)
+        return self
+
+    def set_elif(self, condition, body):
+        condition, _ = self.resolve(condition)
+        body, _ = self.resolve(body)
+
+        self.conditional.set_elif(condition=condition, body=body)
+        return self
+
+    def set_else(self, body):
+        body, _ = self.resolve(body)
+
+        self.conditional.set_else(body=body)
+        return self
+
+    def done(self):
+        self.conditional.build()
+
+        script = str(self.conditional.gremlin)
+        params = self.conditional.gremlin.bound_params
+        self._action_params.update(params.copy())
+
+        return self.add_query(script, self._action_params, self._action_models)
+
+
+class Query(_QueryInterface):
 
     def build_fields(self, entity, _immutable):
         gremlin = self.gremlin
