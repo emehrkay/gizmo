@@ -38,6 +38,9 @@ After getting a grasp of the Gremlin/Groovy language, you can now begin to write
 ### Quickstart
 
 ~~~python
+from tornado.ioloop import IOLoop
+from tornado import gen
+
 from gizmo.entity import Vertex, GenericEdge
 from gizmo.mapper import Mapper
 from gizmo.request import Request
@@ -45,27 +48,48 @@ from gizmo.request import Request
 from gremlinpy import Gremlin
 
 
-#build the base mapper
+# grab an instance of the ioloop
+loop = IOLoop.current()
+
+# build the base mapper
 r = Request('localhost', 8984, 'gizmo_test')
 g = Gremlin('gizmo_testing')
 m = Mapper(r, g)
 
-#create a user vertex
+
+# all of your work is done inside of the coroutine
+@gen.coroutine
+def run():
+    script = '1 + 1' # run a simple script directly
+    resp = yield m.query(script=script)
+
+    print(resp, resp.first()['response']) # <gizmo.mapper.Collection object at #ID> 2
+
+# run the code once on the ioloop
+loop.run_sync(run)
+
+
+
+# utilitize the model and mapper system
 class User(Vertex):
     _allowed_undefined = True
 
 
-# create a couple of users and connect them
-u = User({'name': 'mark', 'sex': 'male'})
-g = User({'name': 'sadé', 'sex': 'female'})
-d = {'out_v': u, 'in_v': g, 'since': 'last year'}
-e = GenericEdge(d, 'girlfriend')
+@gen.coroutine
+def run():
+    # create a couple of users and connect them
+    u = User({'name': 'mark', 'sex': 'male'})
+    g = User({'name': 'sadé', 'sex': 'female'})
+    d = {'out_v': u, 'in_v': g, 'since': 'last year'}
+    e = GenericEdge(d, 'girlfriend')
 
-m.save(e) #this will CRUD all entites
-m.send() #builds query and sends to the server
+    m.save(e) #this will CRUD all entites
+    result = yield m.send() #builds query and sends to the server
 
-#the entities have been updated with the response from the server
-print(u['_id'], e.data)
+    #the entities have been updated with the response from the server
+    print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>
+
+loop.run_sync(run)
 ~~~
 
 
