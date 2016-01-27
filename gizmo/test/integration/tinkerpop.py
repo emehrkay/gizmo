@@ -217,7 +217,7 @@ class MapperTests(BaseTests):
         self.assertIn('variable', d)
         self.assertEqual(d['variable'], variable)
 
-    @gen_test
+    @gen_test(timeout=900)
     def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
         yield self.purge()
 
@@ -234,8 +234,8 @@ class MapperTests(BaseTests):
         v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
 
-        yield self.mapper.save(v1).send()
-        yield self.mapper.save(v2).send()
+        r = yield self.mapper.save(v1).send()
+        r2 = yield self.mapper.save(v2).send()
 
         gremlin = self.mapper.gremlin.V()
         res = yield self.mapper.query(gremlin=gremlin)
@@ -267,6 +267,10 @@ class MapperTests(BaseTests):
         result = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(1, len(result))
+
+    @gen_test
+    def test_can_save_edge_on_vertices_that_were_used_in_previous_connection_when_unique_is_true(self):
+        self.assertTrue(False)
 
 
 class CollectionTests(BaseTests):

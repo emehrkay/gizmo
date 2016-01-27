@@ -50,7 +50,6 @@ class MapperMixin(object):
         self.mapper._enqueue_mapper(self)
 
         if source is not None:
-            import pudb; pu.db
             fields_changed = len(model.changed) > 0
             fields_removed = len(model.removed) > 0
 

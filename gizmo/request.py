@@ -35,7 +35,6 @@ class Request(object):
 
         response = Response(data, update_models)
         return response
-        # raise gen.Return(response)
 
 
 class Response(object):
