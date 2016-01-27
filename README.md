@@ -123,7 +123,7 @@ def run():
 loop.run_sync(run)
 
 # or run it as a blocking call
-result = m.b_send() 
+result = blocking(m.send())
 print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>
 ~~~
 
