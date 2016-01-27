@@ -17,6 +17,20 @@ IMMUTABLE = {
     EDGE: [GIZMO_ID, GIZMO_LABEL, '_inV', '_outV']}
 
 
+def blocking(callback, *args, **kwargs):
+    from tornado.ioloop import IOLoop
+    from tornado import gen
+
+    ioloop = IOLoop(make_current=False)
+    r = {'response': ''}
+
+    @gen.coroutine
+    def run():
+        fut = callback(*args, **kwargs)
+        r['response'] = yield fut
+    resp = ioloop.run_sync(run)
+    return r['response']
+
 def camel_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
