@@ -1,5 +1,6 @@
 import json
 import copy
+import functools
 from collections import OrderedDict
 
 from six import with_metaclass
@@ -10,7 +11,7 @@ from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge, Conditional
 
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
-from .utils import camel_to_underscore, GIZMO_VARIABLE
+from .utils import blocking, camel_to_underscore, GIZMO_VARIABLE
 from .utils import IMMUTABLE, GIZMO_MODEL
 from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
@@ -615,6 +616,9 @@ class Mapper(object):
 
         return res
 
+    def b_send(self):
+        return blocking(self.send)
+
     @gen.coroutine
     def query(self, script=None, params=None, gremlin=None,
               update_models=None, callbacks=None):
@@ -661,6 +665,13 @@ class Mapper(object):
                 c(model)
 
         return Collection(self, response)
+
+    def b_query(self, script=None, params=None, gremlin=None,
+                update_models=None, callbacks=None):
+
+        return blocking(functools.partial(self.query, script, params,
+                                          gremlin, update_models,
+                                          callbacks));
 
 
 class Query(object):
