@@ -104,22 +104,27 @@ print(b) # it will print out 31 in 3 seconds
 class User(Vertex):
     _allowed_undefined = True
 
+# create a couple of users and connect them
+u = User({'name': 'mark', 'sex': 'male'})
+g = User({'name': 'sadé', 'sex': 'female'})
+d = {'out_v': u, 'in_v': g, 'since': 'last year'}
+e = GenericEdge(d, 'girlfriend')
 
+m.save(e) #this will CRUD all entites
+
+# run the script in a non-blocking fashion 
 @gen.coroutine
 def run():
-    # create a couple of users and connect them
-    u = User({'name': 'mark', 'sex': 'male'})
-    g = User({'name': 'sadé', 'sex': 'female'})
-    d = {'out_v': u, 'in_v': g, 'since': 'last year'}
-    e = GenericEdge(d, 'girlfriend')
-
-    m.save(e) #this will CRUD all entites
     result = yield m.send() #builds query and sends to the server
 
-    #the entities have been updated with the response from the server
+    # the entities have been updated with the response from the server
     print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>
 
 loop.run_sync(run)
+
+# or run it as a blocking call
+result = m.b_send() 
+print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>
 ~~~
 
 
