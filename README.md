@@ -71,18 +71,17 @@ loop.run_sync(run)
 
 
 # make a blocking-style request
-
 from gizmo.utils import blocking
 
-def cb(*args, **kwargs):
-    script = 'sleep(3000); 1+3'
+def cb(a, b):
+    script = 'sleep(3000); {}+{}'.format(a, b)
     r =  m.query(script=script)
 
     # you must return a Future object
     return r
 
-b = blocking(cb)
-print(b) # in 3 seconds it will print out 4
+b = blocking(cb, 1, 3)
+print(b.first()['response']) # in 3 seconds it will print out 4
 
 
 # utilitize the model and mapper system
