@@ -2,6 +2,7 @@ import time
 import re
 
 
+GIZMO_VARIABLE = 'gizmo_var'
 GIZMO_MODEL = 'gizmo_model'
 GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
