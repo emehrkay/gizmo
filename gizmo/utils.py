@@ -27,7 +27,7 @@ def blocking(callback, *args, **kwargs):
     @gen.coroutine
     def run():
         fut = callback(*args, **kwargs)
-        r['response'] = yield fut
+        r['response'] = yield gen.maybe_future(fut)
     resp = ioloop.run_sync(run)
     return r['response']
 
