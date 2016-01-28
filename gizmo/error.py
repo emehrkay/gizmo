@@ -25,6 +25,10 @@ class MapperException(GizmoException):
     pass
 
 
+class ModelException(GizmoException):
+    pass
+
+
 class QueryException(MapperException):
     pass
 
