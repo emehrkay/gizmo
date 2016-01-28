@@ -125,6 +125,11 @@ loop.run_sync(run)
 # or run it as a blocking call
 result = blocking(m.send)
 print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>
+
+# you can call Mapper.query with blocking
+script = '1+5'
+result = blocking(m.query, script=script)
+print(result.first()['response']) # 6
 ~~~
 
 
