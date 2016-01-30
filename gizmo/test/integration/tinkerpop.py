@@ -291,6 +291,7 @@ class MapperTests(BaseTests):
         e3 = self.mapper.connect(v1, v3, edge_model=MapperTestEdgeRestrictAgain)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
+        res2 = yield self.mapper.save(e3).send()
         gremlin = self.mapper.gremlin.E()
         result = yield self.mapper.query(gremlin=gremlin)
 
