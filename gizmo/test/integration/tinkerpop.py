@@ -255,7 +255,7 @@ class MapperTests(BaseTests):
         class MapperTestEdgeMapperRestrict(_GenericMapper):
             model = MapperTestEdgeRestrict
             unique = 'both'
-        # import pudb; pu.db
+
         d = {'first_name': 'mark' + str(random.random())}
         v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
@@ -270,7 +270,31 @@ class MapperTests(BaseTests):
 
     @gen_test
     def test_can_save_edge_on_vertices_that_were_used_in_previous_connection_when_unique_is_true(self):
-        self.assertTrue(False)
+        yield self.purge()
+
+        class MapperTestVertexRestrictAgain(Vertex):
+            _allowed_undefined = True
+
+        class MapperTestEdgeRestrictAgain(Edge):
+            _allowed_undefined = True
+
+        class MapperTestEdgeRestrictAgain(_GenericMapper):
+            model = MapperTestEdgeRestrictAgain
+            unique = 'both'
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
+        v3 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
+        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictAgain)
+        e2 = self.mapper.connect(v1, v3, edge_model=MapperTestEdgeRestrictAgain)
+        e3 = self.mapper.connect(v1, v3, edge_model=MapperTestEdgeRestrictAgain)
+        res = yield self.mapper.save(e).send()
+        res2 = yield self.mapper.save(e2).send()
+        gremlin = self.mapper.gremlin.E()
+        result = yield self.mapper.query(gremlin=gremlin)
+
+        self.assertEqual(2, len(result))
 
 
 class CollectionTests(BaseTests):
