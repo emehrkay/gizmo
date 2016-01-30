@@ -636,22 +636,11 @@ class Mapper(object):
 
         # TODO: remove this and implement proper logging
         if self.logger:
-
-            def rep(s, d):
-                import re
-                if not len(d):
-                    return s
-                pattern = re.compile(r'\b(' + '|'.join(d.keys()) + r')\b')
-
-                def su(x):
-                    x = str(d[x.group()]) if d[x.group()] else ''
-                    return "'%s'" % x
-                return pattern.sub(su, s)
+            from .utils import _query_debug
 
             self.logger.debug(script)
             self.logger.debug(json.dumps(params))
-            self.logger.debug(rep(script, params))
-            # print('\n\n>>>>>>>>>>>>>', rep(script, params), '\n\n')
+            self.logger.debug(_query_debug(script, params))
 
         response = yield self.request.send(script, params, update_models)
 

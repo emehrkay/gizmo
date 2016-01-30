@@ -278,7 +278,7 @@ class MapperTests(BaseTests):
         class MapperTestEdgeRestrictAgain(Edge):
             _allowed_undefined = True
 
-        class MapperTestEdgeRestrictAgain(_GenericMapper):
+        class MapperTestEdgeMapperRestrictAgain(_GenericMapper):
             model = MapperTestEdgeRestrictAgain
             unique = 'both'
 
