@@ -982,7 +982,7 @@ class Query(object):
 
         entity = 'E' if model._type == 'edge' else 'V'
 
-        getattr(gremlin, entity)(_id).next().dump()
+        getattr(gremlin, entity)(_id).next().func('remove')
 
         return self.add_query(str(gremlin), gremlin.bound_params, model)
 

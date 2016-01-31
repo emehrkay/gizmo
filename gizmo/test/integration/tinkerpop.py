@@ -191,6 +191,97 @@ class EntityTests(BaseTests):
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
 
+    @gen_test
+    def test_can_add_vertex_and_remove_it(self):
+        yield self.purge()
+
+        class RemoveVertex(Vertex):
+            pass
+
+        v = self.mapper.create_model(model_class=RemoveVertex)
+        yield self.mapper.save(v).send()
+
+        all_v = self.mapper.gremlin.V()
+        res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+        
+        self.assertEqual(1, len(res))
+
+        yield self.mapper.delete(v).send()
+
+        all_v = self.mapper.gremlin.V()
+        res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+
+        self.assertEqual(0, len(res))
+
+    @gen_test
+    def test_can_add_vertices_with_edge_delete_vertices_and_edge_is_automatically_gone(self):
+        yield self.purge()
+
+        class RemoveVertex2(Vertex):
+            pass
+
+        class RemoveEdge2(Edge):
+            pass
+
+        v1 = self.mapper.create_model(model_class=RemoveVertex2)
+        v2 = self.mapper.create_model(model_class=RemoveVertex2)
+        e = self.mapper.connect(v1, v2, edge_model=RemoveEdge2)
+        yield self.mapper.save(e).send()
+
+        all_v = self.mapper.gremlin.V()
+        all_v_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+        all_e = self.mapper.gremlin.E()
+        all_e_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+
+        self.assertEqual(2, len(all_v_res))
+        self.assertEqual(1, len(all_e_res))
+
+        yield self.mapper.delete(v1).send()
+        yield self.mapper.delete(v2).send()
+
+        all_v = self.mapper.gremlin.V()
+        all_v_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+        all_e = self.mapper.gremlin.E()
+        all_e_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+
+        self.assertEqual(0, len(all_v_res))
+        self.assertEqual(0, len(all_e_res))
+
+
+    @gen_test
+    def test_can_add_vertices_with_edge_delete_one_vertext_and_edge_is_automatically_gone(self):
+        yield self.purge()
+
+        class RemoveVertex2(Vertex):
+            pass
+
+        class RemoveEdge2(Edge):
+            pass
+
+        v1 = self.mapper.create_model(model_class=RemoveVertex2)
+        v2 = self.mapper.create_model(model_class=RemoveVertex2)
+        e = self.mapper.connect(v1, v2, edge_model=RemoveEdge2)
+        yield self.mapper.save(e).send()
+
+        all_v = self.mapper.gremlin.V()
+        all_v_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+        all_e = self.mapper.gremlin.E()
+        all_e_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+
+        self.assertEqual(2, len(all_v_res))
+        self.assertEqual(1, len(all_e_res))
+
+        yield self.mapper.delete(v1).send()
+
+        all_v = self.mapper.gremlin.V()
+        all_v_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+        all_e = self.mapper.gremlin.E()
+        all_e_res = yield self.mapper.query(gremlin=self.mapper.gremlin)
+
+        self.assertEqual(1, len(all_v_res))
+        self.assertEqual(0, len(all_e_res))
+
+
 
 class MapperTests(BaseTests):
 
