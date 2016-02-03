@@ -208,6 +208,20 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
+    def test_can_delete_existing_vertex(self):
+        vid = '1111'
+        d = {
+            GIZMO_ID: vid,
+            'some_field': 'mark',
+        }
+        v = self.mapper.create_model(d, TestVertex)
+        self.mapper.delete(v)._build_queries()
+        params = copy.deepcopy(self.mapper.params)
+        sent_params = copy.deepcopy(self.mapper.params)
+        eyed = get_dict_key(params, vid)
+        expected = 'g.V({}).next().remove()'.format(eyed[0])
+        self.assertEqual(expected, self.mapper.queries[0])
+
     def test_can_create_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
         v2 = {'_id': 10}
