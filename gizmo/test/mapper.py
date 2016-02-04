@@ -222,6 +222,35 @@ class MapperTests(unittest.TestCase):
         expected = 'g.V({}).next().remove()'.format(eyed[0])
         self.assertEqual(expected, self.mapper.queries[0])
 
+    def test_can_delete_multiple_entities(self):
+        v1 = {'_id': 15}
+        v2 = {'_id': 10}
+        out_v = self.mapper.create_model(v1, TestVertex)
+        in_v = self.mapper.create_model(v2, TestVertex)
+        ed = {'out_v': out_v, 'in_v': in_v, '_id': 44}
+        edge = self.mapper.create_model(ed, TestEdge)
+
+        self.mapper.delete(out_v)
+        self.mapper.delete(in_v)
+        self.mapper.delete(edge)
+        self.mapper._build_queries()
+
+        params = self.mapper.params
+        v1_id = get_dict_key(params, v1['_id'])
+        v2_id = get_dict_key(params, v2['_id'])
+        e_id = get_dict_key(params, ed['_id'])
+        expected = [
+            'g.V({}).next().remove()'.format(v1_id[0]),
+            'g.V({}).next().remove()'.format(v2_id[0]),
+            'g.E({}).next().remove()'.format(e_id[0]),
+        ]
+
+        self.assertEqual(3, len(self.mapper.queries))
+        self.assertEqual(3, len(self.mapper.params))
+
+        for exp in expected:
+            self.assertIn(exp, self.mapper.queries)
+
     def test_can_create_edge_with_existing_vertices(self):
         v1 = {'_id': 15}
         v2 = {'_id': 10}

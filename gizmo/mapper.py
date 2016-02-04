@@ -79,7 +79,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         self.callbacks = {}
 
     def enqueue(self, query, bind_return=True):
-        # import pudb; pu.db
 
         for entry in query.queries:
             global count
@@ -980,11 +979,17 @@ class Query(object):
         if model._type is None:
             raise EntityException(['Models need to have a type defined'])
 
+        self._register_entity(model)
+
+        variable = self._entity_variable(model, 'id')
+        bound = self.bind_param(_id, variable)
+
+        self.fields.append("'%s', %s" % ('id', bound[0]))
+
         entity = 'E' if model._type == 'edge' else 'V'
+        getattr(gremlin, entity)(bound[0]).next().func('remove')
 
-        getattr(gremlin, entity)(_id).next().func('remove')
-
-        return self.add_query(str(gremlin), gremlin.bound_params, model)
+        return self.add_gremlin_query(model)
 
 
 class Traversal(Gremlin):
