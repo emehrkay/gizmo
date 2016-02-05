@@ -334,7 +334,7 @@ class MapperTests(BaseTests):
         self.assertEqual(1, len(res))
 
     @gen_test
-    def test_can_restrict_multiple_model_connections(self):
+    def test_can_restrict_multiple_model_connections_both_direction(self):
         yield self.purge()
 
         class MapperTestVertexRestrict(Vertex):
@@ -352,6 +352,58 @@ class MapperTests(BaseTests):
         v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
         e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
         e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
+        res = yield self.mapper.save(e).send()
+        res2 = yield self.mapper.save(e2).send()
+        gremlin = self.mapper.gremlin.E()
+        result = yield self.mapper.query(gremlin=gremlin)
+
+        self.assertEqual(1, len(result))
+
+    @gen_test
+    def test_can_restrict_multiple_model_connections_in_direction(self):
+        yield self.purge()
+
+        class MapperTestVertexRestrictIn(Vertex):
+            _allowed_undefined = True
+
+        class MapperTestEdgeRestrictIn(Edge):
+            _allowed_undefined = True
+
+        class MapperTestEdgeMapperRestrictIN(_GenericMapper):
+            model = MapperTestEdgeRestrictIn
+            unique = 'in'
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictIn)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictIn)
+        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictIn)
+        e2 = self.mapper.connect(v2, v1, edge_model=MapperTestEdgeRestrictIn)
+        res = yield self.mapper.save(e).send()
+        res2 = yield self.mapper.save(e2).send()
+        gremlin = self.mapper.gremlin.E()
+        result = yield self.mapper.query(gremlin=gremlin)
+
+        self.assertEqual(1, len(result))
+
+    @gen_test
+    def test_can_restrict_multiple_model_connections_out_direction(self):
+        yield self.purge()
+
+        class MapperTestVertexRestrictOut(Vertex):
+            _allowed_undefined = True
+
+        class MapperTestEdgeRestrictOut(Edge):
+            _allowed_undefined = True
+
+        class MapperTestEdgeMapperRestrictOut(_GenericMapper):
+            model = MapperTestEdgeRestrictOut
+            unique = 'in'
+
+        d = {'first_name': 'mark' + str(random.random())}
+        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictOut)
+        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictOut)
+        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictOut)
+        e2 = self.mapper.connect(v2, v1, edge_model=MapperTestEdgeRestrictOut)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
         gremlin = self.mapper.gremlin.E()

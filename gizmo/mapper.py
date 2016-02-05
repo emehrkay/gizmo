@@ -290,6 +290,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             }
         TODO: look into cleaning this up, making it a separate statement
         """
+        # import pudb; pu.db
         if not model['_id'] and self.unique and in_v_id and out_v_id:
             before = Query(Gremlin(self.gremlin.gv), self.mapper)
             ret_var = before.next_var()
