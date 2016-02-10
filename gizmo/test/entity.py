@@ -188,6 +188,7 @@ class EntityTests(unittest.TestCase):
 
         class SubTwo(Sub):
             sub_two_field = String()
+            name = Boolean()
 
         ins = SubTwo()
         data = ins.data
@@ -196,9 +197,11 @@ class EntityTests(unittest.TestCase):
         self.assertIn('sub_field', data)
         self.assertIn('name', data)
         self.assertIn('sub_two_field', data)
+        self.assertIsInstance(ins.fields['name'], Boolean)
 
         class SubThree(Sub):
             sub_three_field = String()
+            name = Float()
 
         class Diamond(SubTwo, SubThree):
             diamon_field = String()
@@ -212,6 +215,7 @@ class EntityTests(unittest.TestCase):
         self.assertIn('sub_two_field', data)
         self.assertIn('sub_three_field', data)
         self.assertIn('diamon_field', data)
+        self.assertIsInstance(ins.fields['name'], Float)
 
 
 if __name__ == '__main__':
