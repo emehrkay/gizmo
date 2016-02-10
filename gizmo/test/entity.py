@@ -173,14 +173,18 @@ class EntityTests(unittest.TestCase):
     def test_can_create_entities_that_can_subclass_entities(self):
         class Base(Vertex):
             base_field = String()
+            name = String()
 
         class Sub(Base):
             sub_field = String()
+            name = Integer()
 
         ins = Sub()
         data = ins.data
         self.assertIn('base_field', data)
         self.assertIn('sub_field', data)
+        self.assertIn('name', data)
+        self.assertIsInstance(ins.fields['name'], Integer)
 
         class SubTwo(Sub):
             sub_two_field = String()
@@ -190,6 +194,7 @@ class EntityTests(unittest.TestCase):
 
         self.assertIn('base_field', data)
         self.assertIn('sub_field', data)
+        self.assertIn('name', data)
         self.assertIn('sub_two_field', data)
 
         class SubThree(Sub):
@@ -203,6 +208,7 @@ class EntityTests(unittest.TestCase):
 
         self.assertIn('base_field', data)
         self.assertIn('sub_field', data)
+        self.assertIn('name', data)
         self.assertIn('sub_two_field', data)
         self.assertIn('sub_three_field', data)
         self.assertIn('diamon_field', data)
