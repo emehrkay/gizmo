@@ -192,6 +192,21 @@ class EntityTests(unittest.TestCase):
         self.assertIn('sub_field', data)
         self.assertIn('sub_two_field', data)
 
+        class SubThree(Sub):
+            sub_three_field = String()
+
+        class Diamond(SubTwo, SubThree):
+            diamon_field = String()
+
+        ins = Diamond()
+        data = ins.data
+
+        self.assertIn('base_field', data)
+        self.assertIn('sub_field', data)
+        self.assertIn('sub_two_field', data)
+        self.assertIn('sub_three_field', data)
+        self.assertIn('diamon_field', data)
+
 
 if __name__ == '__main__':
     unittest.main()
