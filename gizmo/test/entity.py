@@ -170,5 +170,28 @@ class EntityTests(unittest.TestCase):
 
         self.assertIsNone(val)
 
+    def test_can_create_entities_that_can_subclass_entities(self):
+        class Base(Vertex):
+            base_field = String()
+
+        class Sub(Base):
+            sub_field = String()
+
+        ins = Sub()
+        data = ins.data
+        self.assertIn('base_field', data)
+        self.assertIn('sub_field', data)
+
+        class SubTwo(Sub):
+            sub_two_field = String()
+
+        ins = SubTwo()
+        data = ins.data
+
+        self.assertIn('base_field', data)
+        self.assertIn('sub_field', data)
+        self.assertIn('sub_two_field', data)
+
+
 if __name__ == '__main__':
     unittest.main()

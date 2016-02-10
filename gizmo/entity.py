@@ -137,12 +137,21 @@ class _RootEntity(type):
 
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
-                        elif isfunction(field) == False:
+                        elif type(field) is not property and not isfunction(field):
                             setattr(self, name, field)
 
-            for b in bases:
-                update_fields(b.__dict__)
+            def handle(handle_bases):
+                handle_dict = {}
 
+                for base in handle_bases:
+                    if isinstance(base, _RootEntity):
+                        handle_dict.update(handle(base.__bases__))
+
+                    handle_dict.update(base.__dict__)
+
+                return handle_dict
+
+            update_fields(handle(bases))
             update_fields(attrs)
             self.hydrate(undefined)
 
