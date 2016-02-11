@@ -442,10 +442,12 @@ class Mapper(object):
         method chaining in order to augment the resulting data.
 
         class MyMapper(_GenericMapper):
+            @gen.coroutine
             def add_two(self, entity, data):
                 data['two'] = 2
                 return data
 
+            @gen.coroutine
             def add_three(self, entity, data):
                 data['three'] = 3
                 return data
@@ -459,7 +461,7 @@ class Mapper(object):
         collection = isinstance(entity, Collection)
 
         @gen.coroutine
-        def get_data(entity, data):
+        def get_data(entity):
             retrieved = entity.data
 
             for method in args:
@@ -467,23 +469,24 @@ class Mapper(object):
 
                 @gen.coroutine
                 def wrapper(entity, data):
-                    res = yield getattr(mapper, method)(entity=entity, data=data)
+                    res = yield getattr(mapper, method)(entity=entity,
+                                                        data=entity.data)
 
                     return res
 
-                retrieved = yield wrapper(entity=entity, data=data)
+                retrieved = yield wrapper(entity=entity, data=entity.data)
 
             return retrieved
 
         if collection:
             data = []
 
-            for e in entity:
-                res = yield get_data(e, e.data)
+            for coll_entity in entity:
+                res = yield get_data(coll_entity)
 
                 data.append(res)
         else:
-            data = yield get_data(entity, entity.data)
+            data = yield get_data(entity)
 
         return data
 
@@ -1097,13 +1100,8 @@ class Collection(object):
     def last(self):
         return self[-1]
 
-    def get_data(self, full=False):
-        if full:
-            data = [x.get_data(full) for x in self]
-        else:
-            data = [x for x in self.response.data]
-
-        return data
+    def get_data(self):
+        return [x for x in self.response.data]
 
     data = property(get_data)
 

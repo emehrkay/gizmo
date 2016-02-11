@@ -12,15 +12,6 @@ class _Fields(dict):
         self.update(*args, **kwargs)
         self.data_type = 'python'
         self._initial_load = True
-        self._data_expanders = []
-
-        self.add_expander(self._get_data)
-
-    def add_expander(self, expander):
-        if expander not in self._data_expanders:
-            self._data_expanders.append(expander)
-
-        return self
 
     def __getitem__(self, field):
         obj = dict.__getitem__(self, field)
@@ -44,32 +35,12 @@ class _Fields(dict):
 
         return data
 
-    def get_data(self, full=False):
-        if not full:
-            data = self._get_data()
+    def get_data(self):
+        data = self._get_data()
 
-            return OrderedDict(sorted(data.items()))
-        else:
-            return self.full_data
+        return OrderedDict(sorted(data.items()))
 
     data = property(get_data)
-
-    @property
-    def full_data(self):
-        data = {}
-
-        for callback in self._data_expanders:
-            data = callback(data)
-
-            if not isinstance(data, dict):
-                error = """The value returned from an expander must be a dict.
-                    The expander function %s returned a: %s""" % \
-                    (callback.__name__, type(data))
-                raise ValueError(error)
-
-        # sorting field names do not matter
-        # this is done for testing purposes
-        return OrderedDict(sorted(data.items()))
 
     @property
     def changed(self):

@@ -236,10 +236,9 @@ class _BaseEntity(with_metaclass(_RootEntity, object)):
 
         return entity, self['_id']
 
-    def get_data(self, full=False):
-        return self.fields.get_data(full=full)
-
-    data = property(get_data)
+    @property
+    def data(self):
+        return self.fields.data
 
     @property
     def label(self):
