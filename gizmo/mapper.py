@@ -436,6 +436,57 @@ class Mapper(object):
 
         return getattr(mapper, self._magic_method)(*args, **kwargs)
 
+    @gen.coroutine
+    def data(self, entity, *args):
+        """utility method used to retrieve an entity's data. It also allows for
+        method chaining in order to augment the resulting data.
+
+        class MyMapper(_GenericMapper):
+            def add_two(self, entity, data):
+                data['two'] = 2
+                return data
+
+            def add_three(self, entity, data):
+                data['three'] = 3
+                return data
+
+        entity = User()
+        data = yield mapper.data(user, 'add_two', 'add_three')
+        
+        the resulting data will have the data from the User class, plus a two and a 
+        three member
+        """
+        collection = isinstance(entity, Collection)
+
+        @gen.coroutine
+        def get_data(entity, data):
+            retrieved = entity.data
+
+            for method in args:
+                mapper = self.get_mapper(entity)
+
+                @gen.coroutine
+                def wrapper(entity, data):
+                    res = yield getattr(mapper, method)(entity=entity, data=data)
+
+                    return res
+
+                retrieved = yield wrapper(entity=entity, data=data)
+
+            return retrieved
+
+        if collection:
+            data = []
+
+            for e in entity:
+                res = yield get_data(e, e.data)
+
+                data.append(res)
+        else:
+            data = yield get_data(entity, entity.data)
+
+        return data
+
     def reset(self):
         self.gremlin.reset()
         global query_count

@@ -371,6 +371,12 @@ class MapperTests(unittest.TestCase):
 
         self.assertEqual(variable['v'], updated)
 
+    def test_can_retrieve_data_from_entity_via_mapper(self):
+        self.assertTrue(False)
+
+    def test_can_retrieve_data_from_two_nested_entities_via_custom_mapper_methods(self):
+        self.assertTrue(False)
+
 
 class QueryTests(unittest.TestCase):
 
