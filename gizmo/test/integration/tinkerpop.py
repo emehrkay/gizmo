@@ -24,7 +24,7 @@ class BaseTests(AsyncTestCase):
         return self.mapper.query(script=script)
 
 
-class ConnectionTests(BaseTests):
+class ConnectionTestCases(object):
 
     @gen_test
     def test_can_establish_mapper(self):
@@ -61,7 +61,7 @@ class ConnectionTests(BaseTests):
         self.assertEqual(2, r1['response'])
 
 
-class EntityTests(BaseTests):
+class EntityTestCases(object):
 
     def entity_save_assertions(self, entity):
         from gizmo import GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED, \
@@ -199,11 +199,10 @@ class EntityTests(BaseTests):
             pass
 
         v = self.mapper.create_model(model_class=RemoveVertex)
-        yield self.mapper.save(v).send()
-
+        x = yield self.mapper.save(v).send()
         all_v = self.mapper.gremlin.V()
         res = yield self.mapper.query(gremlin=self.mapper.gremlin)
-        
+
         self.assertEqual(1, len(res))
 
         yield self.mapper.delete(v).send()
@@ -282,8 +281,7 @@ class EntityTests(BaseTests):
         self.assertEqual(0, len(all_e_res))
 
 
-
-class MapperTests(BaseTests):
+class MapperTestCases(object):
 
     @gen_test
     def test_can_utilitze_custom_mapper(self):
@@ -439,6 +437,18 @@ class MapperTests(BaseTests):
         result = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(2, len(result))
+
+
+class ConnectionTests(BaseTests, ConnectionTestCases):
+    pass
+
+
+class EntityTests(EntityTestCases, BaseTests):
+    pass
+
+
+class MapperTests(MapperTestCases, BaseTests):
+    pass
 
 
 class CollectionTests(BaseTests):

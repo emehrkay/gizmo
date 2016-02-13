@@ -14,6 +14,7 @@ class Request(object):
     @gen.coroutine
     def send(self, script=None, params=None, update_models=None, *args,
              **kwargs):
+
         if not params:
             params = {}
 
@@ -21,30 +22,50 @@ class Request(object):
             update_models = {}
 
         data = []
-        # import pudb; pu.db
-        resp = yield submit(gremlin=script, bindings=params)
+        resp = yield submit(gremlin=script, bindings=params, url=self._ws_uri)
 
         while True:
             msg = yield resp.read()
 
             if not msg:
                 break
-            
+
             if msg.data:
                 data += msg.data
 
         response = Response(data, update_models)
+
         return response
 
 
 class Response(object):
+
     def __init__(self, data=None, update_models=None):
         if not update_models:
             update_models = {}
 
         self.original_data = data
         self.update_models = update_models
-        self.data = self._fix_data(data)
+        self.data = self._fix_data(self._fix_titan_data(data))
+
+    def _fix_titan_data(self, data):
+        """temp method to address a titan bug where it returns maps in a
+        differnt manner than other tinkerpop instances. This will be fixed
+        in a later version of titan"""
+        if isinstance(data, (list, tuple,)):
+            fixed = []
+
+            for ret in data:
+                if isinstance(ret, dict):
+                    if 'key' in ret and 'value' in ret:
+                        fixed.append({ret['key']: ret['value']})
+
+            if len(data) and not len(fixed):
+                return data
+            else:
+                return fixed
+        else:
+            return data
 
     def _fix_data(self, resp):
         # TODO: clean up this shit show

@@ -396,13 +396,20 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 class Mapper(object):
     VARIABLE = 'gizmo_var'
 
-    def __init__(self, request, gremlin=None, auto_commit=True, logger=None):
+    def __init__(self, request, gremlin=None, auto_commit=True, logger=None,
+                 graph_instance_name=None):
         if gremlin is None:
             gremlin = Gremlin()
 
         self.request = request
         self.gremlin = gremlin
         self.auto_commit = auto_commit
+        self.graph_instance_name = graph_instance_name
+
+        if self.auto_commit and not self.graph_instance_name:
+            error = ('If auto_commit is set, we need to know the graph'
+                     'instance name')
+            raise AgrumentError(error)
 
         if not logger and logger is not False:
             import logging
@@ -629,7 +636,7 @@ class Mapper(object):
 
     def _build_queries(self):
         if not self.auto_commit:
-            commit = '.'.join([self.gremlin.gv, 'tx()', 'commit()'])
+            commit = '.'.join([self.graph_instance_name, 'tx()', 'commit()'])
 
             self.queries.append(commit)
 
@@ -687,6 +694,10 @@ class Mapper(object):
 
         if update_models is None:
             update_models = {}
+
+        from .utils import _query_debug
+
+        # print('\n\n>>>', _query_debug(script, params), '\n\n')
 
         # TODO: remove this and implement proper logging
         if self.logger:
@@ -924,7 +935,7 @@ class Query(object):
 
         self.build_fields(model, IMMUTABLE['edge'])
 
-        g = Gremlin()
+        g = Gremlin(gremlin.gv)
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
         gremlin.unbound('addEdge', label_bound[0], str(g),
