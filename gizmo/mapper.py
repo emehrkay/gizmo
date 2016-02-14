@@ -406,10 +406,10 @@ class Mapper(object):
         self.auto_commit = auto_commit
         self.graph_instance_name = graph_instance_name
 
-        if self.auto_commit and not self.graph_instance_name:
+        if not self.auto_commit and not self.graph_instance_name:
             error = ('If auto_commit is set, we need to know the graph'
                      'instance name')
-            raise AgrumentError(error)
+            raise ArgumentError(error)
 
         if not logger and logger is not False:
             import logging
