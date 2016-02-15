@@ -1,6 +1,6 @@
 #import pudb; pu.db
 import unittest
-from random import randrange, random
+from random import randrange, random, randint
 from time import sleep
 from collections import OrderedDict
 from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
@@ -13,6 +13,7 @@ import copy
 
 
 TEST_CALLBACK_VERTEX = 'test_callback_vertex'
+TEST_GV = 'test_gv_' + str(randint(1000, 999999))
 
 
 class TestUniqieMapper(_GenericMapper):
@@ -21,7 +22,7 @@ class TestUniqieMapper(_GenericMapper):
 
 
 def g_v(id):
-    return 'g.V({}).next()'.format(id)
+    return '{}.V({}).next()'.format(TEST_GV, id)
 
 
 def get_dict_key(params, value, unset=False):
@@ -56,11 +57,11 @@ def build_vertex_create_query(entity, params=None, models=None):
 
     if models:
         entry_v1 = get_entity_entry(models, entity)
-        expected = "%s = g.addV(%s).next()" % \
-            (list(entry_v1.keys())[0], ', '.join(props))
+        expected = "%s = %s.addV(%s).next()" % \
+            (list(entry_v1.keys())[0], TEST_GV, ', '.join(props))
     else:
-        expected = "g.addV(%s).next()" % \
-            (', '.join(props))
+        expected = "%s.addV(%s).next()" % \
+            (TEST_GV, ', '.join(props))
 
     return expected
 
@@ -83,11 +84,11 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
 
     if models:
         entry_v1 = get_entity_entry(models, entity)
-        params = (list(entry_v1.keys())[0], propv, close)
-        expected = "%s = g.V(%s).%s.next()" % params
+        params = (list(entry_v1.keys())[0], TEST_GV, propv, close)
+        expected = "%s = %s.V(%s).%s.next()" % params
     else:
-        params = (propv, close)
-        expected = "g.V(%s).%s.next()" % params
+        params = (TEST_GV, propv, close)
+        expected = "%s.V(%s).%s.next()" % params
 
     return expected
 
@@ -149,7 +150,7 @@ DEFAULT_UPDATE_FIELDS = [GIZMO_ID] + DEFAULT_INSERT_FIELDS
 class MapperTests(unittest.TestCase):
 
     def setUp(self):
-        self.gremlin = Gremlin()
+        self.gremlin = Gremlin(TEST_GV)
         self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
@@ -190,6 +191,8 @@ class MapperTests(unittest.TestCase):
         sent_params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_update_query(v, vid, \
             sent_params, self.mapper.models)
+        print('>>>>>', expected)
+        print('+++++++', self.mapper.queries[0])
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -219,7 +222,7 @@ class MapperTests(unittest.TestCase):
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
         eyed = get_dict_key(params, vid)
-        expected = 'g.V({}).next().remove()'.format(eyed[0])
+        expected = '{}.V({}).next().remove()'.format(TEST_GV, eyed[0])
         self.assertEqual(expected, self.mapper.queries[0])
 
     def test_can_delete_multiple_entities(self):
@@ -240,9 +243,9 @@ class MapperTests(unittest.TestCase):
         v2_id = get_dict_key(params, v2['_id'])
         e_id = get_dict_key(params, ed['_id'])
         expected = [
-            'g.V({}).next().remove()'.format(v1_id[0]),
-            'g.V({}).next().remove()'.format(v2_id[0]),
-            'g.E({}).next().remove()'.format(e_id[0]),
+            '{}.V({}).next().remove()'.format(TEST_GV, v1_id[0]),
+            '{}.V({}).next().remove()'.format(TEST_GV, v2_id[0]),
+            '{}.E({}).next().remove()'.format(TEST_GV, e_id[0]),
         ]
 
         self.assertEqual(3, len(self.mapper.queries))
