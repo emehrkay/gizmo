@@ -461,9 +461,9 @@ class Mapper(object):
 
         entity = User()
         data = yield mapper.data(user, 'add_two', 'add_three')
-        
-        the resulting data will have the data from the User class, plus a two and a 
-        three member
+
+        the resulting data will have the data from the User class, plus a two
+        and a three member
         """
         collection = isinstance(entity, Collection)
 
@@ -697,7 +697,7 @@ class Mapper(object):
 
         from .utils import _query_debug
 
-        # print('\n\n>>>', _query_debug(script, params), '\n\n')
+        print('\n\n>>>', _query_debug(script, params), '\n\n')
 
         # TODO: remove this and implement proper logging
         if self.logger:
@@ -997,7 +997,9 @@ class Query(object):
         eye_d = self.bind_param(model['_id'], ent_var)
         getattr(gremlin, model_type)(eye_d[0])
 
-        for k, v in model.fields.data.items():
+        # only update the fields that have changed.
+        # @TODO: Make sure to document this behavior
+        for k, v in model.changed.items():
             name = '%s_%s' % (model.__class__.__name__, k)
 
             if k not in model._immutable:

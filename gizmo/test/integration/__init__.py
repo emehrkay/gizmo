@@ -1,3 +1,9 @@
+import random
+
+from tornado.testing import gen_test
+
+from gizmo import Mapper, Request, Collection, Vertex, Edge
+from gizmo.mapper import _GenericMapper
 
 
 class ConnectionTestCases(object):
@@ -166,6 +172,32 @@ class EntityTestCases(object):
         self.entity_save_assertions(v1)
         self.entity_save_assertions(v2)
         self.entity_save_assertions(e)
+
+    @gen_test
+    def test_can_add_vertex_and_update_it(self):
+        yield self.purge()
+
+        data = {
+            'name': 'before_update',
+        }
+        updated = 'updated named {}'.format(str(random.random()))
+
+        class UpdateVertex(Vertex):
+            _allowed_undefined = True
+
+        v = self.mapper.create_model(data=data, model_class=UpdateVertex)
+        x = yield self.mapper.save(v).send()
+        first = x.first()
+
+        self.entity_save_assertions(first)
+        self.assertEqual(v['_id'], first['_id'])
+
+        first['name'] = updated
+
+        yield self.mapper.save(first).send()
+
+        self.assertEqual(first['name'], updated)
+
 
     @gen_test
     def test_can_add_vertex_and_remove_it(self):

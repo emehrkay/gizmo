@@ -5,7 +5,7 @@ from tornado.testing import AsyncTestCase, gen_test
 from gremlinpy import Gremlin
 from gizmo import Mapper, Request, Collection, Vertex, Edge
 from gizmo.mapper import _GenericMapper
-from .tinkerpop import (ConnectionTestCases, EntityTestCases, MapperTestCases)
+from . import ConnectionTestCases, EntityTestCases, MapperTestCases
 
 
 class TitanBaseTests(AsyncTestCase):

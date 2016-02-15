@@ -3,6 +3,8 @@ import random
 
 from tornado.testing import AsyncTestCase, gen_test
 from gremlinpy import Gremlin
+
+from . import ConnectionTestCases, EntityTestCases, MapperTestCases
 from gizmo import Mapper, Request, Collection, Vertex, Edge
 from gizmo.mapper import _GenericMapper
 
