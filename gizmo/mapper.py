@@ -697,7 +697,7 @@ class Mapper(object):
 
         from .utils import _query_debug
 
-        print('\n\n>>>', _query_debug(script, params), '\n\n')
+        # print('\n\n>>>', _query_debug(script, params), '\n\n')
 
         # TODO: remove this and implement proper logging
         if self.logger:
