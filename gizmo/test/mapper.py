@@ -191,8 +191,7 @@ class MapperTests(unittest.TestCase):
         sent_params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_update_query(v, vid, \
             sent_params, self.mapper.models)
-        print('>>>>>', expected)
-        print('+++++++', self.mapper.queries[0])
+
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
