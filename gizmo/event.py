@@ -2,13 +2,12 @@ from gizmo.entity import Vertex, Edge
 from gizmo.mapper import _GenericMapper
 
 
-class Entity(Vertex):
-    _node_type = SOURCE_EVENT
+class SourcedEvent(Vertex):
     _allowed_undefined = True
 
 
-class EntityMapper(_GenericMapper):
-    model = Entity
+class SourcedEventMapper(_GenericMapper):
+    model = SourcedEvent
 
 
 class TriggedSourceEvent(Edge):
@@ -59,7 +58,7 @@ class MapperMixin(object):
             # only create the source event if there were actual changes
             if fields_changed or fields_removed:
                 self.event = event = \
-                    self.mapper.create_model(model_class=Entity,
+                    self.mapper.create_model(model_class=SourcedEvent,
                                              data_type=model.data_type)
 
                 for field, change in model.changed.items():
