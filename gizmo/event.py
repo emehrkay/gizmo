@@ -1,10 +1,5 @@
-from gizmo.entity import Vertex
+from gizmo.entity import Vertex, Edge
 from gizmo.mapper import _GenericMapper
-
-
-TRIGGERED_SOURCE_EVENT = 'triggered_source_event'
-SOURCE_EVENT_ENTRY = 'source_event_entry'
-SOURCE_EVENT = 'source_event'
 
 
 class Entity(Vertex):
@@ -14,6 +9,14 @@ class Entity(Vertex):
 
 class EntityMapper(_GenericMapper):
     model = Entity
+
+
+class TriggedSourceEvent(Edge):
+    pass
+
+
+class SourceEventEntry(Edge):
+    pass
 
 
 class EventSourceException(Exception):
@@ -66,11 +69,14 @@ class MapperMixin(object):
                     # TODO: track the fields that were removed
                     pass
 
-                source_edge = self.mapper.connect(out_v=source,
-                                                  in_v=event,
-                                                  label=TRIGGERED_SOURCE_EVENT)
+                source_params = {
+                    'out_v': source,
+                    'in_v': event,
+                    'edge_model': TriggedSourceEvent,
+                }
+                source_edge = self.mapper.connect(**source_params)
                 event_edge = self.mapper.connect(out_v=model, in_v=event,
-                                                 label=SOURCE_EVENT_ENTRY)
+                                                 edge_model=SourceEventEntry)
 
                 self.mapper.save(source_edge, bind_return=True)
                 self.mapper.save(event_edge, bind_return=True)

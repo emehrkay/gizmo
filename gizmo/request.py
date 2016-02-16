@@ -115,8 +115,9 @@ class Response(object):
                 else:
                     data = fix_properties(arg)
                     for field, value in data.items():
+                        print('f v', field, value)
                         data[field] = value[-1]['value'] \
-                            if type(value) is list else value
+                            if type(value) is list and len(value) else value
 
                     if 'id' in data:
                         data['_id'] = data['id']
