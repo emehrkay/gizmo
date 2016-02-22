@@ -469,7 +469,6 @@ class Mapper(object):
 
         @gen.coroutine
         def get_data(entity, data):
-            retrieved = entity.data
             retrieved = data
 
             for method in args:
@@ -477,8 +476,6 @@ class Mapper(object):
 
                 @gen.coroutine
                 def wrapper(entity, data):
-                    # res = yield getattr(mapper, method)(entity=entity,
-                    #                                     data=entity.data)
                     res = yield getattr(mapper, method)(entity=entity,
                                                         data=data)
 
