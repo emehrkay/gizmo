@@ -468,20 +468,24 @@ class Mapper(object):
         collection = isinstance(entity, Collection)
 
         @gen.coroutine
-        def get_data(entity):
+        def get_data(entity, data):
             retrieved = entity.data
+            retrieved = data
 
             for method in args:
                 mapper = self.get_mapper(entity)
 
                 @gen.coroutine
                 def wrapper(entity, data):
+                    # res = yield getattr(mapper, method)(entity=entity,
+                    #                                     data=entity.data)
                     res = yield getattr(mapper, method)(entity=entity,
-                                                        data=entity.data)
+                                                        data=data)
+
 
                     return res
 
-                retrieved = yield wrapper(entity=entity, data=entity.data)
+                retrieved = yield wrapper(entity=entity, data=retrieved)
 
             return retrieved
 
@@ -489,11 +493,11 @@ class Mapper(object):
             data = []
 
             for coll_entity in entity:
-                res = yield get_data(coll_entity)
+                res = yield get_data(coll_entity, coll_entity.data)
 
                 data.append(res)
         else:
-            data = yield get_data(entity)
+            data = yield get_data(entity, entity.data)
 
         return data
 
