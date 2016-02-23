@@ -184,7 +184,11 @@ class Boolean(Field):
                                       set_max=set_max,
                                       track_changes=track_changes)
 
-        self.field_value = bool(value)
+        if not value:
+            value = False
+
+        value = str(bool(value)).lower().strip()
+        self.field_value = bool(json.loads(value))
 
     def to_python(self):
         try:

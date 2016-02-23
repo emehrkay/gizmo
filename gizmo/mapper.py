@@ -1095,8 +1095,11 @@ class Traversal(Gremlin):
     def start_depth(self):
         pass
 
+    @gen.coroutine
     def to_collection(self):
-        return self._mapper.send(gremlin=self)
+        collection = yield self._mapper.send(gremlin=self)
+
+        return collection
 
 
 class Collection(object):

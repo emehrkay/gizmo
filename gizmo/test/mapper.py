@@ -71,24 +71,34 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
     immutable = entity._immutable
     query_ps = []
     entity.field_type = 'graph'
+    changed = copy.deepcopy(entity.changed)
 
-    for k, v in entity.data.items():
+    for k, v in changed.items():
         if k not in immutable:
             value, paramsss = get_dict_key(params, v)
             prop = "property('%s', %s)" % (k, value)
             query_ps.append(prop)
 
     propv, params = get_dict_key(params, eid)
-
     close = '.'.join(query_ps)
 
     if models:
         entry_v1 = get_entity_entry(models, entity)
-        params = (list(entry_v1.keys())[0], TEST_GV, propv, close)
-        expected = "%s = %s.V(%s).%s.next()" % params
+        params = [list(entry_v1.keys())[0], TEST_GV, propv]
+
+        if len(close):
+            params.append(close)
+            expected = "{} = {}.V({}).{}.next()".format(*params)
+        else:
+            expected = "{} = {}.V({}).next()".format(*params)
     else:
-        params = (TEST_GV, propv, close)
-        expected = "%s.V(%s).%s.next()" % params
+        params = (TEST_GV, propv)
+
+        if len(close):
+            params.append(close)
+            expected = "{}.V({}).{}.next()".format(*params)
+        else:
+            expected = "{}.V({}).next()".format(*params)
 
     return expected
 
@@ -186,14 +196,15 @@ class MapperTests(unittest.TestCase):
             'some_field': 'mark',
         }
         v = self.mapper.create_model(d, TestVertex)
+        v['some_field'] = 'xxxx'
         self.mapper.save(v)._build_queries()
 
         sent_params = copy.deepcopy(self.mapper.params)
-        expected = build_vertex_update_query(v, vid, \
-            sent_params, self.mapper.models)
-
+        changed = v.changed
+        expected = build_vertex_update_query(v, vid,
+                                             sent_params, self.mapper.models)
         self.assertEqual(expected, self.mapper.queries[0])
-        self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
+        self.assertEqual(len(changed) + 1, len(sent_params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = {
