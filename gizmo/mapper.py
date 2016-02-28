@@ -590,7 +590,7 @@ class Mapper(object):
 
         res = yield self.query(gremlin=self.gremlin)
 
-        return res
+        return res.first()
 
     def save(self, model, bind_return=True, mapper=None,
              callback=None, **kwargs):
