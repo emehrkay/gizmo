@@ -132,6 +132,10 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
+    @gen.coroutine
+    def data(self, entity):
+        return entity.data
+
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
@@ -493,11 +497,15 @@ class Mapper(object):
             data = []
 
             for coll_entity in entity:
-                res = yield get_data(coll_entity, coll_entity.data)
+                mapper = self.get_mapper(coll_entity)
+                entity_data = yield mapper.data(coll_entity)
+                res = yield get_data(coll_entity, coll_entity_data)
 
                 data.append(res)
         else:
-            data = yield get_data(entity, entity.data)
+            mapper = self.get_mapper(entity)
+            entity_data = yield mapper.data(entity)
+            data = yield get_data(entity, entity_data)
 
         return data
 
