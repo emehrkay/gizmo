@@ -499,7 +499,7 @@ class Mapper(object):
             for coll_entity in entity:
                 mapper = self.get_mapper(coll_entity)
                 entity_data = yield mapper.data(coll_entity)
-                res = yield get_data(coll_entity, coll_entity_data)
+                res = yield get_data(coll_entity, coll_entity.data)
 
                 data.append(res)
         else:
