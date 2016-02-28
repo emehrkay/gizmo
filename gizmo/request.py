@@ -14,7 +14,6 @@ class Request(object):
     @gen.coroutine
     def send(self, script=None, params=None, update_models=None, *args,
              **kwargs):
-
         if not params:
             params = {}
 

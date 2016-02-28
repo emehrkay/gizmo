@@ -125,6 +125,10 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
     def by_id(self, _id, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
+
+        if isinstance(model, type):
+            model = model()
+
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
@@ -479,7 +483,6 @@ class Mapper(object):
                     res = yield getattr(mapper, method)(entity=entity,
                                                         data=data)
 
-
                     return res
 
                 retrieved = yield wrapper(entity=entity, data=retrieved)
@@ -565,6 +568,21 @@ class Mapper(object):
         mapper.reset()
 
         return self
+
+    def by_id(self, _id, model, bind_return=True):
+        mapper = self.get_mapper(model)
+
+        mapper.by_id(_id=_id, model=model, bind_return=bind_return)
+
+        return self._enqueue_mapper(mapper)
+
+    @gen.coroutine
+    def get_by_id(self, _id, entity='V'):
+        self.gremlin.func(entity, _id)
+
+        res = yield self.query(gremlin=self.gremlin)
+
+        return res
 
     def save(self, model, bind_return=True, mapper=None,
              callback=None, **kwargs):
