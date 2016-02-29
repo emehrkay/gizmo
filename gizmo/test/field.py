@@ -200,7 +200,7 @@ class BooleanTests(unittest.TestCase):
 
     def test_can_get_boolean_from_non_bool_val(self):
         f = Boolean(value='ooo')
-
+        print(f.value)
         self.assertIsInstance(f.value, bool)
         self.assertTrue(f.value)
 

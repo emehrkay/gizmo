@@ -187,6 +187,9 @@ class Boolean(Field):
         if not value:
             value = False
 
+        if str(value).lower().strip() not in ['true', 'false',]:
+            value = bool(value)
+
         value = str(value).lower().strip()
         self.field_value = bool(json.loads(value))
 
