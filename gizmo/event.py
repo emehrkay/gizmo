@@ -22,7 +22,7 @@ class EventSourceException(Exception):
     pass
 
 
-class MapperMixin(object):
+class EventSourceMixin(object):
     """
     this class is used to add event sourcing functionality
     (http://martinfowler.com/eaaDev/EventSourcing.html)
@@ -47,7 +47,7 @@ class MapperMixin(object):
         model -> event
         relationships
         """
-        super(MapperMixin, self).save(model=model, bind_return=bind_return,
+        super(EventSourceMixin, self).save(model=model, bind_return=bind_return,
                                       callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 
