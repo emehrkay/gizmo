@@ -2,7 +2,7 @@ Gizmo
 =====
 > This is still very alpha. Some of this documentation is incorrect/incomplete. It works, but I'd give it a second. I am in the process of making this already incomplete library a Tinkerpop3-only implementataion
 
-Gizmo is a lightweight Python >=2.7 Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster 3.x](http://www.tinkerpop.com) servers. 
+Gizmo is a lightweight asynchronous Python >=2.7 Object Graph Mapper (O.G.M.) for [Tinkerpop Blueprints' Rexster 3.x](http://www.tinkerpop.com) servers. 
 
 
 ### About
@@ -167,6 +167,10 @@ graphs: {
 gizmo_testing = gizmo_test_graph.traversal()
 ~~~
 
+## Readme Structure
+
+This readme will build an example of a simple blog data schema covering some of the core concepts and fetures found within Gizmo. 
+
 ### Entities
 
 A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics\)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly referred to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
@@ -177,20 +181,42 @@ Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You 
 
 Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
 
-Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property. This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
+Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property converting CamelCasing to lower_underscore (camel_casing). This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
 
 ~~~python
+"""vertices"""
 class Article(Vertex):
-    _node_label = 'some_article'
+    _node_label = 'blog_article'
     title = String()
     content = String()
-
-#in another package
-class Article(Vertex):
-    _node_label = 'some_other_article'
+    published = Boolean(False)
 
 
-...
+class Image(Vertex):
+    name = String()
+    location = String()
+
+
+class Tag(Vertex):
+    name = String()
+
+
+class User(Vertex):
+    email = String()
+    password = String()
+
+
+"""edges"""
+class HasArticle(Edge):
+    pass
+
+
+class HasImage(Edge):
+    order = Integer(0)
+
+
+class HasTag(Edge):
+    pass
 ~~~
     
 ##### Fields
@@ -226,12 +252,6 @@ These are fields created and populated at class instantiation:
 * GIZMO_ID _:String_ -- the _id from the graph. It is a string because different graphs store ids differently. OrientDB's ids have a : in them
 * GIZMO_LABEL _:String_ -- as of Tinkerpop3 all entities have a _label member. This defines how the vertices are connected
 
-**Hooks**
-
-<<<TALK ABOUT THE HOOKS>>>
-
-
-##### Edges
 
 ### Mappers
 
@@ -241,8 +261,27 @@ A Mapper instance exposes a few key methods which allow you to interact with the
 
 * **save**(model<Entity>, data<Dict>, bind_return<Boolean>, mapper<_GenericMapper>, callback<callable>) -- this method is used to save the changes made againt the model to the graph
 * **delete**(model<Entity>, mapper<_GenericMapper>, callback<callable>) -- will detele the entity from the graph
-* **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_model<Entity class>, data_type<String>) -- utility method used to create a connection between two entities. 
-* **create_model (data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
+* **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_model<Entity class>, data_type<String>) -- utility method used to create a connection between two entities.
+* **create\_model**(data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
+* **data**(entity<Entity>, *args<String>) -- this is an interesting method. It allows you to compose the data for the entity by chaning together multiple data accessor methods defined on the mapper that is assigned to the entity.
+
+* 
+
+~~~python
+"""vertex mappers"""
+class UserMapper(_GenericMapper):
+    model = User
+
+
+class ImageMapper(_GenericMapper):
+    model = Image
+
+
+class TagMapper(_GenericMapper):
+    model = Tag
+
+~~~
+
 
 #### Queries and Statements
 

@@ -2,10 +2,12 @@
 import unittest
 from random import randrange, random, randint
 from time import sleep
+
 from collections import OrderedDict
-from gizmo.mapper import Mapper, _GenericMapper, Vertex, Edge
+from gizmo.mapper import (Mapper, _GenericMapper, Vertex, Edge, Collection)
+from gizmo.request import Response
 from gizmo.utils import (GIZMO_MODEL, GIZMO_CREATED, GIZMO_MODIFIED,
-                         GIZMO_ID, GIZMO_LABEL)
+                         GIZMO_ID, GIZMO_LABEL, blocking)
 from gremlinpy.gremlin import Gremlin
 from gizmo.test.entity import (TestVertex, TestEdge, TestUniqueEdge,
                                TestUndefinedVertex)
@@ -385,9 +387,121 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(variable['v'], updated)
 
     def test_can_retrieve_data_from_entity_via_mapper(self):
-        self.assertTrue(False)
+
+        class TestCaseVertex1(Vertex):
+            _allowed_undefined = True
+
+        d = {
+            'name': 'name{}'.format(str(random()))
+        }
+        v = self.mapper.create_model(d, TestCaseVertex1)
+        data = blocking(self.mapper.data, v)
+
+        self.assertIn('name', data)
+        self.assertEqual(d['name'], data['name'])
+
+    def test_can_retrieve_data_from_collection_via_mapper(self):
+
+        class TestCaseVertex1(Vertex):
+            _allowed_undefined = True
+
+        class C(object):
+            data = []
+
+        coll = []
+        items = 15
+
+        for i in range(items):
+            d = {
+                'name': 'name{}'.format(str(random()))
+            }
+            v = self.mapper.create_model(d, TestCaseVertex1)
+            coll.append(dict(v.data))
+
+        resp = Response()
+        resp.data = coll
+        collection = Collection(self.mapper, resp)
+        data = blocking(self.mapper.data, collection)
+
+        self.assertEqual(items, len(data))
+
+        names = [dd['name'] for dd in data]
+
+        for d in coll:
+            self.assertIn(d['name'], names)
 
     def test_can_retrieve_data_from_two_nested_entities_via_custom_mapper_methods(self):
+        from tornado import gen
+
+        city = 'city-{}'.format(str(random()))
+
+        class TestCaseVertex2(Vertex):
+            _allowed_undefined = True
+
+        class TestCaseVertex2Mapper(_GenericMapper):
+            model = TestCaseVertex2
+
+            @gen.coroutine
+            def get_city(self, entity, data):
+                data['city'] = city
+                return data
+
+        d = {
+            'name': 'name{}'.format(str(random()))
+        }
+        v = self.mapper.create_model(d, TestCaseVertex2)
+        data = blocking(self.mapper.data, v, 'get_city')
+
+        self.assertIn('name', data)
+        self.assertEqual(d['name'], data['name'])
+        self.assertIn('city', data)
+        self.assertEqual(city, data['city'])
+
+    def test_can_retrieve_data_from_deeply_nested_entities_via_custom_mapper_methods(self):
+        from tornado import gen
+
+        city = 'city-{}'.format(str(random()))
+
+        class TestCaseVertex2(Vertex):
+            _allowed_undefined = True
+
+        class TestCaseVertex2Mapper(_GenericMapper):
+            model = TestCaseVertex2
+
+            @gen.coroutine
+            def get_city(self, entity, data):
+                data['city'] = city
+                return data
+
+        d = {
+            'name': 'name{}'.format(str(random()))
+        }
+        v = self.mapper.create_model(d, TestCaseVertex2)
+        data = blocking(self.mapper.data, v, 'get_city')
+
+        self.assertIn('name', data)
+        self.assertEqual(d['name'], data['name'])
+        self.assertIn('city', data)
+        self.assertEqual(city, data['city'])
+
+    def test_can_assure_saving_vertex_mulitple_times_only_crud_once(self):
+        d = {
+            'name': 'name{}'.format(str(random()))
+        }
+        v = self.mapper.create_model(d, TestVertex)
+
+        self.mapper.save(v).save(v)._build_queries()
+        params = copy.deepcopy(self.mapper.params)
+        expected = build_vertex_create_query(v, params,
+                                             self.mapper.models)
+        self.assertEqual(3, len(self.mapper.queries))
+        self.assertIn(expected, self.mapper.queries)
+        self.assertTrue(False) # needs more assertions
+
+    def test_can_assure_saving_edge_mulitple_times_only_crud_once(self):
+        self.assertTrue(False)
+
+    def test_can_assure_saving_edge_and_vertex_mulitple_times_only_crud_once(self):
         self.assertTrue(False)
 
 

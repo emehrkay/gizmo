@@ -172,6 +172,8 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         if ref:
             query.add_query(ref, params=None, model=model)
 
+            return self.enqueue(query, bind_return)
+
         """this builds four queries:
             * one to check to see if the model exists with the unique fields
             * one to insert the model
@@ -261,6 +263,11 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         in_v_id = in_v['_id'] if isinstance(in_v, Vertex) else None
         out_v_ref = self.mapper.get_model_variable(out_v)
         in_v_ref = self.mapper.get_model_variable(in_v)
+
+        if edge_ref:
+            query.add_query(edge_ref, params=None, model=model)
+
+            return self.enqueue(query, bind_return)
 
         """
         both out_v and in_v are checked to see if the models stored in each
@@ -1147,14 +1154,6 @@ class Collection(object):
         return [x for x in self.response.data]
 
     data = property(get_data)
-
-    @property
-    def datas(self):
-        """
-        method used to return the raw data from the
-        response
-        """
-        return [x for x in self.response.data]
 
     @property
     def entity_data(self):
