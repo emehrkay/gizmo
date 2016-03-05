@@ -83,7 +83,7 @@ class Field(object):
             value = self.default_value
 
         self._changes = [value]
-        self._initial_value = value
+        self._initial_value = value() if hasattr(value, '__call__') else value
         self.set_count = 0
         self.field_value = value
         self.data_type = data_type
@@ -233,14 +233,18 @@ class DateTime(Field):
         return current_date_time
 
     def to_graph(self):
-        return '' if self.field_value is None or self.field_value == '' \
-            else int(float(self.field_value))
+        value = '' if not self.field_value else int(float(self.field_value) * 1000)
+
+        return value
 
     def to_python(self):
-        value = 0 if self.field_value is None or self.field_value == ''\
-            else self.field_value
+        if self._initial_value != self.field_value:
+            value = 0 if not self.field_value else self.field_value
+            value = int(float(value)) / 1000
+        else:
+            value = self.field_value
 
-        return int(float(value)) / 1000
+        return value
 
 
 class Enum(Field):

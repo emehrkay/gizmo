@@ -1142,7 +1142,7 @@ class Collection(object):
         self.response = response
         self._models = {}
         self._index = 0
-        self._data_type = 'graph'
+        self._data_type = 'python'
 
     def first(self):
         return self[0]

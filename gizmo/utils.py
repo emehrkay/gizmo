@@ -73,7 +73,7 @@ def current_time():
 
 
 def current_date_time(offset=0):
-    return (int(time.time()) + offset) * 1000
+    return (int(time.time()) + offset)
 
 
 def get_logger(address='/var/run/syslog'):
