@@ -9,6 +9,7 @@ from tornado import gen
 from gremlinpy.gremlin import Gremlin, Function
 from gremlinpy.statement import GetEdge, Conditional
 
+from .field import Timestamp
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore, GIZMO_VARIABLE
 from .utils import IMMUTABLE, GIZMO_MODEL
@@ -404,6 +405,15 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         if '_id' in data:
             model.fields['_id'].value = data['_id']
+
+        # update any Timestamp fields with right now
+        for name, field in model.fields.items():
+            if isinstance(field, Timestamp):
+                try:
+                    print('\t~~~~~~~~~~~~CHANGIN TIME FROM', field, field._iv, field.field_value, field.initial_value, field._initial_value)
+                    field.field_value = field.initial_value
+                except Exception as e:
+                    print('!!!', e)
 
         return model
 

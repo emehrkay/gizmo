@@ -3,12 +3,11 @@ from copy import deepcopy
 
 from six import with_metaclass
 
-from .field import String, DateTime, List, Integer, Float
-from .field import Map, _Fields, Field, Enum
-from .utils import get_qualified_instance_name, IMMUTABLE
-from .utils import GIZMO_MODEL, GIZMO_CREATED, GIZMO_LABEL
-from .utils import GIZMO_MODIFIED, GIZMO_ID
-from .utils import current_date_time, camel_to_underscore
+from .field import (String, DateTime, List, Integer, Float, Map, _Fields,
+                    Field, Enum, Timestamp)
+from .utils import (get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL,
+                    GIZMO_CREATED, GIZMO_LABEL, GIZMO_MODIFIED, GIZMO_ID,
+                    current_date_time, camel_to_underscore)
 
 
 # Holds the model->object mappings
@@ -61,7 +60,7 @@ class _RootEntity(type):
                 GIZMO_CREATED: DateTime(value=current_date_time,
                                         data_type=data_type,
                                         set_max=1, track_changes=False),
-                GIZMO_MODIFIED: DateTime(value=modified,
+                GIZMO_MODIFIED: Timestamp(value=modified,
                                          data_type=data_type,
                                          track_changes=False),
                 GIZMO_LABEL: String(cls_label, data_type=data_type,
@@ -116,7 +115,7 @@ class _RootEntity(type):
                 for name, field in obj.items():
                     if not name.startswith('_'):
                         if isinstance(field, Field):
-                            value = field.value
+                            value = field._initial_value
 
                             if name in data:
                                 value = data[name]
@@ -137,7 +136,8 @@ class _RootEntity(type):
 
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
-                        elif type(field) is not property and not isfunction(field):
+                        elif type(field) is not property\
+                            and not isfunction(field):
                             setattr(self, name, field)
 
             def handle(handle_bases):
