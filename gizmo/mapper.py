@@ -409,11 +409,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         # update any Timestamp fields with right now
         for name, field in model.fields.items():
             if isinstance(field, Timestamp):
-                try:
-                    print('\t~~~~~~~~~~~~CHANGIN TIME FROM', field, field._iv, field.field_value, field.initial_value, field._initial_value)
-                    field.field_value = field.initial_value
-                except Exception as e:
-                    print('!!!', e)
+                field.field_value = field.initial_value
 
         return model
 
