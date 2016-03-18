@@ -324,9 +324,8 @@ class MirrorTests(unittest.TestCase):
         d = {'id': 'some_id value' + str(random.random())}
         t = TestMirror(d)
 
-        self.assertIsInstance(t['id_mirrored'], list)
+        self.assertIsInstance(t['id_mirrored'], str)
         self.assertIn(d['id'], t['id_mirrored'])
-        self.assertEqual(1, len(t['id_mirrored']))
 
     def test_can_mirror_one_field_with_callback(self):
         from gizmo.entity import Vertex
@@ -363,7 +362,7 @@ class MirrorTests(unittest.TestCase):
         }
         t = TestMirror(d)
 
-        self.assertIsInstance(t['id_mirrored'], list)
+        self.assertIsInstance(t['id_mirrored'], str)
         self.assertIn(d['id'], t['id_mirrored'])
         self.assertIn(d['name'], t['id_mirrored'])
 

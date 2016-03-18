@@ -119,7 +119,9 @@ class _RootEntity(type):
 
                             if name in data:
                                 value = data[name]
-                                del(undefined[name])
+
+                                if name in undefined:
+                                    del(undefined[name])
 
                             if name not in DEFAULT_MODEL_FIELDS:
                                 self.dirty = True

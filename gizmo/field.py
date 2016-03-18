@@ -330,12 +330,12 @@ class _Spy(object):
 
     def to_python(self):
         fields = [self.data[field] for field in self.fields
-                  if field in self.data]
+                  if field in self.data and self.data[field]]
 
         return self.callback(fields)
 
 
-class Mirror(_Spy, List):
+class Mirror(_Spy, String):
 
     def __init__(self, value=None, data_type='python', set_max=None,
                  track_changes=True, fields=None, callback=None):
@@ -350,7 +350,7 @@ class Mirror(_Spy, List):
         if callback and not hasattr(callback, '__call__'):
             raise ValueError('callback must be a callable function')
         elif not callback:
-            callback = lambda values: values
+            callback = lambda values: ', '.join(values)
 
         self.callback = callback
 
