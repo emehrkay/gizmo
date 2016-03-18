@@ -50,8 +50,9 @@ def build_vertex_create_query(entity, params=None, models=None):
     _immutable = entity._immutable
     props = []
     entity.field_type = 'graph'
+    entity_data = entity.data
 
-    for k, v in entity.data.items():
+    for k, v in entity_data.items():
         if k not in _immutable:
             value, params = get_dict_key(params, v, True)
             prop = "'%s', %s" % (k, value)

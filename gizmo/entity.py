@@ -4,7 +4,7 @@ from copy import deepcopy
 from six import with_metaclass
 
 from .field import (String, DateTime, List, Integer, Float, Map, _Fields,
-                    Field, Enum, Timestamp)
+                    Field, Enum, Timestamp, Mirror)
 from .utils import (get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL,
                     GIZMO_CREATED, GIZMO_LABEL, GIZMO_MODIFIED, GIZMO_ID,
                     current_date_time, camel_to_underscore)
@@ -52,7 +52,7 @@ class _RootEntity(type):
             # the modified field is a microsecond later than the created
             # this is done for testing purposes
             def modified():
-                return current_date_time(0.001)
+                return current_date_time(1)
 
             self.fields = _Fields({
                 GIZMO_MODEL: String(get_qualified_instance_name(self),
@@ -133,6 +133,9 @@ class _RootEntity(type):
 
                             if isinstance(field, Enum):
                                 kwargs['allowed'] = field.allowed
+                            elif isinstance(field, Mirror):
+                                kwargs['fields'] = field.fields
+                                kwargs['callback'] = field.callback
 
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
@@ -180,41 +183,14 @@ class _BaseEntity(with_metaclass(_RootEntity, object)):
 
         return self
 
-    def _add_undefined_field(self, name, value):
-        if isinstance(value, dict):
-            field = Map(value, self.data_type)
-        elif isinstance(value, list):
-            field = List(value, self.data_type)
-        elif isinstance(value, int):
-            field = Integer(value, self.data_type)
-        elif isinstance(value, float):
-            field = Float(value, self.data_type)
-        else:
-            field = String(value, self.data_type)
-
-        self.fields[name] = field
-
-        return field
+    def __getitem__(self, name):
+        return self.fields.get(name, self._allowed_undefined)
 
     def __setitem__(self, name, value):
-        if name not in self._immutable and name in self.fields:
-            self.fields[name].value = value
-            self.dirty = True
-        elif self._allowed_undefined:
-            self._add_undefined_field(name, value)
-            self.dirty = True
+        if name not in self._immutable:
+            self.fields.set(name, value, self._allowed_undefined)
 
         return self
-
-    def __getitem__(self, name):
-        value = None
-
-        if name in self.fields:
-            value = self.fields[name].value
-        elif self._allowed_undefined:
-            value = self._add_undefined_field(name, value).value
-
-        return value
 
     def __str__(self):
         return self.__unicode__()

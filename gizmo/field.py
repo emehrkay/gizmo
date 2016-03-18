@@ -12,6 +12,7 @@ class _Fields(dict):
         self.update(*args, **kwargs)
         self.data_type = 'python'
         self._initial_load = True
+        self._spied = []
 
     def __getitem__(self, field):
         obj = dict.__getitem__(self, field)
@@ -20,6 +21,50 @@ class _Fields(dict):
 
     def __setitem__(self, field, value):
         dict.__setitem__(self, field, value)
+
+        if isinstance(value, _Spy):
+            self._spied.append(value)
+
+    def set(self, name, value, allow_undefined=False):
+        if name in self:
+            field = self[name]
+            field.value = value
+        elif allow_undefined:
+            field = self._add_undefined_field(name, value)
+
+        if len(self._spied):
+            data = self.data
+
+            for field in self:
+                self[field].data = data
+
+        return self
+
+    def get(self, name, allow_undefined=False):
+        value = None
+
+        if name in self:
+            value = self[name].value
+        elif allow_undefined:
+            value = self._add_undefined_field(name, None).value
+
+        return value
+
+    def _add_undefined_field(self, name, value):
+        if isinstance(value, dict):
+            field = Map(value, self.data_type)
+        elif isinstance(value, list):
+            field = List(value, self.data_type)
+        elif isinstance(value, int):
+            field = Integer(value, self.data_type)
+        elif isinstance(value, float):
+            field = Float(value, self.data_type)
+        else:
+            field = String(value, self.data_type)
+
+        self[name] = field
+
+        return field
 
     def update(self, *args, **kwargs):
         for field, obj in dict(*args, **kwargs).items():
@@ -218,8 +263,8 @@ class Map(Field):
         return {}
 
     def to_python(self):
-        if isinstance(self.field_value, str) and\
-                len(self.field_value.replace(" ", "")):
+        if (isinstance(self.field_value, str) and
+            len(self.field_value.replace(" ", ""))):
             return json.load(self.field_value)
         else:
             return self.field_value
@@ -277,3 +322,38 @@ class Enum(Field):
     def _can_set(self, value):
         if super(Enum, self)._can_set(value) and value in self.allowed:
             self.field_value = value
+
+
+class _Spy(object):
+    data = {}
+    fields = []
+
+    def to_python(self):
+        fields = [self.data[field] for field in self.fields
+                  if field in self.data]
+
+        return self.callback(fields)
+
+
+class Mirror(_Spy, List):
+
+    def __init__(self, value=None, data_type='python', set_max=None,
+                 track_changes=True, fields=None, callback=None):
+        if not isinstance(fields, (list, tuple,)):
+            raise ValueError('fields must be a list')
+
+        if not fields:
+            fields = []
+
+        self.fields = fields
+
+        if callback and not hasattr(callback, '__call__'):
+            raise ValueError('callback must be a callable function')
+        elif not callback:
+            callback = lambda values: values
+
+        self.callback = callback
+
+        super(Mirror, self).__init__(value=value, data_type=data_type,
+                                     set_max=set_max,
+                                     track_changes=track_changes)

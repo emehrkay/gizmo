@@ -310,5 +310,84 @@ class EnumTests(unittest.TestCase):
 
         self.assertNotEqual(f.value, v)
 
+
+class MirrorTests(unittest.TestCase):
+
+    def test_can_mirror_one_field(self):
+        from gizmo.entity import Vertex
+        from gizmo.field import String, Mirror
+
+        class TestMirror(Vertex):
+            id = String()
+            id_mirrored = Mirror(fields=['id',])
+
+        d = {'id': 'some_id value' + str(random.random())}
+        t = TestMirror(d)
+
+        self.assertIsInstance(t['id_mirrored'], list)
+        self.assertIn(d['id'], t['id_mirrored'])
+        self.assertEqual(1, len(t['id_mirrored']))
+
+    def test_can_mirror_one_field_with_callback(self):
+        from gizmo.entity import Vertex
+        from gizmo.field import String, Mirror
+
+        def flatten(fields):
+            return ''.join(fields)
+
+        class TestMirror(Vertex):
+            id = String()
+            id_mirrored = Mirror(fields=['id',], callback=flatten)
+
+        d = {'id': 'some_id value' + str(random.random())}
+        t = TestMirror(d)
+
+        self.assertIsInstance(t['id_mirrored'], str)
+        self.assertEqual(d['id'], t['id_mirrored'])
+
+    def test_can_mirror_multiple_fields(self):
+        from gizmo.entity import Vertex
+        from gizmo.field import String, Mirror
+
+        def flatten(fields):
+            return ''.join(fields)
+
+        class TestMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirrored = Mirror(fields=['id', 'name'])
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMirror(d)
+
+        self.assertIsInstance(t['id_mirrored'], list)
+        self.assertIn(d['id'], t['id_mirrored'])
+        self.assertIn(d['name'], t['id_mirrored'])
+
+    def test_can_mirror_multiple_fields_with_callback(self):
+        from gizmo.entity import Vertex
+        from gizmo.field import String, Mirror
+
+        def flatten(fields):
+            return ''.join(fields)
+
+        class TestMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirrored = Mirror(fields=['id', 'name'], callback=flatten)
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMirror(d)
+
+        self.assertIsInstance(t['id_mirrored'], str)
+        self.assertEqual(d['id'] + d['name'], t['id_mirrored'])
+
+
 if __name__ == '__main__':
     unittest.main()
