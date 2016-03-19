@@ -33,7 +33,6 @@ class _RootEntity(type):
             if data is None:
                 data = {}
 
-            self.dirty = False
             self.data_type = data_type
 
             if hasattr(self, '_node_label'):
@@ -122,9 +121,6 @@ class _RootEntity(type):
 
                                 if name in undefined:
                                     del(undefined[name])
-
-                            if name not in DEFAULT_MODEL_FIELDS:
-                                self.dirty = True
 
                             kwargs = {
                                 'value': value,

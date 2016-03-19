@@ -1022,7 +1022,7 @@ class Query(object):
             err = 'The model must have an _id defined in order to update'
             raise QueryException([err])
 
-        if model.dirty is False:
+        if not len(model.changed):
             return self.by_id(model['_id'], model, set_variable)
 
         gremlin = self.gremlin
