@@ -22,7 +22,7 @@ class _Fields(dict):
     def __setitem__(self, field, value):
         dict.__setitem__(self, field, value)
 
-        if isinstance(value, _Spy):
+        if isinstance(value, Mirror):
             self._spied.append(value)
 
     def set(self, name, value, allow_undefined=False):
@@ -324,7 +324,7 @@ class Enum(Field):
             self.field_value = value
 
 
-class _Spy(object):
+class Mirror(Field):
     data = {}
     fields = []
 
@@ -332,10 +332,7 @@ class _Spy(object):
         fields = [self.data[field] for field in self.fields
                   if field in self.data and self.data[field]]
 
-        return self.callback(fields)
-
-
-class Mirror(_Spy, String):
+        return self.values(fields)
 
     def __init__(self, value=None, data_type='python', set_max=None,
                  track_changes=True, fields=None, callback=None):
@@ -350,10 +347,38 @@ class Mirror(_Spy, String):
         if callback and not hasattr(callback, '__call__'):
             raise ValueError('callback must be a callable function')
         elif not callback:
-            callback = lambda values: ', '.join(values)
+            callback = self._callback()
 
         self.callback = callback
 
         super(Mirror, self).__init__(value=value, data_type=data_type,
                                      set_max=set_max,
                                      track_changes=track_changes)
+
+    def _callback(self):
+        return lambda values: values
+
+
+class StringMirror(Mirror, String):
+
+    def values(self, fields):
+        return self.callback([str(value) for value in fields if value])
+
+    def _callback(self):
+        return lambda values: ', '.join(values)
+
+
+class MapMirror(Mirror, Map):
+
+    def to_python(self):
+        return self.values(self.data)
+
+    def values(self, fields):
+        return self.callback(fields)
+
+
+class ListMirror(Mirror, List):
+
+    def values(self, fields):
+        return self.callback(fields)
+

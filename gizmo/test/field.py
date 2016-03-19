@@ -311,15 +311,15 @@ class EnumTests(unittest.TestCase):
         self.assertNotEqual(f.value, v)
 
 
-class MirrorTests(unittest.TestCase):
+class StringMirrorTests(unittest.TestCase):
 
     def test_can_mirror_one_field(self):
         from gizmo.entity import Vertex
-        from gizmo.field import String, Mirror
+        from gizmo.field import String, StringMirror
 
         class TestMirror(Vertex):
             id = String()
-            id_mirrored = Mirror(fields=['id',])
+            id_mirrored = StringMirror(fields=['id',])
 
         d = {'id': 'some_id value' + str(random.random())}
         t = TestMirror(d)
@@ -329,14 +329,14 @@ class MirrorTests(unittest.TestCase):
 
     def test_can_mirror_one_field_with_callback(self):
         from gizmo.entity import Vertex
-        from gizmo.field import String, Mirror
+        from gizmo.field import String, StringMirror
 
         def flatten(fields):
             return ''.join(fields)
 
         class TestMirror(Vertex):
             id = String()
-            id_mirrored = Mirror(fields=['id',], callback=flatten)
+            id_mirrored = StringMirror(fields=['id',], callback=flatten)
 
         d = {'id': 'some_id value' + str(random.random())}
         t = TestMirror(d)
@@ -346,7 +346,7 @@ class MirrorTests(unittest.TestCase):
 
     def test_can_mirror_multiple_fields(self):
         from gizmo.entity import Vertex
-        from gizmo.field import String, Mirror
+        from gizmo.field import String, StringMirror
 
         def flatten(fields):
             return ''.join(fields)
@@ -354,7 +354,7 @@ class MirrorTests(unittest.TestCase):
         class TestMirror(Vertex):
             id = String()
             name = String()
-            id_mirrored = Mirror(fields=['id', 'name'])
+            id_mirrored = StringMirror(fields=['id', 'name'])
 
         d = {
             'id': 'some_id value' + str(random.random()),
@@ -368,7 +368,7 @@ class MirrorTests(unittest.TestCase):
 
     def test_can_mirror_multiple_fields_with_callback(self):
         from gizmo.entity import Vertex
-        from gizmo.field import String, Mirror
+        from gizmo.field import String, StringMirror
 
         def flatten(fields):
             return ''.join(fields)
@@ -376,7 +376,7 @@ class MirrorTests(unittest.TestCase):
         class TestMirror(Vertex):
             id = String()
             name = String()
-            id_mirrored = Mirror(fields=['id', 'name'], callback=flatten)
+            id_mirrored = StringMirror(fields=['id', 'name'], callback=flatten)
 
         d = {
             'id': 'some_id value' + str(random.random()),
@@ -386,6 +386,36 @@ class MirrorTests(unittest.TestCase):
 
         self.assertIsInstance(t['id_mirrored'], str)
         self.assertEqual(d['id'] + d['name'], t['id_mirrored'])
+
+
+class MapMirrorTests(unittest.TestCase):
+
+    def test_can_mirror_one_field(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_one_field_with_callback(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_multiple_fields(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_multiple_fields_with_callback(self):
+        self.assertTrue(False)
+
+
+class ListMirrorTests(unittest.TestCase):
+
+    def test_can_mirror_one_field(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_one_field_with_callback(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_multiple_fields(self):
+        self.assertTrue(False)
+
+    def test_can_mirror_multiple_fields_with_callback(self):
+        self.assertTrue(False)
 
 
 if __name__ == '__main__':
