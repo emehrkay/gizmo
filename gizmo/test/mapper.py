@@ -179,7 +179,7 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(v._type, 'vertex')
 
     def test_can_create_vertex_with_data(self):
-        d = {'some_field': random()}
+        d = {'some_field': str(random())}
         v = self.mapper.create_model(d, TestVertex)
         vd = v.data
 
@@ -239,11 +239,11 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(expected, self.mapper.queries[0])
 
     def test_can_delete_multiple_entities(self):
-        v1 = {'_id': 15}
-        v2 = {'_id': 10}
+        v1 = {'_id': '15'}
+        v2 = {'_id': '10'}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
-        ed = {'out_v': out_v, 'in_v': in_v, '_id': 44}
+        ed = {'out_v': out_v, 'in_v': in_v, '_id': '44'}
         edge = self.mapper.create_model(ed, TestEdge)
 
         self.mapper.delete(out_v)
@@ -268,8 +268,8 @@ class MapperTests(unittest.TestCase):
             self.assertIn(exp, self.mapper.queries)
 
     def test_can_create_edge_with_existing_vertices(self):
-        v1 = {'_id': 15}
-        v2 = {'_id': 10}
+        v1 = {'_id': '15'}
+        v2 = {'_id': '10'}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
@@ -280,8 +280,8 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(isinstance(edge.in_v, TestVertex))
 
     def test_can_create_edge_with_existing_vertices_query(self):
-        v1 = {'_id': 15}
-        v2 = {'_id': 10, 'some_field': str(random())}
+        v1 = {'_id': '15'}
+        v2 = {'_id': '10', 'some_field': str(random())}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
@@ -308,7 +308,7 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(return_query, queries[3])
 
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
-        v1 = {'_id': 15}
+        v1 = {'_id': '15'}
         v2 = {}
         out_v = self.mapper.create_model(v1, TestVertex)
         self.mapper.save(out_v)
@@ -336,8 +336,8 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(return_query, queries[3])
 
     def test_can_queue_save_edge_with_existing_vertices(self):
-        v1 = {'_id': 15}
-        v2 = {'_id': 10}
+        v1 = {'_id': '15'}
+        v2 = {'_id': '10'}
         out_v = self.mapper.create_model(v1, TestVertex)
         in_v = self.mapper.create_model(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
@@ -382,7 +382,7 @@ class MapperTests(unittest.TestCase):
         def delete_test_callback(model):
             variable['v'] = updated
 
-        m = self.mapper.create_model({'_id': 15}, TestVertex)
+        m = self.mapper.create_model({'_id': '15'}, TestVertex)
         yield self.mapper.delete(m, callback=delete_test_callback).send()
 
         self.assertEqual(variable['v'], updated)

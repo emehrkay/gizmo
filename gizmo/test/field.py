@@ -56,10 +56,10 @@ class FieldTests(unittest.TestCase):
 
 class StringTests(unittest.TestCase):
 
-    def test_can_create_string_without_value_and_python_type_ret_none(self):
+    def test_can_create_string_without_value_and_python_type_ret_empty_string(self):
         f = String()
 
-        self.assertIsNone(f.value)
+        self.assertEqual('', f.value)
 
     def test_can_create_string_without_value_and_gremlin_type_ret_string(self):
         f = String(data_type='graph')
@@ -72,11 +72,11 @@ class StringTests(unittest.TestCase):
 
         self.assertIsInstance(f.value, str)
 
-    def test_can_create_string_with_numeric_value_ret_numeric_value(self):
+    def test_can_create_string_with_numeric_value_ret_str_value(self):
         v = random.random()
         f = String(value=v)
 
-        self.assertIsInstance(f.value, type(v))
+        self.assertIsInstance(f.value, str)
 
 
 class IntegerTests(unittest.TestCase):

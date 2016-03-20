@@ -115,13 +115,6 @@ class _RootEntity(type):
                     if not name.startswith('_'):
                         if isinstance(field, Field):
                             value = field._initial_value
-
-                            if name in data:
-                                value = data[name]
-
-                                if name in undefined:
-                                    del(undefined[name])
-
                             kwargs = {
                                 'value': value,
                                 'data_type': field.data_type,

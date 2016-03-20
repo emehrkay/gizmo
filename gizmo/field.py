@@ -35,8 +35,8 @@ class _Fields(dict):
         if len(self._spied):
             data = self.data
 
-            for field in self:
-                self[field].data = data
+            for field in self._spied:
+                field.data = data
 
         return self
 
@@ -191,8 +191,11 @@ class Field(object):
 
 class String(Field):
 
+    def to_python(self):
+        return str(self.field_value) if self.field_value else ''
+
     def to_graph(self):
-        return '' if self.field_value is None else str(self.field_value)
+        return '' if not self.field_value else str(self.field_value)
 
 
 class Integer(Field):
@@ -333,6 +336,9 @@ class Mirror(Field):
                   if field in self.data and self.data[field]]
 
         return self.values(fields)
+
+    def to_graph(self):
+        return self.to_python()
 
     def __init__(self, value=None, data_type='python', set_max=None,
                  track_changes=True, fields=None, callback=None):

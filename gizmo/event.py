@@ -33,10 +33,6 @@ class EventSourceMixin(object):
 
     When using this mixin there are a few things that need to be
     considered:
-        * If you're creating an entity for the first time and
-        want the changes to be captured, you do not pass the
-        values in with construction, but rather hydrate
-        *
     """
 
     def save(self, model, bind_return=True, callback=None, source=None,
