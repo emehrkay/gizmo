@@ -80,7 +80,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         self.callbacks = {}
 
     def enqueue(self, query, bind_return=True):
-
         for entry in query.queries:
             global count
             count += 1
@@ -133,9 +132,29 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
+    def get_or_create(self, model, field, value, bind_return=False):
+        query = Query(self.gremlin, self.mapper)
+
+        if isinstance(model, type):
+            model = model()
+
+        query.get_or_create(model, field, value, bind_return)
+
+        return self.enqueue(query, bind_return)
+
+
     @gen.coroutine
     def data(self, entity):
         return entity.data
+
+    def before_save_action(self, model):
+        """method used to run any actions against the model before it is saved"""
+        # update any Timestamp fields with right now
+        for name, field in model.fields.items():
+            if isinstance(field, Timestamp):
+                field.field_value = field.initial_value
+
+        return model
 
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
@@ -152,6 +171,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             callback.insert(0, self.on_create)
 
         self._enqueue_callback(model, callback)
+        self.before_save_action(model)
 
         return getattr(self, method)(model=model, bind_return=bind_return)
 
@@ -405,11 +425,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         if '_id' in data:
             model.fields['_id'].value = data['_id']
 
-        # update any Timestamp fields with right now
-        for name, field in model.fields.items():
-            if isinstance(field, Timestamp):
-                field.field_value = field.initial_value
-
         return model
 
 
@@ -601,6 +616,17 @@ class Mapper(object):
         self.gremlin.func(entity, _id)
 
         res = yield self.query(gremlin=self.gremlin)
+
+        return res.first()
+
+    @gen.coroutine
+    def get_or_create(self, model, field, value):
+        mapper = self.get_mapper(model)
+
+        mapper.get_or_create(model=model, field=field, value=value)
+        self._enqueue_mapper(mapper)
+
+        res = yield self.send()
 
         return res.first()
 
@@ -924,10 +950,22 @@ class Query(object):
 
         getattr(gremlin, entity)(_id).next()
 
-        if set_variable is not None:
+        if set_variable:
             gremlin.set_ret_variable(set_variable)
 
         return self.add_gremlin_query(model)
+
+    def get_or_create(self, model, field, value, set_variable=None):
+        gremlin = self.gremlin
+        entity = 'E' if model._type == 'edge' else 'V'
+        b_label = gremlin.bind_param(str(model), 'GOC_LABEL')
+        b_val = gremlin.bind_param(value, 'GOC_VALUE')
+        b_field = '"{}"'.format(field)
+        gremlin.func(entity).has('"_label"', b_label[0]).has(b_field, b_val[0])
+        query = str(gremlin)
+        params = gremlin.bound_params
+
+        return self.add_query(query, params)
 
     def add_vertex(self, model, set_variable=False):
         self._register_entity(model)

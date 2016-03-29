@@ -447,3 +447,13 @@ class MapperTestCases(object):
         result = yield self.mapper.query(gremlin=gremlin)
 
         self.assertEqual(2, len(result))
+
+    @gen_test
+    def test_can_get_or_create_entity(self):
+        yield self.purge()
+
+        class GoCVertex(Vertex):
+            _allowed_undefined = True
+
+        goc_v = yield self.mapper.get_or_create(GoCVertex, 'name', 'mark')
+        print(goc_v)

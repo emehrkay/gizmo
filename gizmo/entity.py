@@ -130,8 +130,8 @@ class _RootEntity(type):
 
                             instance = field.__class__(**kwargs)
                             self.fields[name] = instance
-                        elif type(field) is not property\
-                            and not isfunction(field):
+                        elif (type(field) is not property
+                              and not isfunction(field)):
                             setattr(self, name, field)
 
             def handle(handle_bases):
