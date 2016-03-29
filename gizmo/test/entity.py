@@ -39,7 +39,7 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(v._type, 'vertex')
 
     def test_can_create_vertex_with_data(self):
-        d = {'some_field': 1}
+        d = {'some_field': '1'}
         v = TestVertex(d)
         data = v.data
 
@@ -54,7 +54,7 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(e.label, camel_to_underscore(e.__class__.__name__))
 
     def test_can_create_edge_with_data(self):
-        d = {'some_field': 1}
+        d = {'some_field': '1'}
         e = TestEdge(d)
         data = e.data
 
@@ -126,7 +126,7 @@ class EntityTests(unittest.TestCase):
         self.assertTrue(len(removed), 1)
 
     def test_can_get_rep_of_entity(self):
-        d = {'_id': 1}
+        d = {'_id': '1'}
         v = TestVertex(d)
         entity, id = v.get_rep()
 
@@ -168,7 +168,7 @@ class EntityTests(unittest.TestCase):
         n = 'name'
         val = v[n]
 
-        self.assertIsNone(val)
+        self.assertIsInstance(v.fields[n], String)
 
     def test_can_create_entities_that_can_subclass_entities(self):
         class Base(Vertex):

@@ -513,18 +513,46 @@ class MapperTests(unittest.TestCase):
         self.mapper.get_or_create(GOCVertex, d)
         self.mapper._build_queries()
 
+        gv = self.mapper.gremlin.gv
         params = copy.deepcopy(self.mapper.params)
         queries = self.mapper.queries
         models = self.mapper.models
-        create = build_vertex_create_query(GOCVertex(), params, models)
-        outer = '{}.V().has("name", goc_vertex__name__0).tryNext().orElseGet\{{}\}'
-        print(create)
-        print(queries)
-        
+        create = build_vertex_create_query(GOCVertex(d), params, models)
+        name, _ = get_dict_key(params, d['name'], False)
+        expected = ('{}.V().has("name", {})'
+                    '.tryNext().orElseGet{{{}}}').format(gv, name, create)
+
+        self.assertEqual(expected, queries[0])
 
     def test_can_get_or_create_a_vertex_with_statement(self):
-        d = {'some_field': str(random())}
-        self.mapper.get_or_create(TestVertex, d)
+        from gremlinpy.statement import Statement
+
+        class TestStatement(Statement):
+
+            def build(self):
+                # adds .extra() to the query
+                gremlin = self.gremlin
+                gremlin.extra()
+
+
+        class GOCVertex(Vertex):
+            _allowed_undefined = True
+
+
+        d = {'name': str(random())}
+        self.mapper.get_or_create(GOCVertex, d, statement=TestStatement())
+        self.mapper._build_queries()
+
+        gv = self.mapper.gremlin.gv
+        params = copy.deepcopy(self.mapper.params)
+        queries = self.mapper.queries
+        models = self.mapper.models
+        create = build_vertex_create_query(GOCVertex(d), params, models)
+        name, _ = get_dict_key(params, d['name'], False)
+        expected = ('{}.V().has("name", {}).extra()'
+                    '.tryNext().orElseGet{{{}}}').format(gv, name, create)
+
+        self.assertEqual(expected, queries[0])
 
 
 class QueryTests(unittest.TestCase):
