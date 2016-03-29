@@ -486,9 +486,7 @@ class MapperTests(unittest.TestCase):
         self.assertEqual(city, data['city'])
 
     def test_can_assure_saving_vertex_mulitple_times_only_crud_once(self):
-        d = {
-            'name': 'name{}'.format(str(random()))
-        }
+        d = {'some_field': str(random())}
         v = self.mapper.create_model(d, TestVertex)
 
         self.mapper.save(v).save(v)._build_queries()
@@ -504,6 +502,29 @@ class MapperTests(unittest.TestCase):
 
     def test_can_assure_saving_edge_and_vertex_mulitple_times_only_crud_once(self):
         self.assertTrue(False)
+
+    def test_can_get_or_create_a_vertex(self):
+
+        class GOCVertex(Vertex):
+            _allowed_undefined = True
+
+
+        d = {'name': str(random())}
+        self.mapper.get_or_create(GOCVertex, d)
+        self.mapper._build_queries()
+
+        params = copy.deepcopy(self.mapper.params)
+        queries = self.mapper.queries
+        models = self.mapper.models
+        create = build_vertex_create_query(GOCVertex(), params, models)
+        outer = '{}.V().has("name", goc_vertex__name__0).tryNext().orElseGet\{{}\}'
+        print(create)
+        print(queries)
+        
+
+    def test_can_get_or_create_a_vertex_with_statement(self):
+        d = {'some_field': str(random())}
+        self.mapper.get_or_create(TestVertex, d)
 
 
 class QueryTests(unittest.TestCase):

@@ -455,5 +455,13 @@ class MapperTestCases(object):
         class GoCVertex(Vertex):
             _allowed_undefined = True
 
-        goc_v = yield self.mapper.get_or_create(GoCVertex, 'name', 'mark')
-        print(goc_v)
+        goc_v = yield self.mapper.get_or_create_entity(GoCVertex, field_val={'name': 'mark'})
+        goc_v2 = yield self.mapper.get_or_create_entity(GoCVertex, field_val={'name': 'mark'})
+
+        ins = GoCVertex()
+        g = self.mapper.gremlin
+        g.V().has('"_label"', str(ins))
+        res = yield self.mapper.query(gremlin=g)
+
+        self.assertEqual(goc_v['_id'], goc_v2['_id'])
+        self.assertEqual(1, len(res))

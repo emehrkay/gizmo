@@ -132,23 +132,66 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, model)
         return self.enqueue(query, bind_return)
 
-    def get_or_create(self, model, field, value, bind_return=False):
-        query = Query(self.gremlin, self.mapper)
+    def get_or_create(self, model, field_val, bind_return=False,
+                      statement=None):
+        """method used to create a simple query that will get an entity
+        by matching the field_val pairs or create it based on those pairs.
+        If a gizmo.Statement is passed as an argument, it will be applied
+        to the get portion of the query.
+
+        expected code:
+
+            g.V().has('field', value).tryNext().orElseGet{
+                g.addV('field', value).next()
+            }
+        """
+        params = {}
+        queries = []
 
         if isinstance(model, type):
             model = model()
 
-        query.get_or_create(model, field, value, bind_return)
+        # build the create query
+        create_query = Query(self.gremlin, self.mapper)
 
-        return self.enqueue(query, bind_return)
+        model.hydrate(field_val)
+        create_query.save(model)
 
+        # build the get query
+        rep = 'E' if model._type == 'edge' else 'V'
+        gremlin = self.gremlin
+
+        gremlin.func(rep)
+
+        for field, val in field_val.items():
+            b_field =  create_query._entity_variable(model, field)
+            param = gremlin.bind_param(val, b_field)
+
+            gremlin.has('"{}"'.format(field), param[0])
+
+        if statement:
+            gremlin.apply_statement(statement)
+
+        for entry in create_query.queries:
+            queries.append(entry['script'])
+            self.params.update(entry['params'])
+
+        gremlin.tryNext().orElseGet.close(''.join(queries))
+
+        script = str(gremlin)
+        self.queries.append(script)
+        self.params.update(gremlin.bound_params)
+
+        return self
 
     @gen.coroutine
     def data(self, entity):
         return entity.data
 
     def before_save_action(self, model):
-        """method used to run any actions against the model before it is saved"""
+        """method used to run any actions against the model before it is
+        saved"""
+
         # update any Timestamp fields with right now
         for name, field in model.fields.items():
             if isinstance(field, Timestamp):
@@ -619,12 +662,20 @@ class Mapper(object):
 
         return res.first()
 
-    @gen.coroutine
-    def get_or_create(self, model, field, value):
+    def get_or_create(self, model, field_val, bind_return=False,
+                      statement=None):
         mapper = self.get_mapper(model)
 
-        mapper.get_or_create(model=model, field=field, value=value)
-        self._enqueue_mapper(mapper)
+        mapper.get_or_create(model=model, field_val=field_val,
+                             statement=statement)
+
+        return self._enqueue_mapper(mapper)
+
+    @gen.coroutine
+    def get_or_create_entity(self, model, field_val, bind_return=False,
+                             statement=None):
+        self.get_or_create(model=model, field_val=field_val,
+                           bind_return=bind_return, statement=statement)
 
         res = yield self.send()
 
@@ -807,22 +858,9 @@ class Query(object):
 
     def reset(self):
         self.fields = []
-        # self._conditional_used = False
-        #self.conditional = Conditional()
         self.conditional.set_gremlin(Gremlin(self.gremlin.gv))
 
         self.gremlin.reset()
-
-        return self
-
-    def set_before(self, gremlin):
-        script = str(gremlin)
-        params = gremlin.bound_params
-
-        self.queries.insert(0, {
-            'script': script,
-            'params': params,
-        })
 
         return self
 
@@ -852,31 +890,6 @@ class Query(object):
         self.add_query(script, params, model)
 
         return self.reset()
-
-    def done(self):
-        if self._conditional_used:
-            queries = self.queries
-            scripts = []
-            params = {}
-
-            for query_set in queries:
-                scripts.append(query_set['script'])
-                params.update(query_set['params'])
-
-            self.conditional.set_else(';'.join(scripts))
-            self.conditional.build()
-            script = str(self.conditional.gremlin)
-            params.update(self.conditional.gremlin.bound_params.copy())
-            self.queries = []
-            self.add_query(script, params)
-
-        return self
-
-    def set_if(self, condition, body):
-        self.conditional.set_if(condition, body)
-        self._conditional_used = True
-
-        return self
 
     def build_fields(self, entity, _immutable):
         gremlin = self.gremlin
@@ -954,18 +967,6 @@ class Query(object):
             gremlin.set_ret_variable(set_variable)
 
         return self.add_gremlin_query(model)
-
-    def get_or_create(self, model, field, value, set_variable=None):
-        gremlin = self.gremlin
-        entity = 'E' if model._type == 'edge' else 'V'
-        b_label = gremlin.bind_param(str(model), 'GOC_LABEL')
-        b_val = gremlin.bind_param(value, 'GOC_VALUE')
-        b_field = '"{}"'.format(field)
-        gremlin.func(entity).has('"_label"', b_label[0]).has(b_field, b_val[0])
-        query = str(gremlin)
-        params = gremlin.bound_params
-
-        return self.add_query(query, params)
 
     def add_vertex(self, model, set_variable=False):
         self._register_entity(model)
