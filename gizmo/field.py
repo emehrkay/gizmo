@@ -377,7 +377,13 @@ class StringMirror(Mirror, String):
 class MapMirror(Mirror, Map):
 
     def to_python(self):
-        return self.values(self.data)
+        fields = {}
+
+        for field, value in self.data.items():
+            if field in self.fields:
+                fields[field] = value
+
+        return self.values(fields)
 
     def values(self, fields):
         return self.callback(fields)

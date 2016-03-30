@@ -3,6 +3,7 @@ import json
 import unittest
 
 from gizmo.field import *
+from gizmo.entity import Vertex
 
 
 class FieldTests(unittest.TestCase):
@@ -367,8 +368,6 @@ class StringMirrorTests(unittest.TestCase):
         self.assertIn(d['name'], t['id_mirrored'])
 
     def test_can_mirror_multiple_fields_with_callback(self):
-        from gizmo.entity import Vertex
-        from gizmo.field import String, StringMirror
 
         def flatten(fields):
             return ''.join(fields)
@@ -391,31 +390,187 @@ class StringMirrorTests(unittest.TestCase):
 class MapMirrorTests(unittest.TestCase):
 
     def test_can_mirror_one_field(self):
-        self.assertTrue(False)
+
+        class TestMapMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = MapMirror(fields=['id'])
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMapMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], dict)
+        self.assertEqual(len(t['id_mirror']), 1)
+        key, val = t['id_mirror'].popitem()
+        self.assertEqual(val, d['id'])
+        self.assertEqual(val, t['id'])
 
     def test_can_mirror_one_field_with_callback(self):
-        self.assertTrue(False)
+        TEST = str(random.random())
+
+        def cb(values):
+            values['TEST'] = TEST
+            return values
+
+        class TestMapMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = MapMirror(fields=['id'], callback=cb)
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMapMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], dict)
+        self.assertEqual(len(t['id_mirror']), 2)
+
+        expected = [d['id'], TEST]
+
+        for e in expected:
+            self.assertIn(e, t['id_mirror'].values())
 
     def test_can_mirror_multiple_fields(self):
-        self.assertTrue(False)
+
+        class TestMapMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = MapMirror(fields=['id', 'name'])
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMapMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], dict)
+        self.assertEqual(len(t['id_mirror']), 2)
+
+        for f, v in d.items():
+            self.assertIn(v, t['id_mirror'].values())
 
     def test_can_mirror_multiple_fields_with_callback(self):
-        self.assertTrue(False)
+        TEST = str(random.random())
+
+        def cb(values):
+            values['TEST'] = TEST
+            return values
+
+        class TestMapMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = MapMirror(fields=['id', 'name'], callback=cb)
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestMapMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], dict)
+        self.assertEqual(len(t['id_mirror']), 3)
+
+        d['TEST'] = TEST
+
+        for f, v in d.items():
+            self.assertIn(v, t['id_mirror'].values())
 
 
 class ListMirrorTests(unittest.TestCase):
 
     def test_can_mirror_one_field(self):
-        self.assertTrue(False)
+
+        class TestListMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = ListMirror(fields=['id'])
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestListMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], list)
+        self.assertEqual(len(t['id_mirror']), 1)
+        self.assertIn(d['id'], t['id_mirror'])
 
     def test_can_mirror_one_field_with_callback(self):
-        self.assertTrue(False)
+        TEST = str(random.random())
+
+        def cb(values):
+            values.append(TEST)
+            return values
+
+        class TestListMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = ListMirror(fields=['id'], callback=cb)
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestListMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], list)
+        self.assertEqual(len(t['id_mirror']), 2)
+        self.assertIn(d['id'], t['id_mirror'])
+        self.assertIn(TEST, t['id_mirror'])
 
     def test_can_mirror_multiple_fields(self):
-        self.assertTrue(False)
+
+        class TestListMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = ListMirror(fields=['id', 'name'])
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestListMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], list)
+        self.assertEqual(len(t['id_mirror']), 2)
+        self.assertIn(d['id'], t['id_mirror'])
+        self.assertIn(d['name'], t['id_mirror'])
 
     def test_can_mirror_multiple_fields_with_callback(self):
-        self.assertTrue(False)
+        TEST = str(random.random())
+
+        def cb(values):
+            values.append(TEST)
+            return values
+
+        class TestListMirror(Vertex):
+            id = String()
+            name = String()
+            id_mirror = ListMirror(fields=['id', 'name'], callback=cb)
+
+
+        d = {
+            'id': 'some_id value' + str(random.random()),
+            'name': 'name' + str(random.random()),
+        }
+        t = TestListMirror(d)
+
+        self.assertIsInstance(t['id_mirror'], list)
+        self.assertEqual(len(t['id_mirror']), 3)
+        self.assertIn(d['id'], t['id_mirror'])
+        self.assertIn(d['name'], t['id_mirror'])
+        self.assertIn(TEST, t['id_mirror'])
 
 
 if __name__ == '__main__':

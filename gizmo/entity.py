@@ -33,6 +33,7 @@ class _RootEntity(type):
             if data is None:
                 data = {}
 
+            data = deepcopy(data)
             self.data_type = data_type
 
             if hasattr(self, '_node_label'):
