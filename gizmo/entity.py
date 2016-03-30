@@ -1,5 +1,5 @@
 from inspect import isfunction
-from copy import deepcopy
+from copy import copy, deepcopy
 
 from six import with_metaclass
 
@@ -33,7 +33,7 @@ class _RootEntity(type):
             if data is None:
                 data = {}
 
-            data = deepcopy(data)
+            data = copy(data)
             self.data_type = data_type
 
             if hasattr(self, '_node_label'):

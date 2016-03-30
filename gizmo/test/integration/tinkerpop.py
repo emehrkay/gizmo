@@ -14,7 +14,7 @@ class BaseTests(AsyncTestCase):
     def setUp(self):
         self.request = Request('localhost', 'gizmo_testing', port=8182)
         self.gremlin = Gremlin('gizmo_testing')
-        self.mapper = Mapper(self.request, self.gremlin, logger=None)
+        self.mapper = Mapper(self.request, self.gremlin, logger=False)
         super(BaseTests, self).setUp()
 
 

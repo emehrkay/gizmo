@@ -155,6 +155,7 @@ DEFAULT_INSERT_FIELDS = [
     GIZMO_MODEL,
     GIZMO_CREATED,
     GIZMO_MODIFIED,
+    GIZMO_LABEL,
 ]
 
 DEFAULT_UPDATE_FIELDS = [GIZMO_ID] + DEFAULT_INSERT_FIELDS
@@ -219,8 +220,8 @@ class MapperTests(unittest.TestCase):
 
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
-        expected = build_vertex_create_query(v, sent_params, \
-            self.mapper.models)
+        expected = build_vertex_create_query(v, sent_params,
+                                             self.mapper.models)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -289,16 +290,16 @@ class MapperTests(unittest.TestCase):
         label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
-        params = copy.deepcopy(self.mapper.params)
+        params = self.mapper.params
         queries = self.mapper.queries
-        out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
-            self.mapper.models)
-        in_v_query = build_vertex_update_query(in_v, v2['_id'], params, \
-            self.mapper.models)
+        out_v_query = build_vertex_update_query(out_v, v1['_id'], params,
+                                                self.mapper.models)
+        in_v_query = build_vertex_update_query(in_v, v2['_id'], params,
+                                               self.mapper.models)
         out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
         in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
-        edge_query = build_edge_create_query(edge, out_entry, in_entry, \
-            label, params, self.mapper.models)
+        edge_query = build_edge_create_query(edge, out_entry, in_entry,
+                                             label, params, self.mapper.models)
         return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
 
         self.assertEqual(len(queries), 4)
