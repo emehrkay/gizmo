@@ -63,6 +63,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
     VARIABLE = GIZMO_VARIABLE
     unique = False
     unique_fields = None
+    save_statements = None
 
     def __init__(self, gremlin=None, mapper=None):
         if gremlin is None:
@@ -199,6 +200,19 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         return model
 
+    def _build_save_statements(self, model, query, **kwargs):
+        statement_query = Query(Gremlin(self.gremlin.gv), self.mapper)
+        query_gremlin = Gremlin(self.mapper.gremlin.gv)
+
+        for statement in self.save_statements:
+            instance = statement(model, self, query, **kwargs)
+
+            query_gremlin.apply_statement(instance)
+
+        statement_query.add_query(str(query_gremlin), query_gremlin.bound_params)
+
+        return statement_query
+
     def save(self, model, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
         method = '_save_edge' if model._type == 'edge' else '_save_vertex'
@@ -218,7 +232,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         return getattr(self, method)(model=model, bind_return=bind_return)
 
-    def _save_vertex(self, model, bind_return=True):
+    def _save_vertexOLD(self, model, bind_return=True):
         """
         method used to save a model. IF both the unique_type and unique_fields
         params are set, it will run a sub query to check to see if an entity
@@ -316,7 +330,45 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
             return self.enqueue(query, bind_return)
 
-    def _save_edge(self, model, bind_return=True):
+    def _save_vertex(self, model, bind_return=True):
+        """
+        method used to save a model. IF both the unique_type and unique_fields
+        params are set, it will run a sub query to check to see if an entity
+        exists that matches those values
+        """
+        query = Query(self.gremlin, self.mapper)
+        ref = self.mapper.get_model_variable(model)
+
+        """
+        check to see if the model has been used already in the current script
+        execution.
+        If it has use the reference
+        if it hasnt, go through the process of saving it
+        """
+        if ref:
+            query.add_query(ref, params=None, model=model)
+
+            return self.enqueue(query, bind_return)
+
+        query.save(model)
+
+        if not model['_id'] and self.unique_fields:
+            from .statement import MapperUniqueVertex
+
+            if not self.save_statements:
+                self.save_statements = []
+
+            if MapperUniqueVertex not in self.save_statements:
+                self.save_statements.append(MapperUniqueVertex)
+
+        if self.save_statements and len(self.save_statements):
+            statement_query = self._build_save_statements(model, query)
+
+            return self.enqueue(statement_query, False)
+        else:
+            return self.enqueue(query, bind_return)
+
+    def _save_edgeOLD(self, model, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
         # TODO: send an edge to be saved multiple times
@@ -415,6 +467,69 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         else:
             query.save(model)
 
+            return self.enqueue(query, bind_return)
+
+    def _save_edge(self, model, bind_return=True):
+        query = Query(self.gremlin, self.mapper)
+        save = True
+        # TODO: send an edge to be saved multiple times
+        edge_ref = self.mapper.get_model_variable(model)
+        out_v = model.out_v
+        out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
+        in_v = model.in_v
+        in_v_id = in_v['_id'] if isinstance(in_v, Vertex) else None
+        out_v_ref = self.mapper.get_model_variable(out_v)
+        in_v_ref = self.mapper.get_model_variable(in_v)
+
+        if edge_ref:
+            query.add_query(edge_ref, params=None, model=model)
+
+            return self.enqueue(query, bind_return)
+
+        """
+        both out_v and in_v are checked to see if the models stored in each
+        respective variable has been used.
+        If they have not and they are Vertex instances with an empty _id,
+            send them to be saved.
+        if they have been used, use the reference variable in the create edge
+        logic
+        """
+        if not out_v_ref and isinstance(out_v, Vertex):
+            self.mapper.save(out_v)
+            out_v = self.mapper.get_model_variable(out_v)
+        else:
+            out_v = out_v_ref
+
+        if not in_v_ref and isinstance(in_v, Vertex):
+            self.mapper.save(in_v)
+            in_v = self.mapper.get_model_variable(in_v)
+        else:
+            in_v = in_v_ref
+
+        out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
+        in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
+
+        query.save(model)
+
+        if not model['_id'] and self.unique and in_v_id and out_v_id:
+            from .statement import MapperUniqueEdge
+
+            if not self.save_statements:
+                self.save_statements = []
+
+            if MapperUniqueEdge not in self.save_statements:
+                self.save_statements.append(MapperUniqueEdge)
+            
+
+        if self.save_statements and len(self.save_statements):
+            statement_query = self._build_save_statements(model, query,
+                                                          out_v_id=out_v_id,
+                                                          in_v_id=in_v_id,
+                                                          label=model[GIZMO_LABEL],
+                                                          direction=self.unique)
+
+            return self.enqueue(statement_query, False)
+        else:
             return self.enqueue(query, bind_return)
 
     def delete(self, model, lookup=True, callback=None):
@@ -843,9 +958,6 @@ class Query(object):
         self.fields = []
         self.queries = []
         self.entity_count = {}
-        self.conditional = Conditional()
-        self.conditional.set_gremlin(Gremlin(self.gremlin.gv))
-        self._conditional_used = False
 
     def _register_entity(self, entity):
         self.entity_count[entity] = get_entity_count(entity)
@@ -858,7 +970,6 @@ class Query(object):
 
     def reset(self):
         self.fields = []
-        self.conditional.set_gremlin(Gremlin(self.gremlin.gv))
 
         self.gremlin.reset()
 
