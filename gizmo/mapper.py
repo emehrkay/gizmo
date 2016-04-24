@@ -1111,10 +1111,11 @@ class Query(object):
             raise QueryException(['The edge must have a label before saving'])
 
         model.field_type = 'graph'
+        g = Gremlin(self.gremlin.gv)
         gremlin = self.gremlin
         out_v, in_v = self._get_or_create_edge_vertices(model)
         label_var = self.next_var('EDGE_LABEL')
-        label_bound = self.bind_param(model[GIZMO_LABEL], label_var)
+        label_bound = gremlin.bind_param(model[GIZMO_LABEL], label_var)
         edge_fields = ''
 
         if set_variable:
@@ -1122,10 +1123,10 @@ class Query(object):
 
         self.build_fields(model, IMMUTABLE['edge'])
 
-        g = Gremlin(gremlin.gv)
+
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        gremlin.unbound('addEdge', label_bound[0], str(g),
+        gremlin.unbound('addEdge', '"'+model[GIZMO_LABEL] +'"', str(g),
                         ', '.join(self.fields))
 
         model.field_type = 'python'

@@ -40,7 +40,9 @@ class MapperUniqueVertex(MapperStatement):
             gremlin.has(g_field, param)
 
         gremlin.tryNext().orElseGet.close(save_query['script'])
-        gremlin.bind_params(save_query['params'])
+
+        for entry in self.query.queries:
+            gremlin.bind_params(entry['params'])
 
 
 class MapperUniqueEdge(MapperStatement):
@@ -65,4 +67,6 @@ class MapperUniqueEdge(MapperStatement):
 
         gremlin.apply_statement(edge)
         gremlin.tryNext().orElseGet.close(save_query['script'])
-        gremlin.bind_params(save_query['params'])
+
+        for entry in self.query.queries:
+            gremlin.bind_params(entry['params'])
