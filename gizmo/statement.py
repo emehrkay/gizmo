@@ -41,9 +41,6 @@ class MapperUniqueVertex(MapperStatement):
 
         gremlin.tryNext().orElseGet.close(save_query['script'])
 
-        for entry in self.query.queries:
-            gremlin.bind_params(entry['params'])
-
 
 class MapperUniqueEdge(MapperStatement):
     """Statement used to build a gremlin query that will check for the existance of
@@ -67,6 +64,3 @@ class MapperUniqueEdge(MapperStatement):
 
         gremlin.apply_statement(edge)
         gremlin.tryNext().orElseGet.close(save_query['script'])
-
-        for entry in self.query.queries:
-            gremlin.bind_params(entry['params'])

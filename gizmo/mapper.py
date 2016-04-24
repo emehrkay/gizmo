@@ -204,6 +204,9 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         statement_query = Query(Gremlin(self.gremlin.gv), self.mapper)
         query_gremlin = Gremlin(self.mapper.gremlin.gv)
 
+        for entry in query.queries:
+            query_gremlin.bind_params(entry['params'])
+
         for statement in self.save_statements:
             instance = statement(model, self, query, **kwargs)
 
@@ -1123,10 +1126,9 @@ class Query(object):
 
         self.build_fields(model, IMMUTABLE['edge'])
 
-
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        gremlin.unbound('addEdge', '"'+model[GIZMO_LABEL] +'"', str(g),
+        gremlin.unbound('addEdge', label_var[0], str(g),
                         ', '.join(self.fields))
 
         model.field_type = 'python'
