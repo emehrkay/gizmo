@@ -209,7 +209,8 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
             query_gremlin.apply_statement(instance)
 
-        statement_query.add_query(str(query_gremlin), query_gremlin.bound_params)
+        statement_query.add_query(str(query_gremlin), query_gremlin.bound_params,
+                                  model=model)
 
         return statement_query
 
@@ -364,7 +365,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         if self.save_statements and len(self.save_statements):
             statement_query = self._build_save_statements(model, query)
 
-            return self.enqueue(statement_query, False)
+            return self.enqueue(statement_query, bind_return)
         else:
             return self.enqueue(query, bind_return)
 
@@ -519,7 +520,6 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
             if MapperUniqueEdge not in self.save_statements:
                 self.save_statements.append(MapperUniqueEdge)
-            
 
         if self.save_statements and len(self.save_statements):
             statement_query = self._build_save_statements(model, query,

@@ -96,6 +96,10 @@ class Response(object):
                     for k, v in arg.items():
                         if k in self.update_models:
                             model = self.update_models[k]
+
+                            if not model:
+                                continue
+
                             data = {}
                             fix_properties(v)
 
