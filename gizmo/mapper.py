@@ -1128,7 +1128,7 @@ class Query(object):
 
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
-        gremlin.unbound('addEdge', label_var[0], str(g),
+        gremlin.unbound('addEdge', label_bound[0], str(g),
                         ', '.join(self.fields))
 
         model.field_type = 'python'
