@@ -68,7 +68,7 @@ class EntityTestCases(object):
     @gen_test(timeout=10)
     def test_can_save_generic_vertex_and_update_its_id(self):
         data = {'name': 'mark', 'sex': 'male'}
-        v = self.mapper.create_model(data=data)
+        v = self.mapper.create(data=data)
 
         self.mapper.save(v)
 
@@ -78,7 +78,7 @@ class EntityTestCases(object):
     @gen_test
     def test_can_save_generic_vertex_and_get_response_entity_with_id(self):
         data = {'name': 'mark', 'sex': 'male'}
-        v = self.mapper.create_model(data=data)
+        v = self.mapper.create(data=data)
         self.mapper.save(v)
         r = yield self.mapper.send()
         v1 = r.first()
@@ -91,7 +91,7 @@ class EntityTestCases(object):
             _allowed_undefined = True
 
         data = {'name': 'mark', 'sex': 'male'}
-        v = self.mapper.create_model(data=data, model_class=TestVertex)
+        v = self.mapper.create(data=data, entity=TestVertex)
 
         yield self.mapper.save(v).send()
         self.entity_save_assertions(v)
@@ -102,7 +102,7 @@ class EntityTestCases(object):
             _allowed_undefined = True
 
         data = {'name': 'mark', 'sex': 'male'}
-        v = self.mapper.create_model(data=data, model_class=TestVertex)
+        v = self.mapper.create(data=data, entity=TestVertex)
         self.mapper.save(v)
         r = yield self.mapper.send()
         v1 = r.first()
@@ -112,8 +112,8 @@ class EntityTestCases(object):
     @gen_test
     def test_can_save_generic_edge_with_two_generic_vertices_all_at_once_and_update_all_ids(self):
         label = 'some_label'
-        v1 = self.mapper.create_model()
-        v2 = self.mapper.create_model()
+        v1 = self.mapper.create()
+        v2 = self.mapper.create()
         e = self.mapper.connect(v1, v2, label)
 
         yield self.mapper.save(e).send()
@@ -127,8 +127,8 @@ class EntityTestCases(object):
             _allowed_undefined = True
 
         label = 'some_label'
-        v1 = self.mapper.create_model(model_class=TestVertex)
-        v2 = self.mapper.create_model()
+        v1 = self.mapper.create(entity=TestVertex)
+        v2 = self.mapper.create()
         e = self.mapper.connect(v1, v2, label)
 
         yield self.mapper.save(e).send()
@@ -145,8 +145,8 @@ class EntityTestCases(object):
             _allowed_undefined = True
 
         label = 'some_label'
-        v1 = self.mapper.create_model(model_class=TestVertex)
-        v2 = self.mapper.create_model(model_class=TestVertex2)
+        v1 = self.mapper.create(entity=TestVertex)
+        v2 = self.mapper.create(entity=TestVertex2)
         e = self.mapper.connect(v1, v2, label)
 
         yield self.mapper.save(e).send()
@@ -166,9 +166,9 @@ class EntityTestCases(object):
             pass
 
         label = 'some_label'
-        v1 = self.mapper.create_model(model_class=TestVertex)
-        v2 = self.mapper.create_model(model_class=TestVertex2)
-        e = self.mapper.connect(v1, v2, label, edge_model=TestEdge)
+        v1 = self.mapper.create(entity=TestVertex)
+        v2 = self.mapper.create(entity=TestVertex2)
+        e = self.mapper.connect(v1, v2, label, edge_entity=TestEdge)
 
         yield self.mapper.save(e).send()
         self.entity_save_assertions(v1)
@@ -187,7 +187,7 @@ class EntityTestCases(object):
         class UpdateVertex(Vertex):
             _allowed_undefined = True
 
-        v = self.mapper.create_model(data=data, model_class=UpdateVertex)
+        v = self.mapper.create(data=data, entity=UpdateVertex)
         x = yield self.mapper.save(v).send()
         first = x.first()
 
@@ -208,7 +208,7 @@ class EntityTestCases(object):
         class RemoveVertex(Vertex):
             pass
 
-        v = self.mapper.create_model(model_class=RemoveVertex)
+        v = self.mapper.create(entity=RemoveVertex)
         x = yield self.mapper.save(v).send()
         all_v = self.mapper.gremlin.V()
         res = yield self.mapper.query(gremlin=self.mapper.gremlin)
@@ -232,9 +232,9 @@ class EntityTestCases(object):
         class RemoveEdge2(Edge):
             pass
 
-        v1 = self.mapper.create_model(model_class=RemoveVertex2)
-        v2 = self.mapper.create_model(model_class=RemoveVertex2)
-        e = self.mapper.connect(v1, v2, edge_model=RemoveEdge2)
+        v1 = self.mapper.create(entity=RemoveVertex2)
+        v2 = self.mapper.create(entity=RemoveVertex2)
+        e = self.mapper.connect(v1, v2, edge_entity=RemoveEdge2)
         yield self.mapper.save(e).send()
 
         all_v = self.mapper.gremlin.V()
@@ -267,9 +267,9 @@ class EntityTestCases(object):
         class RemoveEdge2(Edge):
             pass
 
-        v1 = self.mapper.create_model(model_class=RemoveVertex2)
-        v2 = self.mapper.create_model(model_class=RemoveVertex2)
-        e = self.mapper.connect(v1, v2, edge_model=RemoveEdge2)
+        v1 = self.mapper.create(entity=RemoveVertex2)
+        v2 = self.mapper.create(entity=RemoveVertex2)
+        e = self.mapper.connect(v1, v2, edge_entity=RemoveEdge2)
         yield self.mapper.save(e).send()
 
         all_v = self.mapper.gremlin.V()
@@ -302,14 +302,14 @@ class MapperTestCases(object):
 
 
         class MapperTestMapperCustom(_GenericMapper):
-            model = MapperTestVertexCutsom
+            entity = MapperTestVertexCutsom
 
-            def create_model(self, *args, **kwargs):
-                entity = super(MapperTestMapperCustom, self).create_model(*args, **kwargs)
+            def create(self, *args, **kwargs):
+                entity = super(MapperTestMapperCustom, self).create(*args, **kwargs)
                 entity['variable'] = variable
                 return entity
 
-        v = self.mapper.create_model(model_class=MapperTestVertexCutsom)
+        v = self.mapper.create(entity=MapperTestVertexCutsom)
         d = v.data
 
         self.assertIsInstance(v, MapperTestVertexCutsom)
@@ -317,7 +317,7 @@ class MapperTestCases(object):
         self.assertEqual(d['variable'], variable)
 
     @gen_test(timeout=900)
-    def test_can_restrict_model_creation_based_on_duplicate_field_values(self):
+    def test_can_restrict_entity_creation_based_on_duplicate_field_values(self):
         yield self.purge()
 
         class MapperTestVertexDuplicate(Vertex):
@@ -325,13 +325,13 @@ class MapperTestCases(object):
 
 
         class MapperTestMapper(_GenericMapper):
-            model = MapperTestVertexDuplicate
+            entity = MapperTestVertexDuplicate
             unique_fields = ['first_name',]
 
 
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexDuplicate)
+        v1 = self.mapper.create(data=d, entity=MapperTestVertexDuplicate)
+        v2 = self.mapper.create(data=d, entity=MapperTestVertexDuplicate)
 
         r = yield self.mapper.save(v1).send()
         r2 = yield self.mapper.save(v2).send()
@@ -342,7 +342,7 @@ class MapperTestCases(object):
         self.assertEqual(1, len(res))
 
     @gen_test
-    def test_can_restrict_multiple_model_connections_both_direction(self):
+    def test_can_restrict_multiple_entity_connections_both_direction(self):
         yield self.purge()
 
         class MapperTestVertexRestrict(Vertex):
@@ -352,14 +352,14 @@ class MapperTestCases(object):
             _allowed_undefined = True
 
         class MapperTestEdgeMapperRestrict(_GenericMapper):
-            model = MapperTestEdgeRestrict
+            entity = MapperTestEdgeRestrict
             unique = 'both'
 
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrict)
-        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
-        e2 = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrict)
+        v1 = self.mapper.create(data=d, entity=MapperTestVertexRestrict)
+        v2 = self.mapper.create(data=d, entity=MapperTestVertexRestrict)
+        e = self.mapper.connect(v1, v2, edge_entity=MapperTestEdgeRestrict)
+        e2 = self.mapper.connect(v1, v2, edge_entity=MapperTestEdgeRestrict)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
         gremlin = self.mapper.gremlin.E()
@@ -368,7 +368,7 @@ class MapperTestCases(object):
         self.assertEqual(1, len(result))
 
     @gen_test
-    def test_can_restrict_multiple_model_connections_in_direction(self):
+    def test_can_restrict_multiple_entity_connections_in_direction(self):
         yield self.purge()
 
         class MapperTestVertexRestrictIn(Vertex):
@@ -378,14 +378,14 @@ class MapperTestCases(object):
             _allowed_undefined = True
 
         class MapperTestEdgeMapperRestrictIN(_GenericMapper):
-            model = MapperTestEdgeRestrictIn
+            entity = MapperTestEdgeRestrictIn
             unique = 'in'
 
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictIn)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictIn)
-        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictIn)
-        e2 = self.mapper.connect(v2, v1, edge_model=MapperTestEdgeRestrictIn)
+        v1 = self.mapper.create(data=d, entity=MapperTestVertexRestrictIn)
+        v2 = self.mapper.create(data=d, entity=MapperTestVertexRestrictIn)
+        e = self.mapper.connect(v1, v2, edge_entity=MapperTestEdgeRestrictIn)
+        e2 = self.mapper.connect(v2, v1, edge_entity=MapperTestEdgeRestrictIn)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
         gremlin = self.mapper.gremlin.E()
@@ -394,7 +394,7 @@ class MapperTestCases(object):
         self.assertEqual(1, len(result))
 
     @gen_test
-    def test_can_restrict_multiple_model_connections_out_direction(self):
+    def test_can_restrict_multiple_entity_connections_out_direction(self):
         yield self.purge()
 
         class MapperTestVertexRestrictOut(Vertex):
@@ -404,14 +404,14 @@ class MapperTestCases(object):
             _allowed_undefined = True
 
         class MapperTestEdgeMapperRestrictOut(_GenericMapper):
-            model = MapperTestEdgeRestrictOut
+            entity = MapperTestEdgeRestrictOut
             unique = 'in'
 
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictOut)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictOut)
-        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictOut)
-        e2 = self.mapper.connect(v2, v1, edge_model=MapperTestEdgeRestrictOut)
+        v1 = self.mapper.create(data=d, entity=MapperTestVertexRestrictOut)
+        v2 = self.mapper.create(data=d, entity=MapperTestVertexRestrictOut)
+        e = self.mapper.connect(v1, v2, edge_entity=MapperTestEdgeRestrictOut)
+        e2 = self.mapper.connect(v2, v1, edge_entity=MapperTestEdgeRestrictOut)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
         gremlin = self.mapper.gremlin.E()
@@ -430,16 +430,16 @@ class MapperTestCases(object):
             _allowed_undefined = True
 
         class MapperTestEdgeMapperRestrictAgain(_GenericMapper):
-            model = MapperTestEdgeRestrictAgain
+            entity = MapperTestEdgeRestrictAgain
             unique = 'both'
 
         d = {'first_name': 'mark' + str(random.random())}
-        v1 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
-        v2 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
-        v3 = self.mapper.create_model(data=d, model_class=MapperTestVertexRestrictAgain)
-        e = self.mapper.connect(v1, v2, edge_model=MapperTestEdgeRestrictAgain)
-        e2 = self.mapper.connect(v1, v3, edge_model=MapperTestEdgeRestrictAgain)
-        e3 = self.mapper.connect(v1, v3, edge_model=MapperTestEdgeRestrictAgain)
+        v1 = self.mapper.create(data=d, entity=MapperTestVertexRestrictAgain)
+        v2 = self.mapper.create(data=d, entity=MapperTestVertexRestrictAgain)
+        v3 = self.mapper.create(data=d, entity=MapperTestVertexRestrictAgain)
+        e = self.mapper.connect(v1, v2, edge_entity=MapperTestEdgeRestrictAgain)
+        e2 = self.mapper.connect(v1, v3, edge_entity=MapperTestEdgeRestrictAgain)
+        e3 = self.mapper.connect(v1, v3, edge_entity=MapperTestEdgeRestrictAgain)
         res = yield self.mapper.save(e).send()
         res2 = yield self.mapper.save(e2).send()
         res2 = yield self.mapper.save(e3).send()
@@ -449,14 +449,14 @@ class MapperTestCases(object):
         self.assertEqual(2, len(result))
 
     @gen_test
-    def test_can_get_or_create_entity(self):
+    def test_can_get_or_create(self):
         yield self.purge()
 
         class GoCVertex(Vertex):
             _allowed_undefined = True
 
-        goc_v = yield self.mapper.get_or_create_entity(GoCVertex, field_val={'name': 'mark'})
-        goc_v2 = yield self.mapper.get_or_create_entity(GoCVertex, field_val={'name': 'mark'})
+        goc_v = yield self.mapper.get_or_create(GoCVertex, field_val={'name': 'mark'})
+        goc_v2 = yield self.mapper.get_or_create(GoCVertex, field_val={'name': 'mark'})
 
         ins = GoCVertex()
         g = self.mapper.gremlin

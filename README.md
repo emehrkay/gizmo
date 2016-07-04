@@ -7,7 +7,7 @@ Gizmo is a lightweight asynchronous Python >=2.7 Object Graph Mapper (O.G.M.) fo
 
 ### About
 
-Gizmo starts and ends with Rexster. It is made up of model, mapper, query, request, response, and other objects whose job is to convert pure Python to a Rexster string to be executed on a server.
+Gizmo starts and ends with Rexster. It is made up of entity, mapper, query, request, response, and other objects whose job is to convert pure Python to a Rexster string to be executed on a server.
 
 Gizmo is a loose implementation of a [Data Mapper](). You have entites, mappers, and adapters (in the form of request objects). This means that the entity objects know nothing of storage, it cannot persist itself nor can it directly get more data than what was given to it. 
 
@@ -100,7 +100,7 @@ print(b) # it will print out 31 in 3 seconds
 
 
 
-# utilitize the model and mapper system
+# utilitize the entity and mapper system
 class User(Vertex):
     _allowed_undefined = True
 
@@ -175,11 +175,11 @@ This readme will build an example of a simple blog data schema covering some of 
 
 A [graph](http://en.wikipedia.org/wiki/Graph_(mathematics\)) is defined as a representation of a set of objects where some pairs of objects are connected by links. The objects are commonly referred to as nodes or vertices and links as edges. Vertices are your objects and edges are the connections between your objects. 
 
-Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You will extend these to create custom model definitions or you can use the `GenericVertex` for vertices and `GenericEdge` for edges.
+Gizmo's entity module contians definitions for `Vertex` and `Edge` objects. You will extend these to create custom entity definitions or you can use the `GenericVertex` for vertices and `GenericEdge` for edges.
 
 #### Models
 
-Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using models. Using the entity `Vertex` and `Edge` objects for your models will give you more power, flexibility, and control when writing your applications.
+Gizmo allows you to interact with the graph server by either sending a string to the server, sending a Gremlinpy object, or by invoking and using entities. Using the entity `Vertex` and `Edge` objects for your entities will give you more power, flexibility, and control when writing your applications.
 
 Gizmo uses the `_label` property to identify which entity should be loaded when the data is returned from the server, if it is undefined, or not found, Gizmo will attempt to load a `GenericVertex` or `GenericEdge` object. By default Gizmo uses the class name to fill in the `_label` property converting CamelCasing to lower_underscore (camel_casing). This can be manually overwritten by defining a `_node_label` member on the entity. This is useful if you find yourself repeating entity names.
 
@@ -221,9 +221,9 @@ class HasTag(Edge):
     
 ##### Fields
 
-Gizmo entities comes with a few predefined fields that will help you structure and query your data once it is saved in your database. By default the fields member defines how your model's data is structured. 
+Gizmo entities comes with a few predefined fields that will help you structure and query your data once it is saved in your database. By default the fields member defines how your entity's data is structured. 
 
-If you want your model to have unstructured data, set the instance member `_allowed_undefined` to `True`. When this member is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
+If you want your entity to have unstructured data, set the instance member `_allowed_undefined` to `True`. When this member is set to true and an undefined field is set, Gizmo will do its best to figure out what field type to use. 
 
 > `GenericVertex` and `GenericEdge` have allowed_undefined set to True by default
 
@@ -246,7 +246,7 @@ Gizmo ships with a few self-explanatory types for fields. The field object's mai
 
 These are fields created and populated at class instantiation:
 
-* GIZMO_MODEL _:String_ -- the model that is used for the entity
+* GIZMO_MODEL _:String_ -- the entity that is used for the entity
 * GIZMO_CREATED _:DateTime_ -- the original date created. This cannot be overwritten
 * GIZMO_MODIFIED _:DateTime_ -- this is updated with every save
 * GIZMO_ID _:String_ -- the _id from the graph. It is a string because different graphs store ids differently. OrientDB's ids have a : in them
@@ -259,10 +259,10 @@ Mapper objects are the real workhorses in Gizmo, it is the entry and exit points
 
 A Mapper instance exposes a few key methods which allow you to interact with the graph:
 
-* **save**(model<Entity>, data<Dict>, bind_return<Boolean>, mapper<_GenericMapper>, callback<callable>) -- this method is used to save the changes made againt the model to the graph
-* **delete**(model<Entity>, mapper<_GenericMapper>, callback<callable>) -- will detele the entity from the graph
-* **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_model<Entity class>, data_type<String>) -- utility method used to create a connection between two entities.
-* **create\_model**(data<Dict>. model_class<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
+* **save**(entity<Entity>, data<Dict>, bind_return<Boolean>, mapper<_GenericMapper>, callback<callable>) -- this method is used to save the changes made againt the entity to the graph
+* **delete**(entity<Entity>, mapper<_GenericMapper>, callback<callable>) -- will detele the entity from the graph
+* **connect**(out_v<Entity>, in_v<Entity>, label<String>, data<Dict>, edge_entity<Entity class>, data_type<String>) -- utility method used to create a connection between two entities.
+* **create\_entity**(data<Dict>. entity<Entity class>, data_type<String>) -- this method is used throughout the library to create actual instances of Entity objects. It uses some of the metadata that defined in the data argument to determine what type of Entity should be created
 * **data**(entity<Entity>, *args<String>) -- this is an interesting method. It allows you to compose the data for the entity by chaning together multiple data accessor methods defined on the mapper that is assigned to the entity.
 
 * 
@@ -270,15 +270,15 @@ A Mapper instance exposes a few key methods which allow you to interact with the
 ~~~python
 """vertex mappers"""
 class UserMapper(_GenericMapper):
-    model = User
+    entity = User
 
 
 class ImageMapper(_GenericMapper):
-    model = Image
+    entity = Image
 
 
 class TagMapper(_GenericMapper):
-    model = Tag
+    entity = Tag
 
 ~~~
 
@@ -341,7 +341,7 @@ class MyCustomVertex(Vertex):
 
 
 class MyCustomVertexMapper(_GenericMapper):
-    model = MyCustomVertex
+    entity = MyCustomVertex
 ~~~
 
 Anytime an instance of `MyCustomVertex` is acted against via the main `Mapper`, all actions are routed through to the `MyCustomVertexMapper` object.
@@ -367,7 +367,7 @@ An example use-case for mapper-wide callbacks would be sending an email after a 
 
 ```python
 class UserMapper(_GenericMapper):
-    model = User
+    entity = User
     
     def on_create(self, user):
         # everytime a user is successfully crated, an email will be sent out
@@ -377,7 +377,7 @@ class UserMapper(_GenericMapper):
 If you wanted to only send an email in certain situations, you would define the callback and pass it when you call save against the mapper
 
 ~~~python
-user = mapper.create_model({})
+user = mapper.create({})
 def email_once(entity):
     send_email(entity)
 
@@ -395,7 +395,7 @@ Utilitizing custom mappers could be a bit cumbersome; you have to get the entity
 
 ~~~python
 class UserMapper(_GenericMapper):
-    model = User
+    entity = User
 
     def get_emails(self, user):
         g = self.mapper.start(user)

@@ -17,7 +17,7 @@ from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
 
 
-# Holds the model->mapper mappings for custom mappers
+# Holds the entity->mapper mappings for custom mappers
 _MAPPER_MAP = {}
 _ENTITY_USED = {}
 GENERIC_MAPPER = 'generic.mapper'
@@ -38,20 +38,20 @@ def get_entity_count(entity):
 
 class _RootMapper(type):
     """
-    In the case of custom mappers, this metaclass will register the model name
-    with the mapper object. This is done so that when models are loaded by name
-    its mappers is used to CRUD it.
+    In the case of custom mappers, this metaclass will register the entity name
+    with the mapper object. This is done so that when entities are loaded by
+    name its mappers is used to CRUD it.
 
-    This only works when the mapper_instance.create_model() method is used to
-    create the model
+    This only works when the mapper_instance.create() method is used to
+    create the entity
     """
 
     def __new__(cls, name, bases, attrs):
         cls = super(_RootMapper, cls).__new__(cls, name, bases, attrs)
-        model = attrs.pop('model', None)
+        entity = attrs.pop('entity', None)
 
-        if model:
-            map_name = '%s.%s' % (model.__module__, model.__name__)
+        if entity:
+            map_name = '%s.%s' % (entity.__module__, entity.__name__)
             _MAPPER_MAP[map_name] = cls
         elif name == '_GenericMapper':
             _MAPPER_MAP[GENERIC_MAPPER] = cls
@@ -65,18 +65,16 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
     unique_fields = None
     save_statements = None
 
-    def __init__(self, gremlin=None, mapper=None):
-        if gremlin is None:
-            gremlin = Gremlin()
-
-        self.gremlin = gremlin
+    def __init__(self, mapper=None):
         self.mapper = mapper
+        self.gremlin = mapper.gremlin
+
         self.reset()
 
     def reset(self):
         self.queries = []
         self.return_vars = []
-        self.models = {}
+        self.entities = {}
         self.params = {}
         self.callbacks = {}
 
@@ -93,8 +91,8 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
                 variable = '%s_%s' % (self.VARIABLE, count)
                 script = '%s = %s' % (variable, script)
 
-                if 'model' in entry:
-                    self.models[variable] = entry['model']
+                if 'entity' in entry:
+                    self.entities[variable] = entry['entity']
                     self.return_vars.append(variable)
 
             self.queries.append(script)
@@ -102,38 +100,38 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         return self
 
-    def _enqueue_callback(self, model, callback):
+    def _enqueue_callback(self, entity, callback):
         if callback:
-            listed = self.callbacks.get(model, [])
+            listed = self.callbacks.get(entity, [])
 
             if isinstance(callback, (list, tuple)):
                 listed += list(callback)
             elif callback:
                 listed.append(callback)
 
-            self.callbacks[model] = listed
+            self.callbacks[entity] = listed
 
         return self
 
-    def on_create(self, model):
+    def on_create(self, entity):
         pass
 
-    def on_update(self, model):
+    def on_update(self, entity):
         pass
 
-    def on_delete(self, model):
+    def on_delete(self, entity):
         pass
 
-    def by_id(self, _id, model, bind_return=True):
+    def by_id(self, _id, entity, bind_return=True):
         query = Query(self.gremlin, self.mapper)
 
-        if isinstance(model, type):
-            model = model()
+        if isinstance(entity, type):
+            entity = entity()
 
-        query.by_id(_id, model)
+        query.by_id(_id, entity)
         return self.enqueue(query, bind_return)
 
-    def get_or_create(self, model, field_val, bind_return=False,
+    def get_or_create(self, entity, field_val, bind_return=False,
                       statement=None):
         """method used to create a simple query that will get an entity
         by matching the field_val pairs or create it based on those pairs.
@@ -149,23 +147,23 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         params = {}
         queries = []
 
-        if isinstance(model, type):
-            model = model()
+        if isinstance(entity, type):
+            entity = entity()
 
         # build the create query
         create_query = Query(self.gremlin, self.mapper)
 
-        model.hydrate(field_val)
-        create_query.save(model)
+        entity.hydrate(field_val)
+        create_query.save(entity)
 
         # build the get query
-        rep = 'E' if model._type == 'edge' else 'V'
+        rep = 'E' if entity._type == 'edge' else 'V'
         gremlin = self.gremlin
 
         gremlin.func(rep)
 
         for field, val in field_val.items():
-            b_field =  create_query._entity_variable(model, field)
+            b_field = create_query._entity_variable(entity, field)
             param = gremlin.bind_param(val, b_field)
 
             gremlin.has('"{}"'.format(field), param[0])
@@ -189,18 +187,18 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
     def data(self, entity):
         return entity.data
 
-    def before_save_action(self, model):
-        """method used to run any actions against the model before it is
+    def before_save_action(self, entity):
+        """method used to run any actions against the entity before it is
         saved"""
 
         # update any Timestamp fields with right now
-        for name, field in model.fields.items():
+        for name, field in entity.fields.items():
             if isinstance(field, Timestamp):
                 field.field_value = field.initial_value
 
-        return model
+        return entity
 
-    def _build_save_statements(self, model, query, **kwargs):
+    def _build_save_statements(self, entity, query, **kwargs):
         statement_query = Query(Gremlin(self.gremlin.gv), self.mapper)
         query_gremlin = Gremlin(self.mapper.gremlin.gv)
 
@@ -208,155 +206,57 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             query_gremlin.bind_params(entry['params'])
 
         for statement in self.save_statements:
-            instance = statement(model, self, query, **kwargs)
+            instance = statement(entity, self, query, **kwargs)
 
             query_gremlin.apply_statement(instance)
 
-        statement_query.add_query(str(query_gremlin), query_gremlin.bound_params,
-                                  model=model)
+        statement_query.add_query(str(query_gremlin),
+                                  query_gremlin.bound_params, entity=entity)
 
         return statement_query
 
-    def save(self, model, bind_return=True, callback=None, *args, **kwargs):
+    def save(self, entity, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
-        method = '_save_edge' if model._type == 'edge' else '_save_vertex'
+        method = '_save_edge' if entity._type == 'edge' else '_save_vertex'
 
         if not isinstance(callback, (list, tuple)) and callback:
             callback = [callback]
         else:
             callback = []
 
-        if model['_id']:
+        if entity['_id']:
             callback.insert(0, self.on_update)
         else:
             callback.insert(0, self.on_create)
 
-        self._enqueue_callback(model, callback)
-        self.before_save_action(model)
+        self._enqueue_callback(entity, callback)
+        self.before_save_action(entity)
 
-        return getattr(self, method)(model=model, bind_return=bind_return)
+        return getattr(self, method)(entity=entity, bind_return=bind_return)
 
-    def _save_vertexOLD(self, model, bind_return=True):
+    def _save_vertex(self, entity, bind_return=True):
         """
-        method used to save a model. IF both the unique_type and unique_fields
+        method used to save a entity. IF both the unique_type and unique_fields
         params are set, it will run a sub query to check to see if an entity
         exists that matches those values
         """
         query = Query(self.gremlin, self.mapper)
-        ref = self.mapper.get_model_variable(model)
+        ref = self.mapper.get_entity_variable(entity)
 
         """
-        check to see if the model has been used already in the current script
+        check to see if the entity has been used already in the current script
         execution.
         If it has use the reference
         if it hasnt, go through the process of saving it
         """
         if ref:
-            query.add_query(ref, params=None, model=model)
+            query.add_query(ref, params=None, entity=entity)
 
             return self.enqueue(query, bind_return)
 
-        """this builds four queries:
-            * one to check to see if the model exists with the unique fields
-            * one to insert the model
-            * one to delete the model that was just inserted
-            * a conditional statement that wraps everything up
+        query.save(entity)
 
-        basically writing something that looks like this:
-
-            var_1 = g.V().has('unique_field', 'unique_value');
-            if(!var_1){
-                var_1 = g.addV().next();
-            }else{
-                var_1 = var_1.next();
-            }
-        TODO: look into cleaning this up, making it a separate statement
-        """
-        if not model['_id'] and self.unique_fields:
-            before = Query(Gremlin(self.gremlin.gv), self.mapper)
-            gremlin = Gremlin(self.gremlin.gv)
-            ret_var = before.next_var()
-            add_var = before.next_var()
-            node_type = "'%s'" % GIZMO_LABEL
-
-            self.mapper.return_vars.append(ret_var)
-            self.mapper.models.update({
-                ret_var: model,
-            })
-
-            if '*' in self.unique_fields:
-                self.unique_fields = model.fields.keys()
-
-            gremlin.set_ret_variable(ret_var).V()
-            gremlin.has(node_type, model[GIZMO_LABEL])
-
-            for field in self.unique_fields:
-                g_field = "'%s'" % field
-
-                gremlin.has(g_field, model[field])
-
-            before_script = str(gremlin)
-            before_params = gremlin.bound_params
-
-            before.add_query(before_script, before_params)
-            self.enqueue(before, False)
-
-            query.save(model)
-            queries = [q['script'] for q in query.queries]
-
-            for q in query.queries:
-                self.mapper.params.update(q['params'])
-
-            model_var = self.mapper.get_model_variable(model)
-            remove_gremlin = Gremlin(self.gremlin.gv)
-            remove_gremlin.unbound('V', model_var)
-            remove_gremlin.func('next').func('remove')
-
-            conditional = Query(Gremlin(self.gremlin.gv), self.mapper)
-            conditional_statement = Conditional()
-            return_if = '{}; {} = {}.next()'.format(str(remove_gremlin),
-                                                    model_var, ret_var)
-            return_if = '{} = {};'.format(ret_var, ';\n'.join(queries))
-            else_if = ' {} = {}.next()'.format(ret_var, ret_var)
-
-            conditional_statement.set_gremlin(Gremlin(self.gremlin.gv))
-            conditional_statement.set_if('!' + ret_var, return_if)
-            conditional_statement.set_else(else_if)
-            conditional_statement.build()
-
-            conditional_query = str(conditional_statement.gremlin)
-            conditional_params = conditional_statement.gremlin.bound_params
-            conditional.add_query(conditional_query, conditional_params)
-
-            return self.enqueue(conditional, False)
-        else:
-            query.save(model)
-
-            return self.enqueue(query, bind_return)
-
-    def _save_vertex(self, model, bind_return=True):
-        """
-        method used to save a model. IF both the unique_type and unique_fields
-        params are set, it will run a sub query to check to see if an entity
-        exists that matches those values
-        """
-        query = Query(self.gremlin, self.mapper)
-        ref = self.mapper.get_model_variable(model)
-
-        """
-        check to see if the model has been used already in the current script
-        execution.
-        If it has use the reference
-        if it hasnt, go through the process of saving it
-        """
-        if ref:
-            query.add_query(ref, params=None, model=model)
-
-            return self.enqueue(query, bind_return)
-
-        query.save(model)
-
-        if not model['_id'] and self.unique_fields:
+        if not entity['_id'] and self.unique_fields:
             from .statement import MapperUniqueVertex
 
             if not self.save_statements:
@@ -366,31 +266,31 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
                 self.save_statements.append(MapperUniqueVertex)
 
         if self.save_statements and len(self.save_statements):
-            statement_query = self._build_save_statements(model, query)
+            statement_query = self._build_save_statements(entity, query)
 
             return self.enqueue(statement_query, bind_return)
         else:
             return self.enqueue(query, bind_return)
 
-    def _save_edgeOLD(self, model, bind_return=True):
+    def _save_edge(self, entity, bind_return=True):
         query = Query(self.gremlin, self.mapper)
         save = True
         # TODO: send an edge to be saved multiple times
-        edge_ref = self.mapper.get_model_variable(model)
-        out_v = model.out_v
+        edge_ref = self.mapper.get_entity_variable(entity)
+        out_v = entity.out_v
         out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
-        in_v = model.in_v
+        in_v = entity.in_v
         in_v_id = in_v['_id'] if isinstance(in_v, Vertex) else None
-        out_v_ref = self.mapper.get_model_variable(out_v)
-        in_v_ref = self.mapper.get_model_variable(in_v)
+        out_v_ref = self.mapper.get_entity_variable(out_v)
+        in_v_ref = self.mapper.get_entity_variable(in_v)
 
         if edge_ref:
-            query.add_query(edge_ref, params=None, model=model)
+            query.add_query(edge_ref, params=None, entity=entity)
 
             return self.enqueue(query, bind_return)
 
         """
-        both out_v and in_v are checked to see if the models stored in each
+        both out_v and in_v are checked to see if the entities stored in each
         respective variable has been used.
         If they have not and they are Vertex instances with an empty _id,
             send them to be saved.
@@ -399,123 +299,22 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         """
         if not out_v_ref and isinstance(out_v, Vertex):
             self.mapper.save(out_v)
-            out_v = self.mapper.get_model_variable(out_v)
+            out_v = self.mapper.get_entity_variable(out_v)
         else:
             out_v = out_v_ref
 
         if not in_v_ref and isinstance(in_v, Vertex):
             self.mapper.save(in_v)
-            in_v = self.mapper.get_model_variable(in_v)
+            in_v = self.mapper.get_entity_variable(in_v)
         else:
             in_v = in_v_ref
 
         out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
         in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
 
-        """this is used to ensure that a single connection exists between
-        out_v and in_v when self.unique is True(truthy)
+        query.save(entity)
 
-        it will create a query that looks something like:
-
-            edge_1 = g.V().get.edge.between.vertices;
-            if(!edge_1){
-                edge_1 = g.V(in_v).addEdge('label', out_v)
-            }else{
-                edge_1 = edge_1.next()
-            }
-        TODO: look into cleaning this up, making it a separate statement
-        """
-        if not model['_id'] and self.unique and in_v_id and out_v_id:
-            before = Query(Gremlin(self.gremlin.gv), self.mapper)
-            ret_var = before.next_var()
-            get_edge = GetEdge(out_v_id, in_v_id, model[GIZMO_LABEL],
-                               self.unique)
-            get_edge.set_gremlin(Gremlin(self.gremlin.gv))
-            get_edge.build()
-            create = query.save(model)
-            create_queries = [q['script'] for q in query.queries]
-
-            self.mapper.return_vars.append(ret_var)
-            self.mapper.models.update({
-                ret_var: model,
-            })
-
-            for q in query.queries:
-                self.mapper.params.update(q['params'])
-                model_var = self.mapper.get_model_variable(q['model'])
-                self.mapper.models.update({
-                    ret_var: q['model'],
-                })
-
-            before_script = str(get_edge.gremlin)
-            before_params = get_edge.gremlin.bound_params
-
-            before.add_query('{} = {}'.format(ret_var, before_script),
-                                              before_params)
-            self.enqueue(before, False)
-
-            conditional = Query(Gremlin(self.gremlin.gv), self.mapper)
-            conditional_statement = Conditional()
-            return_if = '{} = {};'.format(ret_var, ';\n'.join(create_queries))
-            return_else = '{} = {}.next()'.format(ret_var, ret_var)
-            conditional_statement.set_gremlin(Gremlin(self.gremlin.gv))
-            conditional_statement.set_if('!' + ret_var, return_if)
-            conditional_statement.set_else(return_else)
-            conditional_statement.build()
-
-            conditional_query = str(conditional_statement.gremlin)
-            conditional_params = conditional_statement.gremlin.bound_params
-            conditional.add_query(conditional_query, conditional_params)
-
-            return self.enqueue(conditional, False)
-        else:
-            query.save(model)
-
-            return self.enqueue(query, bind_return)
-
-    def _save_edge(self, model, bind_return=True):
-        query = Query(self.gremlin, self.mapper)
-        save = True
-        # TODO: send an edge to be saved multiple times
-        edge_ref = self.mapper.get_model_variable(model)
-        out_v = model.out_v
-        out_v_id = out_v['_id'] if isinstance(out_v, Vertex) else None
-        in_v = model.in_v
-        in_v_id = in_v['_id'] if isinstance(in_v, Vertex) else None
-        out_v_ref = self.mapper.get_model_variable(out_v)
-        in_v_ref = self.mapper.get_model_variable(in_v)
-
-        if edge_ref:
-            query.add_query(edge_ref, params=None, model=model)
-
-            return self.enqueue(query, bind_return)
-
-        """
-        both out_v and in_v are checked to see if the models stored in each
-        respective variable has been used.
-        If they have not and they are Vertex instances with an empty _id,
-            send them to be saved.
-        if they have been used, use the reference variable in the create edge
-        logic
-        """
-        if not out_v_ref and isinstance(out_v, Vertex):
-            self.mapper.save(out_v)
-            out_v = self.mapper.get_model_variable(out_v)
-        else:
-            out_v = out_v_ref
-
-        if not in_v_ref and isinstance(in_v, Vertex):
-            self.mapper.save(in_v)
-            in_v = self.mapper.get_model_variable(in_v)
-        else:
-            in_v = in_v_ref
-
-        out_v = out_v['_id'] if isinstance(out_v, Vertex) else out_v
-        in_v = in_v['_id'] if isinstance(in_v, Vertex) else in_v
-
-        query.save(model)
-
-        if not model['_id'] and self.unique and in_v_id and out_v_id:
+        if not entity['_id'] and self.unique and in_v_id and out_v_id:
             from .statement import MapperUniqueEdge
 
             if not self.save_statements:
@@ -525,17 +324,15 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
                 self.save_statements.append(MapperUniqueEdge)
 
         if self.save_statements and len(self.save_statements):
-            statement_query = self._build_save_statements(model, query,
-                                                          out_v_id=out_v_id,
-                                                          in_v_id=in_v_id,
-                                                          label=model[GIZMO_LABEL],
-                                                          direction=self.unique)
+            statement_query = self._build_save_statements(entity, query,
+                out_v_id=out_v_id, in_v_id=in_v_id,
+                label=entity[GIZMO_LABEL], direction=self.unique)
 
             return self.enqueue(statement_query, False)
         else:
             return self.enqueue(query, bind_return)
 
-    def delete(self, model, lookup=True, callback=None):
+    def delete(self, entity, lookup=True, callback=None):
         query = Query(self.gremlin, self.mapper)
 
         if not isinstance(callback, (list, tuple)) and callback:
@@ -543,28 +340,28 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         else:
             callback = []
 
-        query.delete(model)
+        query.delete(entity)
         callback.insert(0, self.on_delete)
-        self._enqueue_callback(model, callback)
+        self._enqueue_callback(entity, callback)
 
         return self.enqueue(query, False)
 
-    def create_model(self, data=None, model_class=None, data_type='python'):
+    def create(self, data=None, entity=None, data_type='python'):
         """
-        Method used to create a new model based on the data that is passed in.
-        If the kwarg model_class is passed in, it will be used to create the
-        model else if utils.GIZMO_MODEL is in data, that will be used
+        Method used to create a new entity based on the data that is passed in.
+        If the kwarg entity is passed in, it will be used to create the
+        entity else if utils.GIZMO_MODEL is in data, that will be used
         finally, entity.GenericVertex or entity.GenericEdge will be used to
-        construct the model
+        construct the entity
         """
         check = True
 
         if data is None:
             data = {}
 
-        if model_class is not None:
+        if entity is not None:
             try:
-                model = model_class(data, data_type=data_type)
+                entity = entity(data, data_type=data_type)
                 check = False
             except Exception as e:
                 pass
@@ -573,20 +370,20 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
             try:
                 if GIZMO_MODEL in data:
                     name = data[GIZMO_MODEL]
-                    model = _MAP[name](data, data_type=data_type)
+                    entity = _MAP[name](data, data_type=data_type)
                 else:
                     raise
             except Exception as e:
                 # all else fails create a GenericVertex unless _type is 'edge'
                 if data.get('_type', None) == 'edge':
-                    model = GenericEdge(data, data_type=data_type)
+                    entity = GenericEdge(data, data_type=data_type)
                 else:
-                    model = GenericVertex(data, data_type=data_type)
+                    entity = GenericVertex(data, data_type=data_type)
 
         if '_id' in data:
-            model.fields['_id'].value = data['_id']
+            entity.fields['_id'].value = data['_id']
 
-        return model
+        return entity
 
 
 class Mapper(object):
@@ -708,18 +505,18 @@ class Mapper(object):
         _ENTITY_USED = {}
         self.queries = []
         self.return_vars = []
-        self.models = OrderedDict()  # ensure FIFO for testing
-        self.del_models = {}
+        self.entities = OrderedDict()  # ensure FIFO for testing
+        self.del_entities = {}
         self.params = {}
         self.callbacks = {}
         self._magic_method = None
 
-    def get_model_variable(self, model):
+    def get_entity_variable(self, entity):
 
         def get_key():
             ret = None
-            for key, def_model in self.models.items():
-                if model == def_model:
+            for key, def_entity in self.entities.items():
+                if entity == def_entity:
                     return key
 
             return ret
@@ -738,37 +535,37 @@ class Mapper(object):
 
         return key
 
-    def get_mapper(self, model=None, name=GENERIC_MAPPER):
-        if model is not None:
-            if isinstance(model, _BaseEntity):
-                name = get_qualified_instance_name(model)
+    def get_mapper(self, entity=None, name=GENERIC_MAPPER):
+        if entity is not None:
+            if isinstance(entity, _BaseEntity):
+                name = get_qualified_instance_name(entity)
             else:
-                name = get_qualified_name(model)
+                name = get_qualified_name(entity)
 
         if name not in _MAPPER_MAP:
             name = GENERIC_MAPPER
 
-        return _MAPPER_MAP[name](self.gremlin, self)
+        return _MAPPER_MAP[name](self)
 
     def _enqueue_mapper(self, mapper):
         self.queries += mapper.queries
         self.return_vars += mapper.return_vars
-        self.models.update(mapper.models)
+        self.entities.update(mapper.entities)
         self.params.update(mapper.params)
 
-        for model, callbacks in mapper.callbacks.items():
-            exisiting = self.callbacks.get(model, [])
+        for entity, callbacks in mapper.callbacks.items():
+            exisiting = self.callbacks.get(entity, [])
 
-            self.callbacks[model] = exisiting + callbacks
+            self.callbacks[entity] = exisiting + callbacks
 
         mapper.reset()
 
         return self
 
-    def by_id(self, _id, model, bind_return=True):
-        mapper = self.get_mapper(model)
+    def by_id(self, _id, entity, bind_return=True):
+        mapper = self.get_mapper(entity)
 
-        mapper.by_id(_id=_id, model=model, bind_return=bind_return)
+        mapper.by_id(_id=_id, entity=entity, bind_return=bind_return)
 
         return self._enqueue_mapper(mapper)
 
@@ -780,49 +577,49 @@ class Mapper(object):
 
         return res.first()
 
-    def get_or_create(self, model, field_val, bind_return=False,
+    def get_or_create(self, entity, field_val, bind_return=False,
                       statement=None):
-        mapper = self.get_mapper(model)
+        mapper = self.get_mapper(entity)
 
-        mapper.get_or_create(model=model, field_val=field_val,
+        mapper.get_or_create(entity=entity, field_val=field_val,
                              statement=statement)
 
         return self._enqueue_mapper(mapper)
 
     @gen.coroutine
-    def get_or_create_entity(self, model, field_val, bind_return=False,
+    def get_or_create(self, entity, field_val, bind_return=False,
                              statement=None):
-        self.get_or_create(model=model, field_val=field_val,
+        self.get_or_create(entity=entity, field_val=field_val,
                            bind_return=bind_return, statement=statement)
 
         res = yield self.send()
 
         return res.first()
 
-    def save(self, model, bind_return=True, mapper=None,
+    def save(self, entity, bind_return=True, mapper=None,
              callback=None, **kwargs):
         if mapper is None:
-            mapper = self.get_mapper(model)
+            mapper = self.get_mapper(entity)
 
-        mapper.save(model, bind_return, callback, **kwargs)
+        mapper.save(entity, bind_return, callback, **kwargs)
 
         return self._enqueue_mapper(mapper)
 
-    def delete(self, model, mapper=None, callback=None):
+    def delete(self, entity, mapper=None, callback=None):
         if mapper is None:
-            mapper = self.get_mapper(model)
+            mapper = self.get_mapper(entity)
 
-        mapper.delete(model, callback=callback)
+        mapper.delete(entity, callback=callback)
 
-        # manually add the deleted model to the self.models
+        # manually add the deleted entity to the self.entities
         # collection for callbacks
         from random import randrange
-        key = 'DELETED_%s_model' % str(randrange(0, 999999999))
-        self.del_models[key] = model
+        key = 'DELETED_%s_entity' % str(randrange(0, 999999999))
+        self.del_entities[key] = entity
 
         return self._enqueue_mapper(mapper)
 
-    def connect(self, out_v, in_v, label=None, data=None, edge_model=None,
+    def connect(self, out_v, in_v, label=None, data=None, edge_entity=None,
                 data_type='python'):
         """
         method used to connect two vertices and create an Edge object
@@ -847,26 +644,25 @@ class Mapper(object):
         data['_type'] = 'edge'
         data[GIZMO_LABEL] = label
 
-        return self.create_model(data=data, model_class=edge_model,
-                                 data_type=data_type)
+        return self.create(data=data, entity=edge_entity, data_type=data_type)
 
-    def create_model(self, data=None, model_class=None, data_type='python'):
+    def create(self, data=None, entity=None, data_type='python'):
         if data is None:
             data = {}
 
-        if model_class:
-            mapper = self.get_mapper(model_class)
+        if entity:
+            mapper = self.get_mapper(entity)
         else:
             name = data.get(GIZMO_MODEL, GENERIC_MAPPER)
             mapper = self.get_mapper(name=name)
 
         kwargs = {
             'data': data,
-            'model_class': model_class,
+            'entity': entity,
             'data_type': data_type,
         }
 
-        return mapper.create_model(**kwargs)
+        return mapper.create(**kwargs)
 
     def _build_queries(self):
         if not self.auto_commit:
@@ -886,8 +682,8 @@ class Mapper(object):
 
         return self
 
-    def start(self, model):
-        return Traversal(self, model)
+    def start(self, entity):
+        return Traversal(self, entity)
 
     def apply_statement(self, statement):
         self.gremlin.apply_statement(statement)
@@ -900,19 +696,19 @@ class Mapper(object):
 
         script = ";\n".join(self.queries)
         params = self.params
-        models = self.models
+        entities = self.entities
         callbacks = self.callbacks
-        models.update(self.del_models)
+        entities.update(self.del_entities)
         self.reset()
 
         res = yield self.query(script=script, params=params,
-                          update_models=models, callbacks=callbacks)
+                          update_entities=entities, callbacks=callbacks)
 
         return res
 
     @gen.coroutine
     def query(self, script=None, params=None, gremlin=None,
-              update_models=None, callbacks=None):
+              update_entities=None, callbacks=None):
 
         if gremlin is not None:
             script = str(gremlin)
@@ -926,8 +722,8 @@ class Mapper(object):
         if params is None:
             params = {}
 
-        if update_models is None:
-            update_models = {}
+        if update_entities is None:
+            update_entities = {}
 
         from .utils import _query_debug
 
@@ -939,12 +735,12 @@ class Mapper(object):
             self.logger.debug(json.dumps(params))
             self.logger.debug(_query_debug(script, params))
 
-        response = yield self.request.send(script, params, update_models)
+        response = yield self.request.send(script, params, update_entities)
 
-        for k, model in update_models.items():
-            cbs = callbacks.get(model, [])
+        for k, entity in update_entities.items():
+            cbs = callbacks.get(entity, [])
             for c in cbs:
-                c(model)
+                c(entity)
 
         return Collection(self, response)
 
@@ -985,23 +781,23 @@ class Query(object):
 
         return '%s%s_%s' % (prefix, self.QUERY_VAR, query_count)
 
-    def add_query(self, script, params=None, model=None):
+    def add_query(self, script, params=None, entity=None):
         if params is None:
             params = {}
 
         self.queries.append({
             'script': script,
             'params': params,
-            'model': model,
+            'entity': entity,
         })
 
         return self
 
-    def add_gremlin_query(self, model=None):
+    def add_gremlin_query(self, entity=None):
         script = str(self.gremlin)
         params = self.gremlin.bound_params
 
-        self.add_query(script, params, model)
+        self.add_query(script, params, entity)
 
         return self.reset()
 
@@ -1071,69 +867,69 @@ class Query(object):
 
         return ','.join(gval)
 
-    def by_id(self, _id, model, set_variable=None):
+    def by_id(self, _id, entity, set_variable=None):
         gremlin = self.gremlin
-        entity = 'E' if model._type == 'edge' else 'V'
+        entity = 'E' if entity._type == 'edge' else 'V'
 
         getattr(gremlin, entity)(_id).next()
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        return self.add_gremlin_query(model)
+        return self.add_gremlin_query(entity)
 
-    def add_vertex(self, model, set_variable=False):
-        self._register_entity(model)
+    def add_vertex(self, entity, set_variable=False):
+        self._register_entity(entity)
 
-        if model._type is None:
+        if entity._type is None:
             err = 'Models need to have a type defined in order to save'
             raise QueryException([err])
 
-        model.field_type = 'graph'
+        entity.field_type = 'graph'
         gremlin = self.gremlin
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        # use the model.fields.data instead of model.data because
-        # model.data can be monkey-patched with custom mappers
-        self.build_fields(model, IMMUTABLE['vertex'])
+        # use the entity.fields.data instead of entity.data because
+        # entity.data can be monkey-patched with custom mappers
+        self.build_fields(entity, IMMUTABLE['vertex'])
 
         script = '%s.addV(%s).next()' % (gremlin.gv, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
 
-        model.field_type = 'python'
+        entity.field_type = 'python'
 
-        return self.add_gremlin_query(model)
+        return self.add_gremlin_query(entity)
 
-    def add_edge(self, model, set_variable=False):
-        self._register_entity(model)
+    def add_edge(self, entity, set_variable=False):
+        self._register_entity(entity)
 
-        if model[GIZMO_LABEL] is None:
+        if entity[GIZMO_LABEL] is None:
             raise QueryException(['The edge must have a label before saving'])
 
-        model.field_type = 'graph'
+        entity.field_type = 'graph'
         g = Gremlin(self.gremlin.gv)
         gremlin = self.gremlin
-        out_v, in_v = self._get_or_create_edge_vertices(model)
+        out_v, in_v = self._get_or_create_edge_vertices(entity)
         label_var = self.next_var('EDGE_LABEL')
-        label_bound = gremlin.bind_param(model[GIZMO_LABEL], label_var)
+        label_bound = gremlin.bind_param(entity[GIZMO_LABEL], label_var)
         edge_fields = ''
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        self.build_fields(model, IMMUTABLE['edge'])
+        self.build_fields(entity, IMMUTABLE['edge'])
 
         g.unbound('V', in_v).next()
         gremlin.unbound('V', out_v).next()
         gremlin.unbound('addEdge', label_bound[0], str(g),
                         ', '.join(self.fields))
 
-        model.field_type = 'python'
+        entity.field_type = 'python'
 
-        return self.add_gremlin_query(model)
+        return self.add_gremlin_query(entity)
 
     def _get_or_create_edge_vertices(self, edge):
         out_v = edge.out_v
@@ -1148,126 +944,126 @@ class Query(object):
         self._register_entity(out_v)
         self._register_entity(in_v)
 
-        out_v_mod = self.mapper.get_model_variable(out_v)
-        in_v_mod = self.mapper.get_model_variable(in_v)
+        out_v_mod = self.mapper.get_entity_variable(out_v)
+        in_v_mod = self.mapper.get_entity_variable(in_v)
 
         if out_v_mod is None:
             self.mapper.save(out_v)
-            out_v_mod = self.mapper.get_model_variable(out_v)
+            out_v_mod = self.mapper.get_entity_variable(out_v)
 
         if in_v_mod is None:
             self.mapper.save(in_v)
-            in_v_mod = self.mapper.get_model_variable(in_v)
+            in_v_mod = self.mapper.get_entity_variable(in_v)
 
         return out_v_mod, in_v_mod
 
-    def update(self, model, set_variable=None):
-        self._register_entity(model)
+    def update(self, entity, set_variable=None):
+        self._register_entity(entity)
 
-        if model._type is None:
-            err = 'The model must have a type defined in order to update'
+        if entity._type is None:
+            err = 'The entity must have a type defined in order to update'
             raise QueryException([err])
 
-        if model['_id'] is None:
-            err = 'The model must have an _id defined in order to update'
+        if entity['_id'] is None:
+            err = 'The entity must have an _id defined in order to update'
             raise QueryException([err])
 
-        if not len(model.changed):
-            return self.by_id(model['_id'], model, set_variable)
+        if not len(entity.changed):
+            return self.by_id(entity['_id'], entity, set_variable)
 
         gremlin = self.gremlin
-        model.field_type = 'graph'
-        model_type = 'E' if model._type == 'edge' else 'V'
-        ent_var = 'EDGE_ID' if model_type == 'E' else 'VERTEX_ID'
+        entity.field_type = 'graph'
+        entity_type = 'E' if entity._type == 'edge' else 'V'
+        ent_var = 'EDGE_ID' if entity_type == 'E' else 'VERTEX_ID'
         ent_var = self.next_var(ent_var)
 
         if set_variable:
             gremlin.set_ret_variable(set_variable)
 
-        eye_d = self.bind_param(model['_id'], ent_var)
-        getattr(gremlin, model_type)(eye_d[0])
+        eye_d = self.bind_param(entity['_id'], ent_var)
+        getattr(gremlin, entity_type)(eye_d[0])
 
         # only update the fields that have changed.
         # @TODO: Make sure to document this behavior
-        for k, v in model.changed.items():
-            name = '%s_%s' % (model.__class__.__name__, k)
+        for k, v in entity.changed.items():
+            name = '%s_%s' % (entity.__class__.__name__, k)
 
-            if k not in model._immutable:
+            if k not in entity._immutable:
                 if type(v) is dict or type(v) is list:
-                    field = model.__class__.__name__
-                    gmap = self.iterable_to_graph(v, field, model)
+                    field = entity.__class__.__name__
+                    gmap = self.iterable_to_graph(v, field, entity)
 
                     gremlin.unbound('property', "'%s', [%s]" % (k, gmap))
                 else:
-                    variable = self._entity_variable(model, k)
+                    variable = self._entity_variable(entity, k)
                     bound = self.bind_param(v, variable)
                     entry = "it.setProperty('%s', %s)" % (k, bound[0])
                     gremlin.property("'%s'" % k, bound[0])
 
         gremlin.next()
-        model.field_type = 'python'
+        entity.field_type = 'python'
 
-        return self.add_gremlin_query(model)
+        return self.add_gremlin_query(entity)
 
-    def save(self, model, set_variable=None):
-        model.field_type = 'python'
+    def save(self, entity, set_variable=None):
+        entity.field_type = 'python'
 
-        if model._type is None:
-            raise EntityException(['The model does not have a _type defined'])
+        if entity._type is None:
+            raise EntityException(['The entity does not have a _type defined'])
 
-        if not model['_id']:
-            if model._type == 'vertex':
-                self.add_vertex(model, set_variable)
+        if not entity['_id']:
+            if entity._type == 'vertex':
+                self.add_vertex(entity, set_variable)
             else:
-                self.add_edge(model, set_variable)
+                self.add_edge(entity, set_variable)
         else:
-            self.update(model, set_variable)
+            self.update(entity, set_variable)
 
         return self
 
-    def delete(self, model):
+    def delete(self, entity):
         gremlin = self.gremlin
 
-        _id = model['_id']
+        _id = entity['_id']
 
         if _id is None:
             err = 'Models must have an _id before they are deleted'
             raise EntityException([err])
 
-        if model._type is None:
+        if entity._type is None:
             raise EntityException(['Models need to have a type defined'])
 
-        self._register_entity(model)
+        self._register_entity(entity)
 
-        variable = self._entity_variable(model, 'id')
+        variable = self._entity_variable(entity, 'id')
         bound = self.bind_param(_id, variable)
 
         self.fields.append("'%s', %s" % ('id', bound[0]))
 
-        entity = 'E' if model._type == 'edge' else 'V'
+        entity = 'E' if entity._type == 'edge' else 'V'
         getattr(gremlin, entity)(bound[0]).next().func('remove')
 
-        return self.add_gremlin_query(model)
+        return self.add_gremlin_query(entity)
 
 
 class Traversal(Gremlin):
     """
-    class used to start a traversal query based on a given model
-    when the class is created, the model's _id and type are are
+    class used to start a traversal query based on a given entity
+    when the class is created, the entity's _id and type are are
     set on the Gremlin object
 
     example:
 
     """
 
-    def __init__(self, mapper, model):
+    def __init__(self, mapper, entity):
         graph_variable = mapper.gremlin.gv
 
         super(Traversal, self).__init__(graph_variable)
 
         self._mapper = mapper
-        self._model = model
-        entity, _id = model.get_rep()
+        self._entity = entity
+        entity, _id = entity.get_rep()
         bound_id = self.bind_param(_id, 'EYE_DEE')
 
         getattr(self, entity)(bound_id[0])
@@ -1296,7 +1092,7 @@ class Collection(object):
     def __init__(self, mapper, response):
         self.mapper = mapper
         self.response = response
-        self._models = {}
+        self._entities = {}
         self._index = 0
         self._data_type = 'python'
 
@@ -1324,27 +1120,27 @@ class Collection(object):
         return len(self.response.data)
 
     def __getitem__(self, key):
-        model = self._models.get(key, None)
+        entity = self._entities.get(key, None)
 
-        if model is None:
+        if entity is None:
             try:
                 data = self.response[key]
 
                 if data is not None:
-                    model = self.mapper.create_model(data=data,
+                    entity = self.mapper.create(data=data,
                                                      data_type=self._data_type)
-                    model.dirty = False
-                    self._models[key] = model
+                    entity.dirty = False
+                    self._entities[key] = entity
                 else:
                     raise
             except Exception as e:
                 raise StopIteration()
 
-        return model
+        return entity
 
     def __setitem__(self, key, value):
-        self._models[key] = value
+        self._entities[key] = value
 
     def __delitem__(self, key):
-        if key in self._models:
-            del self._models[key]
+        if key in self._entities:
+            del self._entities[key]

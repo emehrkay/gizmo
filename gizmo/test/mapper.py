@@ -19,7 +19,7 @@ TEST_GV = 'test_gv_' + str(randint(1000, 999999))
 
 
 class TestUniqieMapper(_GenericMapper):
-    model = TestUniqueEdge
+    entity = TestUniqueEdge
     unique = True
 
 
@@ -45,7 +45,7 @@ def get_entity_entry(entity_queue, entity):
     return None
 
 
-def build_vertex_create_query(entity, params=None, models=None):
+def build_vertex_create_query(entity, params=None, entities=None):
     params = copy.deepcopy(params or {})
     _immutable = entity._immutable
     props = []
@@ -58,8 +58,8 @@ def build_vertex_create_query(entity, params=None, models=None):
             prop = "'%s', %s" % (k, value)
             props.append(prop)
 
-    if models:
-        entry_v1 = get_entity_entry(models, entity)
+    if entities:
+        entry_v1 = get_entity_entry(entities, entity)
         expected = "%s = %s.addV(%s).next()" % \
             (list(entry_v1.keys())[0], TEST_GV, ', '.join(props))
     else:
@@ -69,7 +69,7 @@ def build_vertex_create_query(entity, params=None, models=None):
     return expected
 
 
-def build_vertex_update_query(entity, eid, params=None, models=None):
+def build_vertex_update_query(entity, eid, params=None, entities=None):
     params = copy.deepcopy(params or {})
     immutable = entity._immutable
     query_ps = []
@@ -85,8 +85,8 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
     propv, params = get_dict_key(params, eid)
     close = '.'.join(query_ps)
 
-    if models:
-        entry_v1 = get_entity_entry(models, entity)
+    if entities:
+        entry_v1 = get_entity_entry(entities, entity)
         params = [list(entry_v1.keys())[0], TEST_GV, propv]
 
         if len(close):
@@ -106,7 +106,7 @@ def build_vertex_update_query(entity, eid, params=None, models=None):
     return expected
 
 
-def build_edge_create_query(entity, out_v, in_v, label, params, models):
+def build_edge_create_query(entity, out_v, in_v, label, params, entities):
     params = copy.deepcopy(params or {})
     entity.field_type = 'graph'
     immutable = entity._immutable
@@ -121,8 +121,8 @@ def build_edge_create_query(entity, out_v, in_v, label, params, models):
             a.append("'{}'".format(k))
             a.append(value or '""')
 
-    if models:
-        entry_v1 = list(get_entity_entry(models, entity))[0]
+    if entities:
+        entry_v1 = list(get_entity_entry(entities, entity))[0]
         return "{} = {}.addEdge({})".format(entry_v1, out, ', '.join(a))
     else:
         return "{}.addEdge({})".format(out, ', '.join(a))
@@ -131,11 +131,11 @@ def build_edge_update_query(entity):
     pass
 
 
-def build_return_query(entities, models):
+def build_return_query(entities, entities):
     ret = []
 
     for e in entities:
-        entry = list(get_entity_entry(models, e))[0]
+        entry = list(get_entity_entry(entities, e))[0]
         s = "'{}': {}".format(entry, entry)
         ret.append(s)
 
@@ -174,14 +174,14 @@ class MapperTests(unittest.TestCase):
         self.assertTrue(type(m) == Mapper)
 
     def test_can_create_vertex(self):
-        v = self.mapper.create_model(model_class=TestVertex)
+        v = self.mapper.create(entity=TestVertex)
 
         self.assertTrue(isinstance(v, Vertex))
         self.assertEqual(v._type, 'vertex')
 
     def test_can_create_vertex_with_data(self):
         d = {'some_field': str(random())}
-        v = self.mapper.create_model(d, TestVertex)
+        v = self.mapper.create(d, TestVertex)
         vd = v.data
 
         """
@@ -199,14 +199,14 @@ class MapperTests(unittest.TestCase):
             GIZMO_ID: vid,
             'some_field': 'mark',
         }
-        v = self.mapper.create_model(d, TestVertex)
+        v = self.mapper.create(d, TestVertex)
         v['some_field'] = 'xxxx'
         self.mapper.save(v)._build_queries()
 
         sent_params = copy.deepcopy(self.mapper.params)
         changed = v.changed
         expected = build_vertex_update_query(v, vid,
-                                             sent_params, self.mapper.models)
+                                             sent_params, self.mapper.entities)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(changed) + 1, len(sent_params))
 
@@ -214,14 +214,14 @@ class MapperTests(unittest.TestCase):
         d = {
             'some_field': 'mark',
         }
-        v = self.mapper.create_model(d, TestVertex)
+        v = self.mapper.create(d, TestVertex)
 
         self.mapper.save(v)._build_queries()
 
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_create_query(v, sent_params,
-                                             self.mapper.models)
+                                             self.mapper.entities)
         self.assertEqual(expected, self.mapper.queries[0])
         self.assertEqual(len(d) + len(DEFAULT_INSERT_FIELDS), len(sent_params))
 
@@ -231,7 +231,7 @@ class MapperTests(unittest.TestCase):
             GIZMO_ID: vid,
             'some_field': 'mark',
         }
-        v = self.mapper.create_model(d, TestVertex)
+        v = self.mapper.create(d, TestVertex)
         self.mapper.delete(v)._build_queries()
         params = copy.deepcopy(self.mapper.params)
         sent_params = copy.deepcopy(self.mapper.params)
@@ -242,10 +242,10 @@ class MapperTests(unittest.TestCase):
     def test_can_delete_multiple_entities(self):
         v1 = {'_id': '15'}
         v2 = {'_id': '10'}
-        out_v = self.mapper.create_model(v1, TestVertex)
-        in_v = self.mapper.create_model(v2, TestVertex)
+        out_v = self.mapper.create(v1, TestVertex)
+        in_v = self.mapper.create(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v, '_id': '44'}
-        edge = self.mapper.create_model(ed, TestEdge)
+        edge = self.mapper.create(ed, TestEdge)
 
         self.mapper.delete(out_v)
         self.mapper.delete(in_v)
@@ -271,10 +271,10 @@ class MapperTests(unittest.TestCase):
     def test_can_create_edge_with_existing_vertices(self):
         v1 = {'_id': '15'}
         v2 = {'_id': '10'}
-        out_v = self.mapper.create_model(v1, TestVertex)
-        in_v = self.mapper.create_model(v2, TestVertex)
+        out_v = self.mapper.create(v1, TestVertex)
+        in_v = self.mapper.create(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
-        edge = self.mapper.create_model(ed, TestEdge)
+        edge = self.mapper.create(ed, TestEdge)
 
         self.assertTrue(isinstance(edge, Edge))
         self.assertTrue(isinstance(edge.out_v, TestVertex))
@@ -283,24 +283,24 @@ class MapperTests(unittest.TestCase):
     def test_can_create_edge_with_existing_vertices_query(self):
         v1 = {'_id': '15'}
         v2 = {'_id': '10', 'some_field': str(random())}
-        out_v = self.mapper.create_model(v1, TestVertex)
-        in_v = self.mapper.create_model(v2, TestVertex)
+        out_v = self.mapper.create(v1, TestVertex)
+        in_v = self.mapper.create(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
-        edge = self.mapper.create_model(ed, TestEdge)
+        edge = self.mapper.create(ed, TestEdge)
         label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
         params = self.mapper.params
         queries = self.mapper.queries
         out_v_query = build_vertex_update_query(out_v, v1['_id'], params,
-                                                self.mapper.models)
+                                                self.mapper.entities)
         in_v_query = build_vertex_update_query(in_v, v2['_id'], params,
-                                               self.mapper.models)
-        out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
-        in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
+                                               self.mapper.entities)
+        out_entry = list(get_entity_entry(self.mapper.entities, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.entities, in_v).keys())[0]
         edge_query = build_edge_create_query(edge, out_entry, in_entry,
-                                             label, params, self.mapper.models)
-        return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
+                                             label, params, self.mapper.entities)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.entities)
 
         self.assertEqual(len(queries), 4)
         self.assertEqual(out_v_query, queries[0])
@@ -311,24 +311,24 @@ class MapperTests(unittest.TestCase):
     def test_can_create_edge_with_one_existing_vertex_and_one_new_vertex(self):
         v1 = {'_id': '15'}
         v2 = {}
-        out_v = self.mapper.create_model(v1, TestVertex)
+        out_v = self.mapper.create(v1, TestVertex)
         self.mapper.save(out_v)
-        in_v = self.mapper.create_model(v2, TestVertex)
+        in_v = self.mapper.create(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
-        edge = self.mapper.create_model(ed, TestEdge)
+        edge = self.mapper.create(ed, TestEdge)
         label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
         params = copy.deepcopy(self.mapper.params)
         queries = self.mapper.queries
         out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
-            self.mapper.models)
-        in_v_query = build_vertex_create_query(in_v, params, self.mapper.models)
-        out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
-        in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
+            self.mapper.entities)
+        in_v_query = build_vertex_create_query(in_v, params, self.mapper.entities)
+        out_entry = list(get_entity_entry(self.mapper.entities, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.entities, in_v).keys())[0]
         edge_query = build_edge_create_query(edge, out_entry, in_entry, \
-            label, params, self.mapper.models)
-        return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
+            label, params, self.mapper.entities)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.entities)
 
         self.assertEqual(len(queries), 4)
         self.assertEqual(out_v_query, queries[0])
@@ -339,24 +339,24 @@ class MapperTests(unittest.TestCase):
     def test_can_queue_save_edge_with_existing_vertices(self):
         v1 = {'_id': '15'}
         v2 = {'_id': '10'}
-        out_v = self.mapper.create_model(v1, TestVertex)
-        in_v = self.mapper.create_model(v2, TestVertex)
+        out_v = self.mapper.create(v1, TestVertex)
+        in_v = self.mapper.create(v2, TestVertex)
         ed = {'out_v': out_v, 'in_v': in_v}
-        edge = self.mapper.create_model(ed, TestEdge)
+        edge = self.mapper.create(ed, TestEdge)
         label = str(TestEdge())
 
         self.mapper.save(edge)._build_queries()
         params = copy.deepcopy(self.mapper.params)
         queries = self.mapper.queries
         out_v_query = build_vertex_update_query(out_v, v1['_id'], params, \
-            self.mapper.models)
+            self.mapper.entities)
         in_v_query = build_vertex_update_query(in_v, v2['_id'], params, \
-            self.mapper.models)
-        out_entry = list(get_entity_entry(self.mapper.models, out_v).keys())[0]
-        in_entry = list(get_entity_entry(self.mapper.models, in_v).keys())[0]
+            self.mapper.entities)
+        out_entry = list(get_entity_entry(self.mapper.entities, out_v).keys())[0]
+        in_entry = list(get_entity_entry(self.mapper.entities, in_v).keys())[0]
         edge_query = build_edge_create_query(edge, out_entry, in_entry, \
-            label, params, self.mapper.models)
-        return_query = build_return_query([out_v, in_v, edge], self.mapper.models)
+            label, params, self.mapper.entities)
+        return_query = build_return_query([out_v, in_v, edge], self.mapper.entities)
 
         self.assertEqual(len(queries), 4)
         self.assertEqual(out_v_query, queries[0])
@@ -368,10 +368,10 @@ class MapperTests(unittest.TestCase):
         variable = {'v': ''}
         updated = random()
 
-        def save_test_callback(model):
+        def save_test_callback(entity):
             variable['v'] = updated
 
-        m = self.mapper.create_model({}, TestVertex)
+        m = self.mapper.create({}, TestVertex)
         yield self.mapper.save(m, callback=save_test_callback).send()
 
         self.assertEqual(variable['v'], updated)
@@ -380,10 +380,10 @@ class MapperTests(unittest.TestCase):
         variable = {'v': ''}
         updated = random()
 
-        def delete_test_callback(model):
+        def delete_test_callback(entity):
             variable['v'] = updated
 
-        m = self.mapper.create_model({'_id': '15'}, TestVertex)
+        m = self.mapper.create({'_id': '15'}, TestVertex)
         yield self.mapper.delete(m, callback=delete_test_callback).send()
 
         self.assertEqual(variable['v'], updated)
@@ -396,7 +396,7 @@ class MapperTests(unittest.TestCase):
         d = {
             'name': 'name{}'.format(str(random()))
         }
-        v = self.mapper.create_model(d, TestCaseVertex1)
+        v = self.mapper.create(d, TestCaseVertex1)
         data = blocking(self.mapper.data, v)
 
         self.assertIn('name', data)
@@ -417,7 +417,7 @@ class MapperTests(unittest.TestCase):
             d = {
                 'name': 'name{}'.format(str(random()))
             }
-            v = self.mapper.create_model(d, TestCaseVertex1)
+            v = self.mapper.create(d, TestCaseVertex1)
             coll.append(dict(v.data))
 
         resp = Response()
@@ -441,7 +441,7 @@ class MapperTests(unittest.TestCase):
             _allowed_undefined = True
 
         class TestCaseVertex2Mapper(_GenericMapper):
-            model = TestCaseVertex2
+            entity = TestCaseVertex2
 
             @gen.coroutine
             def get_city(self, entity, data):
@@ -451,7 +451,7 @@ class MapperTests(unittest.TestCase):
         d = {
             'name': 'name{}'.format(str(random()))
         }
-        v = self.mapper.create_model(d, TestCaseVertex2)
+        v = self.mapper.create(d, TestCaseVertex2)
         data = blocking(self.mapper.data, v, 'get_city')
 
         self.assertIn('name', data)
@@ -468,7 +468,7 @@ class MapperTests(unittest.TestCase):
             _allowed_undefined = True
 
         class TestCaseVertex2Mapper(_GenericMapper):
-            model = TestCaseVertex2
+            entity = TestCaseVertex2
 
             @gen.coroutine
             def get_city(self, entity, data):
@@ -478,7 +478,7 @@ class MapperTests(unittest.TestCase):
         d = {
             'name': 'name{}'.format(str(random()))
         }
-        v = self.mapper.create_model(d, TestCaseVertex2)
+        v = self.mapper.create(d, TestCaseVertex2)
         data = blocking(self.mapper.data, v, 'get_city')
 
         self.assertIn('name', data)
@@ -488,12 +488,12 @@ class MapperTests(unittest.TestCase):
 
     def test_can_assure_saving_vertex_mulitple_times_only_crud_once(self):
         d = {'some_field': str(random())}
-        v = self.mapper.create_model(d, TestVertex)
+        v = self.mapper.create(d, TestVertex)
 
         self.mapper.save(v).save(v)._build_queries()
         params = copy.deepcopy(self.mapper.params)
         expected = build_vertex_create_query(v, params,
-                                             self.mapper.models)
+                                             self.mapper.entities)
         self.assertEqual(3, len(self.mapper.queries))
         self.assertIn(expected, self.mapper.queries)
         self.assertTrue(False) # needs more assertions
@@ -517,8 +517,8 @@ class MapperTests(unittest.TestCase):
         gv = self.mapper.gremlin.gv
         params = copy.deepcopy(self.mapper.params)
         queries = self.mapper.queries
-        models = self.mapper.models
-        create = build_vertex_create_query(GOCVertex(d), params, models)
+        entities = self.mapper.entities
+        create = build_vertex_create_query(GOCVertex(d), params, entities)
         name, _ = get_dict_key(params, d['name'], False)
         expected = ('{}.V().has("name", {})'
                     '.tryNext().orElseGet{{{}}}').format(gv, name, create)
@@ -547,8 +547,8 @@ class MapperTests(unittest.TestCase):
         gv = self.mapper.gremlin.gv
         params = copy.deepcopy(self.mapper.params)
         queries = self.mapper.queries
-        models = self.mapper.models
-        create = build_vertex_create_query(GOCVertex(d), params, models)
+        entities = self.mapper.entities
+        create = build_vertex_create_query(GOCVertex(d), params, entities)
         name, _ = get_dict_key(params, d['name'], False)
         expected = ('{}.V().has("name", {}).extra()'
                     '.tryNext().orElseGet{{{}}}').format(gv, name, create)
@@ -569,17 +569,17 @@ class TestCallbackVertex(Vertex):
 
 
 class TestCallbackMapper(_GenericMapper):
-    model = TestCallbackVertex
+    entity = TestCallbackVertex
     on_create_variable = ''
 
-    def on_create(self, model):
-        TestCallbackMapper.on_create_variable = model['on_create_variable']
+    def on_create(self, entity):
+        TestCallbackMapper.on_create_variable = entity['on_create_variable']
 
-    def on_update(self, model):
-        TestCallbackMapper.on_update_variable = model['on_update_variable']
+    def on_update(self, entity):
+        TestCallbackMapper.on_update_variable = entity['on_update_variable']
 
-    def on_delete(self, model):
-        TestCallbackMapper.on_delete_variable = model['on_delete_variable']
+    def on_delete(self, entity):
+        TestCallbackMapper.on_delete_variable = entity['on_delete_variable']
 
 
 class CustomMapperTests(unittest.TestCase):
@@ -589,31 +589,31 @@ class CustomMapperTests(unittest.TestCase):
         self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
-    def test_can_can_on_create_model_level_callback(self):
+    def test_can_can_on_create_level_callback(self):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
         yield self.mapper.save(v).send()
         self.assertEqual(r, TestCallbackMapper.on_create_variable)
 
-    def test_can_can_on_update_model_level_callback(self):
+    def test_can_can_on_update_entity_level_callback(self):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_update_variable': r})
         mapper = self.mapper.get_mapper(v)
         yield self.mapper.save(v).send()
         self.assertEqual(r, mapper.on_update_variable)
 
-    def test_can_can_on_delete_model_level_callback(self):
+    def test_can_can_on_delete_entity_level_callback(self):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_delete_variable': r})
         mapper = self.mapper.get_mapper(v)
         yield self.mapper.delete(v).send()
         self.assertEqual(r, mapper.on_delete_variable)
 
-    def test_can_can_on_create_model_level_callback_and_onetime_callback(self):
+    def test_can_can_on_create_level_callback_and_onetime_callback(self):
         variable = {'v': ''}
         updated = random()
 
-        def create_test_callback(model):
+        def create_test_callback(entity):
             variable['v'] = updated
 
         r = random()
@@ -623,11 +623,11 @@ class CustomMapperTests(unittest.TestCase):
         self.assertEqual(r, mapper.on_create_variable)
         self.assertEqual(variable['v'], updated)
 
-    def test_can_can_on_update_model_level_callback_and_onetime_callback(self):
+    def test_can_can_on_update_entity_level_callback_and_onetime_callback(self):
         variable = {'v': ''}
         updated = random()
 
-        def update_test_callback(model):
+        def update_test_callback(entity):
             variable['v'] = updated
 
         r = random()
@@ -637,11 +637,11 @@ class CustomMapperTests(unittest.TestCase):
         self.assertEqual(r, mapper.on_update_variable)
         self.assertEqual(variable['v'], updated)
 
-    def test_can_can_on_delete_model_level_callback_and_onetime_callback(self):
+    def test_can_can_on_delete_entity_level_callback_and_onetime_callback(self):
         variable = {'v': ''}
         updated = random()
 
-        def delete_test_callback(model):
+        def delete_test_callback(entity):
             variable['v'] = updated
 
         r = random()
@@ -659,7 +659,7 @@ class EventSourceTests(unittest.TestCase):
         self.request = TestRequest()
         self.mapper = Mapper(self.request, self.gremlin, logger=False)
 
-    def test_can_source_an_event_when_model_is_saved(self):
+    def test_can_source_an_event_when_entity_is_saved(self):
         pass
 
 

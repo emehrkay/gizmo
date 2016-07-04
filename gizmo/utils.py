@@ -3,7 +3,7 @@ import re
 
 
 GIZMO_VARIABLE = 'gizmo_var'
-GIZMO_MODEL = 'gizmo_model'
+GIZMO_MODEL = 'gizmo_entity'
 GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
 GIZMO_ID = '_id'
