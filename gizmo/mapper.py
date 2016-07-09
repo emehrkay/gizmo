@@ -131,6 +131,9 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
         query.by_id(_id, entity)
         return self.enqueue(query, bind_return)
 
+    def start(self, entity=None):
+        return Traversal(self, entity or self.entity)
+
     def get_or_create(self, entity, field_val, bind_return=False,
                       statement=None):
         """method used to create a simple query that will get an entity
@@ -683,7 +686,9 @@ class Mapper(object):
         return self
 
     def start(self, entity):
-        return Traversal(self, entity)
+        mapper = self.get_mapper(entity)
+
+        return mapper.start(entity)
 
     def apply_statement(self, statement):
         self.gremlin.apply_statement(statement)
@@ -1063,10 +1068,18 @@ class Traversal(Gremlin):
 
         self._mapper = mapper
         self._entity = entity
-        entity, _id = entity.get_rep()
-        bound_id = self.bind_param(_id, 'EYE_DEE')
+        ev, _id = entity.get_rep()
 
-        getattr(self, entity)(bound_id[0])
+        if _id:
+            bound_id = self.bind_param(_id, 'EYE_DEE')
+
+            getattr(self, ev)(bound_id[0])
+        else:
+            _type = get_entity_name(entity)
+            bound_type = self.bind_param(_type, 'BOUND_TYPE')
+            e_v = 'V' if ev == 'V' else 'E'
+
+            getattr(self, e_v)().hasLabel(bound_type[0])
 
     def define_traversal(self, traversal):
         if hasattr(traversal, '__call__'):
@@ -1128,7 +1141,7 @@ class Collection(object):
 
                 if data is not None:
                     entity = self.mapper.create(data=data,
-                                                     data_type=self._data_type)
+                                                data_type=self._data_type)
                     entity.dirty = False
                     self._entities[key] = entity
                 else:

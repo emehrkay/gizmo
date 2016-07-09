@@ -56,6 +56,15 @@ def get_object_items(obj):
             not callable(getattr(obj, a))]
 
 
+def get_entity_name(entity):
+    from .mapper import _BaseEntity
+
+    if isinstance(entity, _BaseEntity):
+        return get_qualified_instance_name(entity)
+    else:
+        return get_qualified_name(entity)
+
+
 def get_qualified_name(obj):
     return '%s.%s' % (obj.__module__, obj.__name__)
 
