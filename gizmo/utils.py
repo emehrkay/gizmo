@@ -3,7 +3,7 @@ import re
 
 
 GIZMO_VARIABLE = 'gizmo_var'
-GIZMO_MODEL = 'gizmo_model'
+GIZMO_MODEL = 'gizmo_entity'
 GIZMO_CREATED = 'gizmo_created'
 GIZMO_MODIFIED = 'gizmo_modified'
 GIZMO_ID = '_id'
@@ -54,6 +54,15 @@ def camel_to_underscore(name):
 def get_object_items(obj):
     return [a for a in dir(obj) if not a.startswith('__') and
             not callable(getattr(obj, a))]
+
+
+def get_entity_name(entity):
+    from .mapper import _BaseEntity
+
+    if isinstance(entity, _BaseEntity):
+        return get_qualified_instance_name(entity)
+    else:
+        return get_qualified_name(entity)
 
 
 def get_qualified_name(obj):

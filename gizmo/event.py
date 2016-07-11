@@ -7,7 +7,7 @@ class SourcedEvent(Vertex):
 
 
 class SourcedEventMapper(_GenericMapper):
-    model = SourcedEvent
+    entity = SourcedEvent
 
 
 class TriggedSourceEvent(Edge):
@@ -29,55 +29,55 @@ class EventSourceMixin(object):
     to Gizmo entities. Simply define a custom mapper and subclass
     this class to get the added functionality.
 
-    The source must be defined before saving the model.
+    The source must be defined before saving the entity.
 
     When using this mixin there are a few things that need to be
     considered:
     """
 
-    def save(self, model, bind_return=True, callback=None, source=None,
+    def save(self, entity, bind_return=True, callback=None, source=None,
              *args, **kwargs):
         """
-        Method used to save the original model and to add the
+        Method used to save the original entity and to add the
         source -> event and
-        model -> event
+        entity -> event
         relationships
         """
-        super(EventSourceMixin, self).save(model=model, bind_return=bind_return,
+        super(EventSourceMixin, self).save(entity=entity, bind_return=bind_return,
                                       callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 
         if source is not None:
-            fields_changed = len(model.changed) > 0
-            fields_removed = len(model.removed) > 0
+            fields_changed = len(entity.changed) > 0
+            fields_removed = len(entity.removed) > 0
 
             # only create the source event if there were actual changes
             if fields_changed or fields_removed:
                 self.event = event = \
-                    self.mapper.create_model(model_class=SourcedEvent,
-                                             data_type=model.data_type)
+                    self.mapper.create(entity=SourcedEvent,
+                                             data_type=entity.data_type)
 
-                for field, change in model.changed.items():
+                for field, change in entity.changed.items():
                     event[field] = change
 
-                if model._atomic_changes and fields_removed:
+                if entity._atomic_changes and fields_removed:
                     # TODO: track the fields that were removed
                     pass
 
                 source_params = {
                     'out_v': source,
                     'in_v': event,
-                    'edge_model': TriggedSourceEvent,
+                    'edge_entity': TriggedSourceEvent,
                 }
                 source_edge = self.mapper.connect(**source_params)
-                event_edge = self.mapper.connect(out_v=model, in_v=event,
-                                                 edge_model=SourceEventEntry)
+                event_edge = self.mapper.connect(out_v=entity, in_v=event,
+                                                 edge_entity=SourceEventEntry)
 
                 self.mapper.save(source_edge, bind_return=True)
                 self.mapper.save(event_edge, bind_return=True)
 
         return self
 
-    def get_event_history(self, model, range_start=None, range_end=None):
+    def get_event_history(self, entity, range_start=None, range_end=None):
         # TODO: fill this query out
         pass

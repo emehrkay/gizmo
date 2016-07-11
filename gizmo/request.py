@@ -229,13 +229,13 @@ class Request(object):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
 
     @gen.coroutine
-    def send(self, script=None, params=None, update_models=None, *args,
+    def send(self, script=None, params=None, update_entities=None, *args,
              **kwargs):
         if not params:
             params = {}
 
-        if not update_models:
-            update_models = {}
+        if not update_entities:
+            update_entities = {}
 
         data = []
         resp = yield submit(gremlin=script, bindings=params, url=self._ws_uri)
@@ -249,19 +249,19 @@ class Request(object):
             if msg.data:
                 data += msg.data
 
-        response = Response(data, update_models)
+        response = Response(data, update_entities)
 
         return response
 
 
 class Response(object):
 
-    def __init__(self, data=None, update_models=None):
-        if not update_models:
-            update_models = {}
+    def __init__(self, data=None, update_entities=None):
+        if not update_entities:
+            update_entities = {}
 
         self.original_data = data
-        self.update_models = update_models
+        self.update_entities = update_entities
         self.data = self._fix_data(self._fix_titan_data(data))
 
     def _fix_titan_data(self, data):
@@ -288,7 +288,7 @@ class Response(object):
         if not resp:
             resp = {}
         response = []
-        update_keys = list(self.update_models.keys())
+        update_keys = list(self.update_entities.keys())
 
         def has_update(keys):
             for k in keys:
@@ -311,10 +311,10 @@ class Response(object):
             elif isinstance(arg, dict):
                 if has_update(arg.keys()):
                     for k, v in arg.items():
-                        if k in self.update_models:
-                            model = self.update_models[k]
+                        if k in self.update_entities:
+                            entity = self.update_entities[k]
 
-                            if not model:
+                            if not entity:
                                 continue
 
                             data = {}
@@ -327,11 +327,11 @@ class Response(object):
 
                             if 'id' in data:
                                 data['_id'] = data['id']
-                                model.fields['_id'].value = data['id']
+                                entity.fields['_id'].value = data['id']
                                 del(data['id'])
 
                             response.append(data)
-                            model.hydrate(data)
+                            entity.hydrate(data)
                 else:
                     data = fix_properties(arg)
                     for field, value in data.items():
@@ -361,12 +361,12 @@ class Response(object):
 
         return val
 
-    def update_models(self, mappings):
+    def update_entities(self, mappings):
         fixed = copy.deepcopy(self.data)
 
-        for var, model in mappings.items():
+        for var, entity in mappings.items():
             if var in self.data:
-                model.hydrate(self.data[var])
+                entity.hydrate(self.data[var])
 
                 try:
                     del fixed[var]

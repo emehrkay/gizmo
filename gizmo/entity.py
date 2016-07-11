@@ -10,7 +10,7 @@ from .utils import (get_qualified_instance_name, IMMUTABLE, GIZMO_MODEL,
                     current_date_time, camel_to_underscore)
 
 
-# Holds the model->object mappings
+# Holds the entity->object mappings
 _MAP = {}
 DEFAULT_MODEL_FIELDS = [
     GIZMO_MODEL,
@@ -22,7 +22,7 @@ DEFAULT_MODEL_FIELDS = [
 
 class _RootEntity(type):
     """
-    maps all models during definition to their object so that it can be
+    maps all entities during definition to their object so that it can be
     loaded later
     overwrites the __init__ method. Models cannot define one
     """
@@ -107,7 +107,7 @@ class _RootEntity(type):
             """"
             build the properties for the instance
             ignore things that start with an underscore and methods
-            this is done for all of the bases first, then the actual model
+            this is done for all of the bases first, then the actual entity
             """
             undefined = deepcopy(data)
 

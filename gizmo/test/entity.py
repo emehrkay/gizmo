@@ -80,7 +80,7 @@ class EntityTests(unittest.TestCase):
             self.assertIn(k, data)
             self.assertEqual(v, data[k])
 
-    def test_can_create_entity_with_and_without_label_override(self):
+    def test_can_create_with_and_without_label_override(self):
         custom = 'custom_name' + str(random())
 
         class CustomV(Vertex):
