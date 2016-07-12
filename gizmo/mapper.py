@@ -12,7 +12,7 @@ from gremlinpy.statement import GetEdge, Conditional
 from .field import Timestamp
 from .utils import get_qualified_name, get_qualified_instance_name, GIZMO_LABEL
 from .utils import camel_to_underscore, GIZMO_VARIABLE
-from .utils import IMMUTABLE, GIZMO_MODEL
+from .utils import IMMUTABLE, GIZMO_MODEL, get_entity_name
 from .entity import Edge, Vertex, GenericVertex, GenericEdge, _MAP, _BaseEntity
 from .error import *
 
@@ -714,7 +714,6 @@ class Mapper(object):
     @gen.coroutine
     def query(self, script=None, params=None, gremlin=None,
               update_entities=None, callbacks=None):
-
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -900,7 +899,9 @@ class Query(object):
         # entity.data can be monkey-patched with custom mappers
         self.build_fields(entity, IMMUTABLE['vertex'])
 
-        script = '%s.addV(%s).next()' % (gremlin.gv, ', '.join(self.fields))
+        label = camel_to_underscore(entity.__class__.__name__)
+        script = ('{}.addV(label, "{}", {})'
+                  '.next()').format(gremlin.gv, label, ', '.join(self.fields))
 
         gremlin.set_graph_variable('').raw(script)
 
@@ -1068,18 +1069,27 @@ class Traversal(Gremlin):
 
         self._mapper = mapper
         self._entity = entity
-        ev, _id = entity.get_rep()
+        _id = None
+        _base = isinstance(entity, _BaseEntity)
+
+        if _base:
+            ev, _id = entity.get_rep()
 
         if _id:
             bound_id = self.bind_param(_id, 'EYE_DEE')
 
             getattr(self, ev)(bound_id[0])
         else:
-            _type = get_entity_name(entity)
-            bound_type = self.bind_param(_type, 'BOUND_TYPE')
-            e_v = 'V' if ev == 'V' else 'E'
+            if _base:
+                _type = entity.__class__.__name__
+            else:
+                _type = entity.__name__
+                ev, _ = entity().get_rep()
 
-            getattr(self, e_v)().hasLabel(bound_type[0])
+            _type = camel_to_underscore(_type)
+            bound_type = self.bind_param(_type, 'BOUND_TYPE')
+
+            getattr(self, ev)().hasLabel(bound_type[0])
 
     def define_traversal(self, traversal):
         if hasattr(traversal, '__call__'):

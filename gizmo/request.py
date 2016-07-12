@@ -249,20 +249,23 @@ class Request(object):
             if msg.data:
                 data += msg.data
 
-        response = Response(data, update_entities)
+        response = Response(data, update_entities, script, params)
 
         return response
 
 
 class Response(object):
 
-    def __init__(self, data=None, update_entities=None):
+    def __init__(self, data=None, update_entities=None, script=None, 
+                 params=None):
         if not update_entities:
             update_entities = {}
 
         self.original_data = data
         self.update_entities = update_entities
         self.data = self._fix_data(self._fix_titan_data(data))
+        self.script = script
+        self.params = params
 
     def _fix_titan_data(self, data):
         """temp method to address a titan bug where it returns maps in a
