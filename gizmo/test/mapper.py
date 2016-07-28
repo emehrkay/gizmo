@@ -372,7 +372,7 @@ class MapperTests(unittest.TestCase):
             variable['v'] = updated
 
         m = self.mapper.create({}, TestVertex)
-        yield self.mapper.save(m, callback=save_test_callback).send()
+        await self.mapper.save(m, callback=save_test_callback).send()
 
         self.assertEqual(variable['v'], updated)
 
@@ -384,7 +384,7 @@ class MapperTests(unittest.TestCase):
             variable['v'] = updated
 
         m = self.mapper.create({'_id': '15'}, TestVertex)
-        yield self.mapper.delete(m, callback=delete_test_callback).send()
+        await self.mapper.delete(m, callback=delete_test_callback).send()
 
         self.assertEqual(variable['v'], updated)
 
@@ -592,21 +592,21 @@ class CustomMapperTests(unittest.TestCase):
     def test_can_can_on_create_level_callback(self):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
-        yield self.mapper.save(v).send()
+        await self.mapper.save(v).send()
         self.assertEqual(r, TestCallbackMapper.on_create_variable)
 
     def test_can_can_on_update_entity_level_callback(self):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_update_variable': r})
         mapper = self.mapper.get_mapper(v)
-        yield self.mapper.save(v).send()
+        await self.mapper.save(v).send()
         self.assertEqual(r, mapper.on_update_variable)
 
     def test_can_can_on_delete_entity_level_callback(self):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_delete_variable': r})
         mapper = self.mapper.get_mapper(v)
-        yield self.mapper.delete(v).send()
+        await self.mapper.delete(v).send()
         self.assertEqual(r, mapper.on_delete_variable)
 
     def test_can_can_on_create_level_callback_and_onetime_callback(self):
@@ -619,7 +619,7 @@ class CustomMapperTests(unittest.TestCase):
         r = random()
         v = TestCallbackVertex({'on_create_variable': r})
         mapper = self.mapper.get_mapper(v)
-        yield self.mapper.save(v, callback=create_test_callback).send()
+        await self.mapper.save(v, callback=create_test_callback).send()
         self.assertEqual(r, mapper.on_create_variable)
         self.assertEqual(variable['v'], updated)
 
@@ -633,7 +633,7 @@ class CustomMapperTests(unittest.TestCase):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_update_variable': r})
         mapper = self.mapper.get_mapper(v)
-        yield self.mapper.save(v, callback=update_test_callback).send()
+        await self.mapper.save(v, callback=update_test_callback).send()
         self.assertEqual(r, mapper.on_update_variable)
         self.assertEqual(variable['v'], updated)
 
@@ -647,7 +647,7 @@ class CustomMapperTests(unittest.TestCase):
         r = random()
         v = TestCallbackVertex({'_id': 10, 'on_delete_variable': r})
         mapper = self.mapper.get_mapper(v)
-        yield self.mapper.delete(v, callback=delete_test_callback).send()
+        await self.mapper.delete(v, callback=delete_test_callback).send()
         self.assertEqual(r, mapper.on_delete_variable)
         self.assertEqual(variable['v'], updated)
 

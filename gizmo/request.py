@@ -228,8 +228,7 @@ class Request(object):
     def __init__(self, uri, graph, username=None, password=None, port=8184):
         self._ws_uri = 'ws://%s:%s/%s' % (uri, port, graph)
 
-    @gen.coroutine
-    def send(self, script=None, params=None, update_entities=None, *args,
+    async def send(self, script=None, params=None, update_entities=None, *args,
              **kwargs):
         if not params:
             params = {}
@@ -238,10 +237,10 @@ class Request(object):
             update_entities = {}
 
         data = []
-        resp = yield submit(gremlin=script, bindings=params, url=self._ws_uri)
+        resp = await submit(gremlin=script, bindings=params, url=self._ws_uri)
 
         while True:
-            msg = yield resp.read()
+            msg = await resp.read()
 
             if not msg:
                 break

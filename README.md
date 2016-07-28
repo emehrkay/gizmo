@@ -62,7 +62,7 @@ m = Mapper(r, g)
 @gen.coroutine
 def run():
     script = '1 + 1' # run a simple script directly
-    resp = yield m.query(script=script)
+    resp = await m.query(script=script)
 
     print(resp, resp.first()['response']) # <gizmo.mapper.Collection object at #ID> 2
 
@@ -115,7 +115,7 @@ m.save(e) #this will CRUD all entites
 # run the script in a non-blocking fashion 
 @gen.coroutine
 def run():
-    result = yield m.send() #builds query and sends to the server
+    result = await m.send() #builds query and sends to the server
 
     # the entities have been updated with the response from the server
     print(u['_id'], e.data) # 1 <some_id>, <OrderedDict>

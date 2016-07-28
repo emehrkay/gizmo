@@ -186,8 +186,7 @@ class _GenericMapper(with_metaclass(_RootMapper, object)):
 
         return self
 
-    @gen.coroutine
-    def data(self, entity):
+    async def data(self, entity):
         return entity.data
 
     def before_save_action(self, entity):
@@ -439,45 +438,40 @@ class Mapper(object):
 
         return getattr(mapper, self._magic_method)(*args, **kwargs)
 
-    @gen.coroutine
-    def data(self, entity, *args):
+    async def data(self, entity, *args):
         """utility method used to retrieve an entity's data. It also allows for
         method chaining in order to augment the resulting data.
 
         class MyMapper(_GenericMapper):
-            @gen.coroutine
-            def add_two(self, entity, data):
+            async def add_two(self, entity, data):
                 data['two'] = 2
                 return data
 
-            @gen.coroutine
-            def add_three(self, entity, data):
+            async def add_three(self, entity, data):
                 data['three'] = 3
                 return data
 
         entity = User()
-        data = yield mapper.data(user, 'add_two', 'add_three')
+        data = await mapper.data(user, 'add_two', 'add_three')
 
         the resulting data will have the data from the User class, plus a two
         and a three member
         """
         collection = isinstance(entity, Collection)
 
-        @gen.coroutine
-        def get_data(entity, data):
+        async def get_data(entity, data):
             retrieved = data
 
             for method in args:
                 mapper = self.get_mapper(entity)
 
-                @gen.coroutine
-                def wrapper(entity, data):
-                    res = yield getattr(mapper, method)(entity=entity,
+                async def wrapper(entity, data):
+                    res = await getattr(mapper, method)(entity=entity,
                                                         data=data)
 
                     return res
 
-                retrieved = yield wrapper(entity=entity, data=retrieved)
+                retrieved = await wrapper(entity=entity, data=retrieved)
 
             return retrieved
 
@@ -486,14 +480,14 @@ class Mapper(object):
 
             for coll_entity in entity:
                 mapper = self.get_mapper(coll_entity)
-                entity_data = yield mapper.data(coll_entity)
-                res = yield get_data(coll_entity, entity_data)
+                entity_data = await mapper.data(coll_entity)
+                res = await get_data(coll_entity, entity_data)
 
                 data.append(res)
         else:
             mapper = self.get_mapper(entity)
-            entity_data = yield mapper.data(entity)
-            data = yield get_data(entity, entity_data)
+            entity_data = await mapper.data(entity)
+            data = await get_data(entity, entity_data)
 
         return data
 
@@ -572,11 +566,10 @@ class Mapper(object):
 
         return self._enqueue_mapper(mapper)
 
-    @gen.coroutine
-    def get_by_id(self, _id, entity='V'):
+    async def get_by_id(self, _id, entity='V'):
         self.gremlin.func(entity, _id)
 
-        res = yield self.query(gremlin=self.gremlin)
+        res = await self.query(gremlin=self.gremlin)
 
         return res.first()
 
@@ -589,13 +582,12 @@ class Mapper(object):
 
         return self._enqueue_mapper(mapper)
 
-    @gen.coroutine
-    def get_or_create(self, entity, field_val, bind_return=False,
+    async def get_or_create(self, entity, field_val, bind_return=False,
                              statement=None):
         self.get_or_create(entity=entity, field_val=field_val,
                            bind_return=bind_return, statement=statement)
 
-        res = yield self.send()
+        res = await self.send()
 
         return res.first()
 
@@ -695,8 +687,7 @@ class Mapper(object):
 
         return self
 
-    @gen.coroutine
-    def send(self):
+    async def send(self):
         self._build_queries()
 
         script = ";\n".join(self.queries)
@@ -706,13 +697,12 @@ class Mapper(object):
         entities.update(self.del_entities)
         self.reset()
 
-        res = yield self.query(script=script, params=params,
+        res = await self.query(script=script, params=params,
                           update_entities=entities, callbacks=callbacks)
 
         return res
 
-    @gen.coroutine
-    def query(self, script=None, params=None, gremlin=None,
+    async def query(self, script=None, params=None, gremlin=None,
               update_entities=None, callbacks=None):
         if gremlin is not None:
             script = str(gremlin)
@@ -739,7 +729,7 @@ class Mapper(object):
             self.logger.debug(json.dumps(params))
             self.logger.debug(_query_debug(script, params))
 
-        response = yield self.request.send(script, params, update_entities)
+        response = await self.request.send(script, params, update_entities)
 
         for k, entity in update_entities.items():
             cbs = callbacks.get(entity, [])
@@ -1103,9 +1093,8 @@ class Traversal(Gremlin):
     def start_depth(self):
         pass
 
-    @gen.coroutine
-    def to_collection(self):
-        collection = yield self._mapper.send(gremlin=self)
+    async def to_collection(self):
+        collection = await self._mapper.send(gremlin=self)
 
         return collection
 
