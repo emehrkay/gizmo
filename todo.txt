@@ -1,2 +1,0 @@
-* Fix map/list binding for adding nodes, works for updating
-* Flesh out the Traversal object
