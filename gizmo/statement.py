@@ -1,7 +1,7 @@
 from gremlinpy import Statement, Gremlin, Param
 from gremlinpy.statement import GetEdge
 
-from .mapper import Query
+from .mapper import Query, next_param
 from .util import GIZMO_LABEL
 
 
@@ -36,8 +36,8 @@ class MapperUniqueVertex(MapperStatement):
 
         for field in self.mapper.unique_fields:
             holder = '{}_{}'.format(name, field)
-            g_field = self.query._next_param(holder, field)
-            param = self.query._next_param(holder + '_value',
+            g_field = next_param(holder, field)
+            param = next_param(holder + '_value',
                 self.entity[field].value)
 
             gremlin.has(g_field, param)

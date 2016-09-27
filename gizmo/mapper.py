@@ -37,6 +37,21 @@ def get_entity_mapper(entity=None, name=GENERIC_MAPPER):
     return ENTITY_MAPPER_MAP[name](self)
 
 
+def next_param_name(param):
+    param = re.sub('\W', '_', param)
+
+    if param not in _query_params:
+        _query_params[param] = -1
+
+    _query_params[param] += 1
+
+    return '{}_{}'.format(param, _query_params[param])
+
+
+def next_param(param, value):
+    return Param(next_param_name(param), value)
+
+
 class Mapper:
 
     def __init__(self, request, gremlin=None, auto_commit=True,
@@ -612,19 +627,6 @@ class Query:
         self.fields = []
         return self
 
-    def _next_param_name(self, param):
-        param = re.sub('\W', '_', param)
-
-        if param not in _query_params:
-            _query_params[param] = -1
-
-        _query_params[param] += 1
-
-        return '{}_{}'.format(param, _query_params[param])
-
-    def _next_param(self, param, value):
-        return Param(self._next_param_name(param), value)
-
     def _add_query(self, script, params=None, entity=None):
         if params is None:
             params = {}
@@ -649,7 +651,7 @@ class Query:
         ignore = ignore or []
         entity_name = str(entity)
         entity_alias = '{}_alias'.format(entity_name)
-        entity_alias = self._next_param(entity_alias, entity_alias)
+        entity_alias = next_param(entity_alias, entity_alias)
 
         def add_field(field, data):
             values = data.get('values', data.get('value', None))
@@ -667,22 +669,22 @@ class Query:
             ignore = ignore or []
 
             if field.startswith('T.'):
-                val_param = self._next_param('{}_{}'.format(entity_name,
+                val_param = next_param('{}_{}'.format(entity_name,
                     field), value)
                 gremlin.unbound('property', field, val_param)
                 return
 
             field_name = '{}_{}'.format(entity_name, field)
-            prop = self._next_param(field_name, field)
+            prop = next_param(field_name, field)
             value_name = '{}_value'.format(field_name)
-            value_param = self._next_param(value_name, value)
+            value_param = next_param(value_name, value)
             params = [prop, value_param]
 
             if properties:
                 for key, val in properties.items():
-                    prop_key = self._next_param('{}_{}'.format(prop.name,
+                    prop_key = next_param('{}_{}'.format(prop.name,
                         key), key)
-                    prop_val = self._next_param('{}_{}_val'.format(prop.name,
+                    prop_val = next_param('{}_{}_val'.format(prop.name,
                         key), val)
                     params += [prop_key, prop_val]
 
@@ -696,7 +698,7 @@ class Query:
                 for val in changes['values']['values']:
                     add_property(field, val)
             elif changes['deleted']:
-                prop = self._next_param('{}_{}'.format(entity_name, field), field)
+                prop = next_param('{}_{}'.format(entity_name, field), field)
                 remove = Gremlin('').it.get().func('remove')
 
                 gremlin.AS(entity_alias).properties(prop)
@@ -733,7 +735,7 @@ class Query:
         if not _id:
             raise Exception()
 
-        _id = self._next_param('{}_ID'.format(str(entity)), _id)
+        _id = next_param('{}_ID'.format(str(entity)), _id)
         ignore = [GIZMO_ID, GIZMO_LABEL[1]]
 
         getattr(gremlin, entity_type.upper())(_id)
@@ -806,7 +808,7 @@ class Query:
         name = str(entity)
         gremlin = self.gremlin
         g = Gremlin(gremlin.gv)
-        label = self._next_param('{}_label'.format(name), entity[GIZMO_LABEL[0]])
+        label = next_param('{}_label'.format(name), entity[GIZMO_LABEL[0]])
 
         """
         g.V($OUT_ID).next().addEdge($LABEL, g.V($IN_ID).next()).property(....)
@@ -817,7 +819,7 @@ class Query:
         if in_v['is_ref']:
             g.unbound('V', in_v['v'])
         else:
-            in_id = self._next_param('{}_in'.format(name), in_v['v'])
+            in_id = next_param('{}_in'.format(name), in_v['v'])
 
             g.V(in_id)
 
@@ -826,7 +828,7 @@ class Query:
         if out_v['is_ref']:
             gremlin.unbound('V', out_v['v'])
         else:
-            out_id = self._next_param('{}_out'.format(name), out_v['v'])
+            out_id = next_param('{}_out'.format(name), out_v['v'])
 
             gremlin.V(out_id)
 
@@ -846,8 +848,8 @@ class Query:
             except:
                 continue
 
-            field_param = self._next_param('{}_{}'.format(name, field), field)
-            field_value = self._next_param('{}_value'.format(field_param.name),
+            field_param = next_param('{}_{}'.format(name, field), field)
+            field_value = next_param('{}_value'.format(field_param.name),
                 value)
             edge_args += [field_param, field_value]
 
@@ -881,7 +883,7 @@ class Query:
             msg = 'The entity does not have a type defined'
             raise AstronomerQueryException(msg)
 
-        delete = self._next_param('{}_ID'.format(str(entity)), _id)
+        delete = next_param('{}_ID'.format(str(entity)), _id)
 
         getattr(self.gremlin, entity_type)(delete).next().func('remove')
 
