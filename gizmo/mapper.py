@@ -75,11 +75,11 @@ class Mapper:
         self.gremlin.reset()
         global _query_count
         global _count
-        global _ENTITY_USED
+        global _query_params
 
         _query_count = 0
         _count = 0
-        _ENTITY_USED = {}
+        _query_params = {}
         self.queries = []
         self.return_vars = []
         self.entities = OrderedDict()  # ensure FIFO for testing
