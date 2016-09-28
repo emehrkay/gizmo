@@ -677,9 +677,10 @@ class Option(Field):
 
     def __init__(self, options, name=None, values=None, data_type='python',
                  *args, **kwargs):
+        self.options = options
+
         super().__init__(name=name, values=values, data_type=data_type, *args,
                          **kwargs)
-        self.options = options
 
     def can_set(self, value):
         if isinstance(value, Value):
