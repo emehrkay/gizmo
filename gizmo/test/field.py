@@ -865,6 +865,60 @@ class ImmutableFieldTests(unittest.TestCase):
         self.assertEqual(v, added[0]['value'])
 
 
+class OptionTests(unittest.TestCase):
+
+    def test_can_add_allowed_value(self):
+        v = str(random())
+        allowed = ['name', v]
+        f = Option(options=allowed)
+        f + v
+
+        self.assertEqual(f.values[0], v)
+        self.assertEqual(1, len(f.values))
+
+    def test_can_add_allowed_value_when_attempting_to_add_more(self):
+        v = str(random())
+        v2 = str(random())
+        allowed = ['name', v]
+        f = Option(options=allowed)
+        f + v + v2
+
+        self.assertEqual(f.values[0], v)
+        self.assertEqual(1, len(f.values))
+
+    def test_can_add_allowed_values(self):
+        v = str(random())
+        v2 = str(random())
+        allowed = ['name', v, v2]
+        f = Option(options=allowed)
+        f + v + v2
+
+        self.assertEqual(f.values[0], v)
+        self.assertEqual(f.values[1], v2)
+        self.assertEqual(2, len(f.values))
+
+    def test_can_add_allowed_values_when_attempting_to_add_more(self):
+        v = str(random())
+        v2 = str(random())
+        v3 = str(random())
+        allowed = ['name', v, v2]
+        f = Option(options=allowed)
+        f + v + v2 + v3
+
+        self.assertEqual(f.values[0], v)
+        self.assertEqual(f.values[1], v2)
+        self.assertEqual(2, len(f.values))
+
+    def test_cannot_add_unallowed_value(self):
+        v = str(random())
+        allowed = ['name']
+        f = Option(options=allowed)
+        f + v
+
+        self.assertNotIn(v, f.values)
+        self.assertEqual(0, len(f.values))
+
+
 class FieldManagerTests(unittest.TestCase):
 
     def test_can_create_a_field_manager_without_fields(self):

@@ -167,7 +167,8 @@ class Field:
                                     to_graph=self.to_graph,
                                     default_value=self.default_value,
                                     max_values=max_values,
-                                    overwrite_last_value=overwrite_last_value)
+                                    overwrite_last_value=overwrite_last_value,
+                                    can_set=self.can_set)
         self._data_type = data_type
         self.deleted = False
 
@@ -179,10 +180,12 @@ class Field:
         val[key] = value
 
     def __delitem__(self, value):
-        del self._values[value]
+        if self.can_set(value):
+            del self._values[value]
 
     def __add__(self, value):
-        return self._values + value
+        if self.can_set(value):
+            return self._values + value
 
     def _set_data_type(self, data_type):
         self._values.data_type = data_type
@@ -231,12 +234,16 @@ class Field:
     def to_graph(self, value):
         return self.to_python(value)
 
+    def can_set(self, value):
+        return True
+
 
 class ValueManager:
 
     def __init__(self, values=None, data_type='python', reset_initial=True,
                  to_python=None, to_graph=None, filter_field=None,
-                 default_value=None, max_values=None, overwrite_last_value=False):
+                 default_value=None, max_values=None, overwrite_last_value=False,
+                 can_set=None):
         self._values = []
         self._deleted = []
         self._data_type = data_type
@@ -252,8 +259,12 @@ class ValueManager:
         if not to_graph:
             to_graph = lambda x: x
 
+        if not can_set:
+            can_set = lambda x: True
+
         self._to_python = to_python
         self._to_graph = to_graph
+        self._can_set = can_set
         self.filter_field = filter_field
 
         self.hydrate(values=values, reset_initial=reset_initial)
@@ -281,10 +292,16 @@ class ValueManager:
 
     def __add__(self, value):
         if isinstance(value, Value):
+            if not self._can_set(value.value):
+                return self
+
             self.add_value(value.value, value.properties, value.id)
 
             return self
         else:
+            if not self._can_set(value):
+                return self
+
             return self.add_value(value, properties=None)
 
     def __len__(self):
@@ -305,6 +322,9 @@ class ValueManager:
         return manager
 
     def __setitem__(self, key, value):
+        if not self._can_set(value):
+            return self
+
         for val in self.filtered_values:
             if val.value == key:
                 val.value = value
@@ -334,6 +354,9 @@ class ValueManager:
         return self
 
     def add_value(self, value, properties=None, id=None):
+        if not self._can_set(value):
+            return self
+
         val = Value(value=value, properties=properties, id=id)
         x = self.max_values
         l = len(self._values)
@@ -648,6 +671,21 @@ class List(Map):
     @property
     def default_value(self):
         return []
+
+
+class Option(Field):
+
+    def __init__(self, options, name=None, values=None, data_type='python',
+                 *args, **kwargs):
+        super().__init__(name=name, values=values, data_type=data_type, *args,
+                         **kwargs)
+        self.options = options
+
+    def can_set(self, value):
+        if isinstance(value, Value):
+            value = value.value
+
+        return value in self.options
 
 
 class GremlinID(_ImmutableField, String):

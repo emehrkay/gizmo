@@ -1,4 +1,6 @@
 import re
+import time
+
 
 GIZMO_ID = 'id'
 GIZMO_LABEL = 'T.label'
@@ -52,3 +54,7 @@ def _query_debug(script, params):
         return "'%s'" % x
 
     return pattern.sub(su, script)
+
+
+def current_date_time(offset=0):
+    return (int(time.time()) + offset)
