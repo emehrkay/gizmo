@@ -22,7 +22,18 @@ class FieldTests(unittest.TestCase):
         self.assertEqual(1, len(f.values))
         self.assertIn(v, f.values)
 
-    def test_can_create_field_with_two_value_in_list(self):
+    def test_can_create_field_with_one_callable_value(self):
+        v = str(random())
+        def value():
+            return v
+
+        f = Field(values=value)
+
+        self.assertEqual(type(f), Field)
+        self.assertEqual(1, len(f.values))
+        self.assertIn(v, f.values)
+
+    def test_can_create_field_with_two_values_in_list(self):
         v = [str(random()), str(random())]
         f = Field(values=v)
 
@@ -31,10 +42,36 @@ class FieldTests(unittest.TestCase):
         self.assertIn(v[0], f.values)
         self.assertIn(v[1], f.values)
 
+    def test_can_create_field_with_two_values_in_list_one_callable(self):
+        val = str(random())
+
+        def value():
+            return val
+
+        v = [str(random()), value]
+        f = Field(values=v)
+
+        self.assertEqual(type(f), Field)
+        self.assertEqual(2, len(f.values))
+        self.assertIn(v[0], f.values)
+        self.assertIn(val, f.values)
+
     def test_can_add_value_to_field(self):
         f = Field()
         v = str(random())
         f + v
+
+        self.assertEqual(1, len(f.values))
+        self.assertIn(v, f.values)
+
+    def test_can_add_callable_value_to_field(self):
+        f = Field()
+        v = str(random())
+
+        def value():
+            return v
+
+        f + value
 
         self.assertEqual(1, len(f.values))
         self.assertIn(v, f.values)
@@ -49,10 +86,53 @@ class FieldTests(unittest.TestCase):
         self.assertIn(v, f.values)
         self.assertIn(d, f.values)
 
+    def test_can_add_multiple_callable_values_to_field(self):
+        f = Field()
+        v = str(random())
+        d = str(random())
+
+        def value():
+            return v
+
+        def value2():
+            return d
+
+        f + value + value2
+
+        self.assertEqual(2, len(f.values))
+        self.assertIn(v, f.values)
+        self.assertIn(d, f.values)
+
+    def test_can_add_multiple_mixed_regular_and_callable_values_to_field(self):
+        f = Field()
+        v = str(random())
+        d = str(random())
+
+        def value():
+            return v
+
+        f + value + d
+
+        self.assertEqual(2, len(f.values))
+        self.assertIn(v, f.values)
+        self.assertIn(d, f.values)
+
     def test_can_add_multiple_same_value_to_field(self):
         f = Field()
         v = str(random())
         f + v + v
+
+        self.assertEqual(2, len(f.values))
+        self.assertIn(v, f.values)
+
+    def test_can_add_multiple_same_callable_value_to_field(self):
+        f = Field()
+        v = str(random())
+
+        def value():
+            return v
+
+        f + value + value
 
         self.assertEqual(2, len(f.values))
         self.assertIn(v, f.values)

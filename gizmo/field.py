@@ -430,6 +430,7 @@ class Value:
 
     def __init__(self, value, properties=None, id=None):
         self._value = value
+        self._callable = callable(value)
         self._initial = copy.deepcopy(value)
         self.id = id
         self.properties = properties or {}
@@ -441,10 +442,19 @@ class Value:
     def __getitem__(self, key):
         return self._properties.get(key, None)
 
+    def __getattribute__(self, attr):
+        val = object.__getattribute__(self, attr)
+
+        if attr == '_value' and self._callable:
+            return val()
+        else:
+            return val
+
     def get_value(self):
         return self.converter(self)
 
     def set_value(self, value):
+        self._callable = callable(value)
         self._value = value
 
     value = property(get_value, set_value)
