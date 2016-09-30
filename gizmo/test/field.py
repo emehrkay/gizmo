@@ -1,5 +1,8 @@
 import unittest
 import json
+import time
+
+from datetime import datetime
 from random import randrange, random, choice, randint
 from pprint import pprint
 
@@ -752,6 +755,44 @@ class FloatTests(unittest.TestCase):
 
         self.assertIsInstance(f.values[0], float)
         self.assertEqual(f.values[0], 12.0)
+
+
+class DateTimeTests(unittest.TestCase):
+
+    def test_can_create_empty_datetime_field(self):
+        f = DateTime()
+
+        self.assertEqual(0, len(f.values))
+
+    def test_can_create_datetime_with_datetime_instance(self):
+        d = datetime.today()
+        f = DateTime(values=d)
+
+        self.assertEqual(1, len(f.values))
+        self.assertIsInstance(f.values[0], float)
+        self.assertEqual(f.values[0], d.timestamp())
+
+    def test_can_create_datetime_with_number(self):
+        v = random()
+        f = DateTime(values=v)
+
+        self.assertEqual(1, len(f.values))
+        self.assertIsInstance(f.values[0], float)
+        self.assertEqual(f.values[0], v)
+
+
+class TimeStampTests(unittest.TestCase):
+
+    def test_can_create_timestamp(self):
+        d = datetime.now()
+        f = TimeStamp()
+
+        time.sleep(2.0)
+
+        self.assertEqual(1, len(f.values))
+        self.assertIsInstance(f.values[0], float)
+        self.assertNotEqual(d.timestamp(), f.values[0])
+        self.assertTrue(f.values[0] > d.timestamp())
 
 
 class IncrementTests(unittest.TestCase):

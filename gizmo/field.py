@@ -2,6 +2,7 @@ import copy
 import json
 
 from collections import OrderedDict
+from datetime import datetime
 
 from .util import is_gremlin_entity
 
@@ -697,6 +698,30 @@ class Option(Field):
             value = value.value
 
         return value in self.options
+
+
+class DateTime(Float):
+
+    def to_python(self, value):
+        val = value._value
+
+        if isinstance(val, datetime):
+            val = val.timestamp()
+
+        v = Value(value=val, properties=value.properties, id=value.id)
+
+        return super().to_python(value=v)
+
+
+class TimeStamp(DateTime):
+
+    def __init__(self, name=None, data_type='python'):
+
+        def value():
+            return datetime.now()
+
+        super().__init__(name=name, values=value, data_type=data_type, max_values=1,
+                         overwrite_last_value=False)
 
 
 class GremlinID(_ImmutableField, String):
