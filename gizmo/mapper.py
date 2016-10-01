@@ -271,6 +271,9 @@ class Mapper:
 
         return self.create(data=data, entity=edge_entity, data_type=data_type)
 
+    def start(self, entity=None):
+        return Traversal(self, entity or self.entity)
+
     def _build_queries(self):
         # if not self.auto_commit:
         #     commit = '.'.join([self.graph_instance_name, 'tx()', 'commit()'])
@@ -947,3 +950,52 @@ class Collection(object):
     def __delitem__(self, key):
         if key in self._entities:
             del self._entities[key]
+
+
+class Traversal(Gremlin):
+    """
+    class used to start a traversal query based on a given entity
+    when the class is created, the entity's _id and type are are
+    set on the Gremlin object
+    example:
+    """
+
+    def __init__(self, mapper, entity):
+        graph_variable = mapper.gremlin.gv
+
+        super(Traversal, self).__init__(graph_variable)
+
+        self._mapper = mapper
+        self._entity = entity
+        _id = None
+        _base = isinstance(entity, _BaseEntity)
+
+        if _base:
+            ev, _id = entity.get_rep()
+
+        if _id:
+            bound_id = self.bind_param(_id, 'EYE_DEE')
+
+            getattr(self, ev)(bound_id[0])
+        else:
+            if _base:
+                _type = entity.__class__.__name__
+            else:
+                _type = entity.__name__
+                ev, _ = entity().get_rep()
+
+            _type = camel_to_underscore(_type)
+            bound_type = self.bind_param(_type, 'BOUND_TYPE')
+
+            getattr(self, ev)().hasLabel(bound_type[0])
+
+    def define_traversal(self, traversal):
+        if hasattr(traversal, '__call__'):
+            self.traversal = traversal
+
+        return self
+
+    async def to_collection(self):
+        collection = await self._mapper.send(gremlin=self)
+
+        return collection
