@@ -202,7 +202,9 @@ class Field:
 
     @property
     def value(self):
-        return self.values[-1]
+        values = self.values
+
+        return values[-1] if values else None
 
     @property
     def data(self):

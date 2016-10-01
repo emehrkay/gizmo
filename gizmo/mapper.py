@@ -271,8 +271,10 @@ class Mapper:
 
         return self.create(data=data, entity=edge_entity, data_type=data_type)
 
-    def start(self, entity=None):
-        return Traversal(self, entity or self.entity)
+    def start(self, entity):
+        mapper = self.get_mapper(entity)
+
+        return mapper.start(entity)
 
     def _build_queries(self):
         # if not self.auto_commit:
@@ -442,6 +444,9 @@ class EntityMapper(metaclass=_RootMapper):
                                   query_gremlin.bound_params, entity=entity)
 
         return statement_query
+
+    def start(self, entity=None):
+        return Traversal(self, entity or self.entity)
 
     def save(self, entity, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
@@ -968,15 +973,15 @@ class Traversal(Gremlin):
         self._mapper = mapper
         self._entity = entity
         _id = None
-        _base = isinstance(entity, _BaseEntity)
+        _base = isinstance(entity, _Entity)
 
         if _base:
             ev, _id = entity.get_rep()
 
         if _id:
-            bound_id = self.bind_param(_id, 'EYE_DEE')
+            bound_id = next_param('{}_EYE_DEE'.format(str(entity)), _id)
 
-            getattr(self, ev)(bound_id[0])
+            getattr(self, ev)(bound_id)
         else:
             if _base:
                 _type = entity.__class__.__name__

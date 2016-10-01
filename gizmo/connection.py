@@ -49,8 +49,6 @@ class Request:
 
         self.connect()
 
-        # print('\n\n', _query_debug(script, params), '\n')
-
         async with self.connection as ws:
             message = self.message(script=script, params=params,
                                    rebindings=rebindings, op=op,
