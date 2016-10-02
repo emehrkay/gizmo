@@ -943,7 +943,7 @@ class Collection(object):
                     entity.dirty = False
                     self._entities[key] = entity
                 else:
-                    raise
+                    raise StopIteration()
             except Exception as e:
                 raise StopIteration()
 
