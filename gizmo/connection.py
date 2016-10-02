@@ -17,8 +17,7 @@ class Request:
         self.connection = None
 
     def connect(self):
-        if not self.connection:
-            self.connection = websockets.connect(self._ws_uri)
+        self.connection = websockets.connect(self._ws_uri)
 
     def message(self, script, params=None, rebindings=None, op='eval', processor=None,
                 language='gremlin-groovy', session=None):
@@ -69,8 +68,6 @@ class Request:
 
             if data.get('status'):
                 status = ResponseStatus(**data['status'])
-
-        self.connection = None
 
         return Response(request_id=request_id, result=result,
                         update_entities=update_entities, script=script,
