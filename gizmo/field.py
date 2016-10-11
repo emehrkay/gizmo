@@ -89,7 +89,7 @@ class FieldManager:
         else:
             field = String
 
-        """the field will not be initializeed with a value so that it
+        """the field will not be initialized with a value so that it
         will register as 'added'. We also need to determine if the value is
         a response from the Gremlin server or if it is a plain value
         """
@@ -122,6 +122,12 @@ class FieldManager:
                     self.fields[key] + val
             elif self.allow_undefined:
                 self._add_undefined_field(key, val)
+
+        return self
+
+    def empty(self):
+        for name, field in self.fields.items():
+            field.empty()
 
         return self
 

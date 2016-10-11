@@ -141,6 +141,11 @@ class _Entity(metaclass=_EntityType):
 
         return entity, self['id']
 
+    def empty(self):
+        self.fields.empty()
+
+        return self
+
 
 class Vertex(_Entity):
     pass

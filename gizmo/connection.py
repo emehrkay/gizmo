@@ -10,8 +10,10 @@ from .util import _query_debug
 
 class Request:
 
-    def __init__(self, uri,  port=8182, username=None, password=None):
-        self._ws_uri = 'ws://{}:{}'.format(uri, port)
+    def __init__(self, uri,  port=8182, three_two=True, username=None,
+                 password=None):
+        gremlin = '/gremlin' if three_two else ''
+        self._ws_uri = 'ws://{}:{}{}'.format(uri, port, gremlin)
         self.username = username
         self.password = password
         self.connection = None
@@ -132,7 +134,7 @@ class Response:
                         props = fix_properties(v)
 
                         response.append(props)
-                        entity.hydrate(props)
+                        entity.empty().hydrate(props, reset_initial=True)
             else:
                 response.append(fix_properties(arg))
 
@@ -144,7 +146,7 @@ class Response:
 
     def _fix_titan_data(self, data):
         """temp method to address a titan bug where it returns maps in a
-        differnt manner than other tinkerpop instances. This will be fixed
+        different manner than other tinkerpop instances. This will be fixed
         in a later version of titan"""
         if isinstance(data, (list, tuple,)):
             fixed = []
