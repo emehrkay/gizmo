@@ -21,8 +21,8 @@ class Request:
     def connect(self):
         self.connection = websockets.connect(self._ws_uri)
 
-    def message(self, script, params=None, rebindings=None, op='eval', processor=None,
-                language='gremlin-groovy', session=None):
+    def message(self, script, params=None, rebindings=None, op='eval',
+                processor=None, language='gremlin-groovy', session=None):
         message = {
             'requestId': str(uuid.uuid4()),
             'op': op,

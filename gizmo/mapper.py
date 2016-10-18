@@ -49,7 +49,17 @@ def next_param_name(param):
 
 
 def next_param(param, value):
+    if isinstance(value, _Entity):
+        value = entity_name(value)
+
     return Param(next_param_name(param), value)
+
+
+def next_entity_param(entity, param, value):
+    name = entity_name(entity)
+    field = '{}_{}'.format(name, param)
+
+    return next_param(field, value)
 
 
 class Mapper:
