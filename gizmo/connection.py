@@ -10,7 +10,7 @@ from .util import _query_debug
 
 class Request:
 
-    def __init__(self, uri,  port=8182, three_two=True, username=None,
+    def __init__(self, uri, port=8182, three_two=True, username=None,
                  password=None):
         gremlin = '/gremlin' if three_two else ''
         self._ws_uri = 'ws://{}:{}{}'.format(uri, port, gremlin)
@@ -119,7 +119,7 @@ class Response:
             props.update({
                 'id': arg.get('id'),
                 'type': arg.get('type'),
-                'label': arg.get('label')
+                'label': arg.get('label'),
             })
 
             return props

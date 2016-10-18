@@ -94,7 +94,8 @@ def build_params(entity, values, mapper, params=None, value_properties=None,
             delete_key(key)
             continue
 
-        if isinstance(val, (list, tuple)) and len(val) and isinstance(val[0], dict)\
+        if isinstance(val, (list, tuple)) and len(val)\
+            and isinstance(val[0], dict)\
             and 'value' in val[0]:
             if isinstance(val[0], (list, tuple)):
                 for v in val[0]['value']:
@@ -172,8 +173,8 @@ def build_delete_query(entity, mapper, params=None):
     e_type, _id = entity.get_rep()
     _id, _ = get_dict_key(params, _id)
 
-    return '{}.{}({}).next().remove()'.format(mapper.gremlin.gv, e_type.upper(),
-        _id)
+    return '{}.{}({}).next().remove()'.format(mapper.gremlin.gv,
+        e_type.upper(), _id)
 
 
 def build_edge_create_query(entity, out_v, in_v, values, mapper, params=None,
@@ -211,7 +212,7 @@ def build_edge_create_query(entity, out_v, in_v, values, mapper, params=None,
 
 
     edge_params = ', '.join(edge_params)
-    expected = [v_out,]
+    expected = [v_out, ]
 
     if edge_params:
         expected += ['addEdge({}, {}, {})'.format(label, v_in, edge_params)]
@@ -255,7 +256,8 @@ class QueryTests(unittest.TestCase):
 
         self.query.save(v)
 
-        values = [ik, iv, 'vertex', entity_name(v), str(v), GIZMO_ENTITY, GIZMO_TYPE]
+        values = [ik, iv, 'vertex', entity_name(v), str(v), GIZMO_ENTITY,
+            GIZMO_TYPE]
         queries = self.query.queries
 
         self.assertEqual(1, len(queries))
@@ -278,7 +280,8 @@ class QueryTests(unittest.TestCase):
 
         self.query.save(v)
 
-        values = [ik, iv, 'vertex', entity_name(v), str(v), GIZMO_ENTITY, GIZMO_TYPE]
+        values = [ik, iv, 'vertex', entity_name(v), str(v), GIZMO_ENTITY,
+            GIZMO_TYPE]
         value_properties = {
             iv: {
                 pk: pv,

@@ -101,7 +101,8 @@ class FieldManager:
         if gremlin_entity:
             for val in original_value:
                 val_obj = Value(value=val.get('value', None),
-                    properties=val.get('properties', None), id=val.get('id', None))
+                    properties=val.get('properties', None), id=val.get('id',
+                        None))
                 f + val_obj
         else:
             f + value
@@ -140,15 +141,15 @@ class FieldManager:
 
     @property
     def values(self):
-        values = {field.name: field.values for name, field in self.fields.items()
-                    if field.values}
+        values = {field.name: field.values for name, field in
+                    self.fields.items() if field.values}
 
         return OrderedDict(sorted(values.items()))
 
     @property
     def changes(self):
-        changes = {field.name: field.changes for name, field in self.fields.items()
-                    if field.changes}
+        changes = {field.name: field.changes for name, field in
+                    self.fields.items() if field.changes}
 
         return OrderedDict(sorted(changes.items()))
 
@@ -165,8 +166,8 @@ class FieldManager:
 
 class Field:
 
-    def __init__(self, name=None, values=None, data_type='python', max_values=None,
-                 overwrite_last_value=False):
+    def __init__(self, name=None, values=None, data_type='python',
+                 max_values=None, overwrite_last_value=False):
         self.name = name
         self.immutable = isinstance(self, _ImmutableField)
         self._values = ValueManager(values=values, data_type=data_type,
@@ -251,8 +252,8 @@ class ValueManager:
 
     def __init__(self, values=None, data_type='python', reset_initial=True,
                  to_python=None, to_graph=None, filter_field=None,
-                 default_value=None, max_values=None, overwrite_last_value=False,
-                 can_set=None):
+                 default_value=None, max_values=None,
+                 overwrite_last_value=False, can_set=None):
         self._values = []
         self._deleted = []
         self._data_type = data_type
@@ -260,7 +261,7 @@ class ValueManager:
         self.overwrite_last_value = overwrite_last_value
 
         if not values and default_value is not None:
-            values = [default_value,]
+            values = [default_value, ]
 
         if not to_python:
             to_python = lambda x: x
@@ -371,7 +372,8 @@ class ValueManager:
         l = len(self._values)
 
         if self.max_values and len(self._values) >= self.max_values:
-            if self.overwrite_last_value and len(self._values) == self.max_values:
+            if self.overwrite_last_value and\
+                len(self._values) == self.max_values:
                 self._values[-1] = val
             elif len(self._values) < self.max_values:
                 self._values.append(val)
@@ -634,7 +636,7 @@ class Boolean(Field):
         return False
 
     def _convert(self, value):
-        if str(value).lower().strip() not in ['true', 'false',]:
+        if str(value).lower().strip() not in ['true', 'false']:
             value = bool(value)
 
         value = str(value).lower().strip()
@@ -658,7 +660,8 @@ class Boolean(Field):
 
 class Map(Field):
 
-    def __init__(self, name=None, values=None, data_type='python', *args, **kwargs):
+    def __init__(self, name=None, values=None, data_type='python', *args,
+                 **kwargs):
         if isinstance(self, Map) and isinstance(values, dict) \
             and 'value' not in values:
             values = {'value': values}
@@ -730,8 +733,8 @@ class TimeStamp(DateTime):
 
         values = values or default
 
-        super().__init__(name=name, values=values, data_type=data_type, max_values=1,
-                         overwrite_last_value=False)
+        super().__init__(name=name, values=values, data_type=data_type,
+                         max_values=1, overwrite_last_value=False)
 
 
 class GremlinID(_ImmutableField, String):

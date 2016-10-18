@@ -33,9 +33,10 @@ def is_gremlin_entity(data):
             return False
 
         if isinstance(data, dict):
-            data = [data,]
+            data = [data, ]
 
-        if isinstance(data, (list, tuple)) and len(data) and 'value' in data[0]:
+        if isinstance(data, (list, tuple)) and len(data) and\
+            'value' in data[0]:
             return True
     except:
         return False

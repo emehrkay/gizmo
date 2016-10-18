@@ -460,7 +460,8 @@ class EntityMapper(metaclass=_RootMapper):
 
     def save(self, entity, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
-        method = '_save_edge' if entity[GIZMO_TYPE] == 'edge' else '_save_vertex'
+        method = '_save_edge' if entity[GIZMO_TYPE] == 'edge' else \
+            '_save_vertex'
 
         if not isinstance(callback, (list, tuple)) and callback:
             callback = [callback]
@@ -736,7 +737,7 @@ class Query:
         gremlin.addV()
 
         if set_variable:
-            gremlin.set_ret_variable(set_variable, ignore=[GIZMO_ID,])
+            gremlin.set_ret_variable(set_variable, ignore=[GIZMO_ID, ])
 
         self._field_changes(gremlin, entity)
         gremlin.func('next')
@@ -770,10 +771,10 @@ class Query:
             raise AstronomerQueryException(msg)
 
         def get_or_create_ends():
-            """this function will determine if the edge has both ends. If either
-            end is an _Entity object it will get the reference to the oject or
-            save it and create a reference. Either the entity's id or reference
-            will be used when saving the edge.
+            """this function will determine if the edge has both ends. If
+            either end is an _Entity object it will get the reference to
+            the object or save it and create a reference. Either the entity's
+            id or reference will be used when saving the edge.
             """
             out_v = entity.out_v
             out_v_ref = None
@@ -894,7 +895,8 @@ class Query:
         entity_type, _id = entity.get_rep()
 
         if not _id:
-            msg = 'The entity does not have an id defined and connot be deleted'
+            msg = ('The entity does not have an id defined and'
+                   ' connot be deleted')
             raise AstronomerQueryException(msg)
 
         if not entity[GIZMO_TYPE]:

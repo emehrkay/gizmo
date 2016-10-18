@@ -43,7 +43,8 @@ class EventSourceMixin(object):
         entity -> event
         relationships
         """
-        super(EventSourceMixin, self).save(entity=entity, bind_return=bind_return,
+        super(EventSourceMixin, self).save(entity=entity,
+                                           bind_return=bind_return,
                                            callback=callback, *args, **kwargs)
         self.mapper._enqueue_mapper(self)
 

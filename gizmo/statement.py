@@ -7,8 +7,8 @@ from .util import GIZMO_LABEL
 
 class MapperStatement(Statement):
     """Any sub-classed Statement will be applied to an empty Gremlin instance.
-    The statement is given the current gizmo.mapper.Query instance for the entity
-    that is currently being evaluated."""
+    The statement is given the current gizmo.mapper.Query instance for the
+    entity that is currently being evaluated."""
 
     def __init__(self, entity, mapper, query, **kwargs):
         self.entity = entity
@@ -17,8 +17,8 @@ class MapperStatement(Statement):
 
 
 class MapperUniqueVertex(MapperStatement):
-    """statement used to build a gremlin query that will check for the existance
-    of a entity before adding the entity
+    """statement used to build a gremlin query that will check for the
+    existence of a entity before adding the entity
 
     example query built:
 
@@ -46,13 +46,14 @@ class MapperUniqueVertex(MapperStatement):
 
 
 class MapperUniqueEdge(MapperStatement):
-    """Statement used to build a gremlin query that will check for the existance of
-    an edge between two entities before creating the edge.
+    """Statement used to build a gremlin query that will check for the
+    existence of an edge between two entities before creating the edge.
 
     example query built:
     """
 
-    def __init__(self, entity, mapper, query, out_v_id, in_v_id, label, direction):
+    def __init__(self, entity, mapper, query, out_v_id, in_v_id, label,
+                 direction):
         super(MapperUniqueEdge, self).__init__(entity=entity, mapper=mapper,
                                                query=query)
         self.out_v_id = out_v_id
@@ -62,7 +63,8 @@ class MapperUniqueEdge(MapperStatement):
 
     def build(self):
         save_query = self.query.queries[0]
-        edge = GetEdge(self.out_v_id, self.in_v_id, self.label, self.mapper.unique)
+        edge = GetEdge(self.out_v_id, self.in_v_id, self.label,
+                       self.mapper.unique)
         gremlin = self.gremlin
 
         gremlin.apply_statement(edge)
