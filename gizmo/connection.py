@@ -50,7 +50,7 @@ class Request:
         update_entities = update_entities or {}
 
         self.connect()
-
+        # print(_query_debug(script, params))
         async with self.connection as ws:
             message = self.message(script=script, params=params,
                                    rebindings=rebindings, op=op,

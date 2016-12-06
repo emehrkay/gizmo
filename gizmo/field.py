@@ -739,7 +739,8 @@ class DateTime(Float):
 
 class TimeStamp(DateTime):
 
-    def __init__(self, name=None, values=None, data_type='python'):
+    def __init__(self, name=None, values=None, data_type='python', *args,
+                 **kwargs):
 
         def default():
             return datetime.now()
