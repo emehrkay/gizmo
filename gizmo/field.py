@@ -745,10 +745,14 @@ class TimeStamp(DateTime):
         def default():
             return datetime.now()
 
+        if 'default' in kwargs:
+            del kwargs['default']
+
         values = values or default
 
         super().__init__(name=name, values=values, data_type=data_type,
-                         max_values=1, overwrite_last_value=False)
+                         max_values=1, overwrite_last_value=False, *args,
+                         **kwargs)
 
 
 class GremlinID(_ImmutableField, String):
