@@ -167,16 +167,19 @@ class FieldManager:
 class Field:
 
     def __init__(self, name=None, values=None, data_type='python',
-                 max_values=None, overwrite_last_value=False):
+                 max_values=None, overwrite_last_value=False,
+                 default=None):
         self.name = name
         self.immutable = isinstance(self, _ImmutableField)
+        self.default = default
         self._values = ValueManager(values=values, data_type=data_type,
                                     to_python=self.to_python,
                                     to_graph=self.to_graph,
                                     default_value=self.default_value,
                                     max_values=max_values,
                                     overwrite_last_value=overwrite_last_value,
-                                    can_set=self.can_set)
+                                    can_set=self.can_set,
+                                    default=self.default)
         self._data_type = data_type
         self.deleted = False
 
@@ -253,10 +256,15 @@ class ValueManager:
     def __init__(self, values=None, data_type='python', reset_initial=True,
                  to_python=None, to_graph=None, filter_field=None,
                  default_value=None, max_values=None,
-                 overwrite_last_value=False, can_set=None):
+                 overwrite_last_value=False, can_set=None, default=None):
         self._values = []
         self._deleted = []
         self._data_type = data_type
+        self.default = None
+
+        if default:
+            self.default = Value(value=default, properties=None, id=None)
+
         self.max_values = max_values
         self.overwrite_last_value = overwrite_last_value
 
@@ -391,10 +399,15 @@ class ValueManager:
     @property
     def filtered_values(self):
         if self.filter_field:
-            return [v for v in self._values
+            values = [v for v in self._values
                 if self.filter_field == v.value]
         else:
-            return [v for v in self._values]
+            values = [v for v in self._values]
+
+        if not len(values) and self.default:
+            values = [self.default]
+
+        return values
 
     @property
     def values(self):

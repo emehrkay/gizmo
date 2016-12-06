@@ -17,6 +17,13 @@ class FieldTests(unittest.TestCase):
         self.assertEqual(type(f), Field)
         self.assertEqual(0, len(f.values))
 
+    def test_can_create_field_without_value_with_default_value(self):
+        d = str(random())
+        f = Field(default=d)
+
+        self.assertEqual(type(f), Field)
+        self.assertEqual(1, len(f.values))
+
     def test_can_create_field_with_one_value(self):
         v = str(random())
         f = Field(values=v)
@@ -35,6 +42,16 @@ class FieldTests(unittest.TestCase):
         self.assertEqual(type(f), Field)
         self.assertEqual(1, len(f.values))
         self.assertIn(v, f.values)
+
+    def test_can_create_field_without_value_with_default_callable_value(self):
+        d = str(random())
+        def value():
+            return d
+        
+        f = Field(default=d)
+
+        self.assertEqual(type(f), Field)
+        self.assertEqual(1, len(f.values))
 
     def test_can_create_field_with_two_values_in_list(self):
         v = [str(random()), str(random())]
@@ -437,6 +454,50 @@ class FieldTests(unittest.TestCase):
         both = [v1, v2,]
         f + v1 + v2
 
+        changes = f.changes['values']
+
+        self.assertIn('added', changes)
+        self.assertTrue(2, len(changes['added']))
+
+        for add in changes['added']:
+            self.assertIn(add['value'], both)
+
+    def test_can_get_values_added_to_single_value_with_no_value_but_default_value(self):
+        d = str(random())
+        f = Field(default=d)
+
+        changes = f.changes['values']
+
+        self.assertIn('added', changes)
+        self.assertTrue(1, len(changes['added']))
+
+        for add in changes['added']:
+            self.assertIn(add['value'], d)
+
+    def test_can_get_values_added_to_single_value_with_no_value_but_default_value_is_callable(self):
+        v = str(random())
+
+        def call():
+            nonlocal v
+            return v
+
+        f = Field(default=call)
+
+        changes = f.changes['values']
+
+        self.assertIn('added', changes)
+        self.assertTrue(1, len(changes['added']))
+
+        for add in changes['added']:
+            self.assertIn(add['value'], v)
+
+    def test_can_add_value_to_field_with_default_and_defalut_not_show(self):
+        d = str(random())
+        f = Field(default=d)
+        v1 = str(random())
+        v2 = str(random())
+        both = [v1, v2,]
+        f + v1 + v2
         changes = f.changes['values']
 
         self.assertIn('added', changes)
