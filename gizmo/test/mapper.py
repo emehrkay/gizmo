@@ -152,7 +152,9 @@ def build_vertex_create_query(entity, values, mapper, params=None,
 def build_update_query(entity, values, mapper, params=None,
     value_properties=None, entities=None, deleted=None, return_var=None):
     entity_type, _id = entity.get_rep()
+    alias = '{}_{}_updating'.format(entity_type, _id)
     _id, _ = get_dict_key(params, _id)
+    alias, _ = get_dict_key(params, alias)
     expected = []
     update = '{}.{}({})'.format(mapper.gremlin.gv, entity_type.upper(), _id)
 
@@ -161,9 +163,13 @@ def build_update_query(entity, values, mapper, params=None,
     else:
         expected += [update]
 
+    expected += ['as({})'.format(alias)]
+
     expected += build_params(entity=entity, values=values, params=params,
         value_properties=value_properties, entities=entities, mapper=mapper,
         deleted=deleted)
+
+    expected += ['select({})'.format(alias), 'next()']
 
     return '.'.join(expected)
 
@@ -528,8 +534,8 @@ class QueryTests(unittest.TestCase):
 
         self.assertEqual(expected, entry['script'])
 
-        # +1 because we cannot add the _id var to the values list
-        self.assertEqual(len(values) + 1, len(params))
+        # +1 because we cannot add the _id var to the values list and alias
+        self.assertEqual(len(values) + 2, len(params))
 
     def test_can_update_vertext_with_one_field_and_two_properties(self):
         # we only need one test bc properties are tested for adding vertex
@@ -567,8 +573,8 @@ class QueryTests(unittest.TestCase):
             params=params, value_properties=value_properties)
         self.assertEqual(expected, entry['script'])
 
-        # +1 because we cannot add the _id var to the values list
-        self.assertEqual(len(values) + 1, len(params))
+        # +1 because we cannot add the _id var to the values list and alias
+        self.assertEqual(len(values) + 2, len(params))
 
     def test_can_update_vertex_with_two_fields_after_deleting_one(self):
         _id = str(random())
@@ -745,8 +751,8 @@ class MapperTests(unittest.TestCase):
 
         self.assertEqual(expected, queries[0])
 
-        # +1 for id
-        self.assertEqual(len(values) + 1, len(params))
+        # +2 for id and alias
+        self.assertEqual(len(values) + 2, len(params))
 
     def test_can_queue_save_vertex_with_two_params_query(self):
         d = {

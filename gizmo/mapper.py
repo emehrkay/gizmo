@@ -749,17 +749,21 @@ class Query:
     def _update_entity(self, entity, set_variable=None):
         entity.data_type = 'graph'
         gremlin = self.gremlin
-        entity_type, _id = entity.get_rep()
+        entity_type, entity_id = entity.get_rep()
 
-        if not _id:
+        if not entity_id:
             raise Exception()
 
-        _id = next_param('{}_ID'.format(str(entity)), _id)
+        _id = next_param('{}_ID'.format(str(entity)), entity_id)
         ignore = [GIZMO_ID, GIZMO_LABEL[1]]
+        alias = '{}_{}_updating'.format(entity_type, entity_id)
+        alias = next_param(alias, alias)
 
         getattr(gremlin, entity_type.upper())(_id)
+        gremlin.AS(alias)
 
         self._field_changes(gremlin, entity, ignore=ignore)
+        gremlin.select(alias).next()
 
         entity.data_type = 'python'
 

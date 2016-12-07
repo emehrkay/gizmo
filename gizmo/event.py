@@ -1,12 +1,12 @@
 from gizmo.entity import Vertex, Edge
-from gizmo.mapper import _GenericMapper
+from gizmo.mapper import EntityMapper
 
 
 class SourcedEvent(Vertex):
     _allowed_undefined = True
 
 
-class SourcedEventMapper(_GenericMapper):
+class SourcedEventMapper(EntityMapper):
     entity = SourcedEvent
 
 
