@@ -4,6 +4,10 @@ class AstronomerException(Exception):
     pass
 
 
+class AstronomerConnectionException(AstronomerException):
+    pass
+
+
 class AstronomerFieldException(AstronomerException):
     pass
 

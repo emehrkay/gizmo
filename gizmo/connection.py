@@ -5,6 +5,7 @@ import uuid
 
 import websockets
 
+from .exception import AstronomerConnectionException
 from .util import _query_debug
 
 
@@ -13,6 +14,9 @@ class Request:
     def __init__(self, uri, port=8182, three_two=True, username=None,
                  password=None):
         gremlin = '/gremlin' if three_two else ''
+        self.uri = uri
+        self.port = port
+        self.three_two = three_two
         self._ws_uri = 'ws://{}:{}{}'.format(uri, port, gremlin)
         self.username = username
         self.password = password
@@ -49,31 +53,36 @@ class Request:
         params = params  or {}
         update_entities = update_entities or {}
 
-        self.connect()
         # print(_query_debug(script, params))
-        async with self.connection as ws:
-            message = self.message(script=script, params=params,
-                                   rebindings=rebindings, op=op,
-                                   processor=processor, language=language,
-                                   session=session)
 
-            await ws.send(message)
+        try:
+            self.connect()
 
-            response = await ws.recv()
-            data = json.loads(response)
+            async with self.connection as ws:
+                message = self.message(script=script, params=params,
+                                       rebindings=rebindings, op=op,
+                                       processor=processor, language=language,
+                                       session=session)
 
-            if data.get('request_id'):
-                request_id = data['request_id']
+                await ws.send(message)
 
-            if data.get('result'):
-                result = data['result']
+                response = await ws.recv()
+                data = json.loads(response)
 
-            if data.get('status'):
-                status = ResponseStatus(**data['status'])
+                if data.get('request_id'):
+                    request_id = data['request_id']
 
-        return Response(request_id=request_id, result=result,
-                        update_entities=update_entities, script=script,
-                        params=params)
+                if data.get('result'):
+                    result = data['result']
+
+                if data.get('status'):
+                    status = ResponseStatus(**data['status'])
+
+            return Response(request_id=request_id, result=result,
+                            update_entities=update_entities, script=script,
+                            params=params)
+        except Exception as e:
+            raise AstronomerConnectionException(e)
 
 
 class ResponseStatus:

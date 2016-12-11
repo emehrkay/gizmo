@@ -3,11 +3,22 @@
 import random
 
 from gizmo import Mapper, Request, Collection, Vertex, Edge
+from gizmo.exception import AstronomerConnectionException
 from gizmo.mapper import EntityMapper
 from gizmo.util import GIZMO_ENTITY, GIZMO_ID, GIZMO_LABEL
 
 
 class ConnectionTestCases(object):
+
+    def test_cannot_create_connection(self):
+        request = self.request.__class__(uri=self.request.uri,
+            port=int(random.random()), three_two=self.request.three_two)
+
+        async def test():
+            await request.send(script='some script')
+
+        self.assertRaises(AstronomerConnectionException,
+            self.ioloop.run_until_complete, test())
 
     def test_can_establish_mapper(self):
 
