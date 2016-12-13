@@ -50,20 +50,31 @@ class EventSourceMixin(object):
 
         if source is not None:
             fields_changed = len(entity.changed) > 0
-            fields_removed = len(entity.removed) > 0
+            fields_removed = len(entity.deleted) > 0
 
             # only create the source event if there were actual changes
             if fields_changed or fields_removed:
+                deleted = []
+                changed = {}
+                hydrate = {}
                 self.event = event = \
                     self.mapper.create(entity=SourcedEvent,
-                                             data_type=entity.data_type)
+                        data_type=entity.data_type)
 
-                for field, change in entity.changed.items():
-                    event[field] = change
+                for field, changes in entity.changes.items():
+                    if not changes['immutable']:
+                        if changes['deleted']:
+                            deleted.append(field)
+                        else:
+                            changed[field] = changes
 
-                if entity._atomic_changes and fields_removed:
-                    # TODO: track the fields that were removed
-                    pass
+                if deleted:
+                    hydrate['deleted'] = deleted
+
+                if changes:
+                    hydrate['changes'] = changes
+
+                self.event.hydrate(hydrate)
 
                 source_params = {
                     'out_v': source,

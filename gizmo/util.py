@@ -44,7 +44,7 @@ def is_gremlin_entity(data):
     return False
 
 
-def _query_debug(script, params):
+def _query_debug(script, params): # pragma: no cover
     if not len(params):
         return script
 
@@ -57,5 +57,5 @@ def _query_debug(script, params):
     return pattern.sub(su, script)
 
 
-def current_date_time(offset=0):
+def current_date_time(offset=0): # pragma: no cover
     return (int(time.time()) + offset)

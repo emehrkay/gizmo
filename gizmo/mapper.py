@@ -262,13 +262,13 @@ class Mapper:
         save allowing further augmentation
         """
         if not isinstance(out_v, Vertex):
-            if not isinstance(out_v, (str, integer)):
-                err = ['The out_v needs to be eiter a Vertex or an id']
+            if not isinstance(out_v, (str, int)):
+                err = ['The out_v needs to be either a Vertex or an id']
                 raise AstronomerMapperException(err)
 
         if not isinstance(in_v, Vertex):
-            if not isinstance(in_v, (str, integer)):
-                err = 'The in_v needs to be eiter a Vertex or an id'
+            if not isinstance(in_v, (str, int)):
+                err = 'The in_v needs to be either a Vertex or an id'
                 raise AstronomerMapperException(err)
 
         if data is None:
