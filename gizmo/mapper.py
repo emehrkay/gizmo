@@ -943,6 +943,21 @@ class Collection(object):
         """
         return [x.data for x in self]
 
+    @property
+    async def mapper_data(self):
+        """this will get the data from the entity's mapper if it has a
+        custom mapper
+        """
+        data = []
+
+        if len(self):
+            mapper = self.mapper.get_mapper(self[0])
+
+            for entity in self:
+                data.append(await mapper.data(entity))
+
+        return data
+
     def __len__(self):
         return len(self.response.data)
 
