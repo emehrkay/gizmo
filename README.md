@@ -108,5 +108,5 @@ __tinkerpop__
 
 __titan__
 * graph: gizmo_testing
-* port: 8182
+* port: 9192
 
