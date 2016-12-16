@@ -106,9 +106,28 @@ class Response:
 
         self.translate()
 
+    def _fix_titan_data(self, data):
+        """temp method to address a titan bug where it returns maps in a
+        different manner than other tinkerpop instances. This will be fixed
+        in a later version of titan"""
+        if isinstance(data, (list, tuple,)):
+            fixed = []
+
+            for ret in data:
+                if isinstance(ret, dict):
+                    if 'key' in ret and 'value' in ret:
+                        fixed.append({ret['key']: ret['value']})
+
+            if len(data) and not len(fixed):
+                return data
+            else:
+                return fixed
+        else:
+            return data
+
     def translate(self):
         response = []
-        data = self.result.get('data') or []
+        data = self._fix_titan_data(self.result.get('data') or [])
         update_keys = list(self.update_entities.keys())
 
         def has_update(keys):

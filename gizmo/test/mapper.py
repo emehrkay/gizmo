@@ -64,7 +64,8 @@ def build_prop(key, value, params=None, value_properties=None):
 
 
 def build_params(entity, values, mapper, params=None, value_properties=None,
-    entities=None, deleted=None):
+    entities=None, deleted=None, ignore=None):
+    ignore = ignore or []
     params = copy.deepcopy(params or {})
     expected = []
     value_properties = value_properties or {}
@@ -90,6 +91,9 @@ def build_params(entity, values, mapper, params=None, value_properties=None,
         pass
 
     for key, val in entity.data.items():
+        if key in ignore:
+            continue
+
         if key in deleted:
             delete_key(key)
             continue
@@ -133,7 +137,10 @@ def build_params(entity, values, mapper, params=None, value_properties=None,
 def build_vertex_create_query(entity, values, mapper, params=None,
     value_properties=None, entities=None, deleted=None, return_var=None):
     expected = []
-    add = '{}.addV()'.format(mapper.gremlin.gv)
+    label_str = str(entity)
+    label, _ = get_dict_key(params, label_str)
+    add = '{}.addV(T.label, {})'.format(mapper.gremlin.gv, label)
+    ignore = ['T.label', 'label']
 
     if return_var:
         expected += ['{} = {}'.format(return_var, add)]
@@ -142,7 +149,7 @@ def build_vertex_create_query(entity, values, mapper, params=None,
 
     expected += build_params(entity=entity, values=values, params=params,
         value_properties=value_properties, entities=entities, mapper=mapper,
-        deleted=deleted)
+        deleted=deleted, ignore=ignore)
 
     expected.append('next()')
 

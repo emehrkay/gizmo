@@ -3,7 +3,6 @@ import time
 
 
 GIZMO_ID = 'id'
-GIZMO_LABEL = 'T.label'
 GIZMO_LABEL = ('label', 'T.label')
 GIZMO_TYPE = 'type'
 GIZMO_ENTITY = '__GIZMO_ENTITY__'

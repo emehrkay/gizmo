@@ -733,13 +733,19 @@ class Query:
     def _add_vertex(self, entity, set_variable=None):
         entity.data_type = 'graph'
         gremlin = self.gremlin
+        label = None
+        ignore = ['T.label', 'label']
 
-        gremlin.addV()
+        if entity['label']:
+            label = next_entity_param(entity, 'label', entity['label'])
+            gremlin.unbound('addV', 'T.label', label)
+        else:
+            gremlin.addV()
 
         if set_variable:
             gremlin.set_ret_variable(set_variable, ignore=[GIZMO_ID, ])
 
-        self._field_changes(gremlin, entity)
+        self._field_changes(gremlin, entity, ignore=ignore)
         gremlin.func('next')
 
         entity.data_type = 'python'
