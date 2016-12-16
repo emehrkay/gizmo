@@ -82,3 +82,31 @@ Gizmo starts and ends with Gremlin/Groovy. It is made up of entity, mapper, quer
 
     asyncio.get_event_loop().run_until_complete(random_java())
 ```
+
+## Running tests
+
+Test can be run via the setup file or directly with `python -m`.
+
+```
+python setup.py test
+```
+
+or
+
+```
+python -m unittest gizmo.test.entity
+python -m unittest gizmo.test.mapper
+python -m unittest gizmo.test.integration.tinkerpop
+...
+```
+
+If you're going to run the integration tests, right now, both the name of the graph and the port are hard-coded into the suite. Make sure your Gremlin and Titan server use these settings:
+
+__tinkerpop__
+* graph: gizmo_testing
+* port: 8182
+
+__titan__
+* graph: gizmo_testing
+* port: 8182
+
