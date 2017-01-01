@@ -805,6 +805,20 @@ class IntegerTests(unittest.TestCase):
         self.assertIsInstance(values[0], int)
         self.assertEqual(values[0], 0)
 
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_python(self):
+        f = Integer()
+        f += None
+        f.data_type = 'python'
+
+        self.assertEqual(f.values[0], 0)
+
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_graph(self):
+        f = Integer()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertEqual(f.values[0], 0)
+
 
 class FloatTests(unittest.TestCase):
 
@@ -831,6 +845,20 @@ class FloatTests(unittest.TestCase):
         self.assertIsInstance(f.values[0], float)
         self.assertEqual(f.values[0], 12.0)
 
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_python(self):
+        f = Float()
+        f += None
+        f.data_type = 'python'
+
+        self.assertEqual(f.values[0], 0.0)
+
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_graph(self):
+        f = Float()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertEqual(f.values[0], 0.0)
+
 
 class DateTimeTests(unittest.TestCase):
 
@@ -854,6 +882,20 @@ class DateTimeTests(unittest.TestCase):
         self.assertEqual(1, len(f.values))
         self.assertIsInstance(f.values[0], float)
         self.assertEqual(f.values[0], v)
+
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_python(self):
+        f = DateTime()
+        f += None
+        f.data_type = 'python'
+
+        self.assertEqual(f.values[0], 0.0)
+
+    def test_will_ensure_that_none_values_return_zero_when_converted_to_graph(self):
+        f = DateTime()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertEqual(f.values[0], 0.0)
 
 
 class TimeStampTests(unittest.TestCase):
@@ -945,6 +987,20 @@ class BooleanTests(unittest.TestCase):
 
         self.assertEqual(f.values[0], 'true')
 
+    def test_will_ensure_that_none_values_return_false_when_converted_to_python(self):
+        f = Boolean()
+        f += None
+        f.data_type = 'python'
+
+        self.assertEqual(f.values[0], False)
+
+    def test_will_ensure_that_none_values_return_false_when_converted_to_graph(self):
+        f = Boolean()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertEqual(f.values[0], 'false')
+
 
 class MapTests(unittest.TestCase):
 
@@ -976,6 +1032,20 @@ class MapTests(unittest.TestCase):
 
         self.assertIsInstance(f.values[0], dict)
         self.assertEqual(len(f.values[0]), len(j))
+
+    def test_will_ensure_that_none_values_return_dict_when_converted_to_python(self):
+        f = Map()
+        f += None
+        f.data_type = 'python'
+
+        self.assertIsInstance(f.values[0], dict)
+
+    def test_will_ensure_that_none_values_return_dict_when_converted_to_graph(self):
+        f = Map()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertIsInstance(f.values[0], dict)
 
 
 class ListTests(unittest.TestCase):
@@ -1028,6 +1098,20 @@ class ListTests(unittest.TestCase):
 
         self.assertIsInstance(f.values[0], list)
         self.assertEqual(len(f.values[0]), len(j[0]['value']))
+
+    def test_will_ensure_that_none_values_return_list_when_converted_to_python(self):
+        f = List()
+        f += None
+        f.data_type = 'python'
+
+        self.assertIsInstance(f.values[0], list)
+
+    def test_will_ensure_that_none_values_return_list_when_converted_to_graph(self):
+        f = List()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertIsInstance(f.values[0], list)
 
 
 class ImmutableFieldTests(unittest.TestCase):
