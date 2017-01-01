@@ -53,7 +53,7 @@ class Request:
         params = params  or {}
         update_entities = update_entities or {}
 
-        # print(_query_debug(script, params))
+        print(_query_debug(script, params))
 
         try:
             self.connect()

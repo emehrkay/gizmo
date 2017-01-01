@@ -764,6 +764,20 @@ class StringTests(unittest.TestCase):
 
         self.assertIsInstance(f.values[0], str)
 
+    def test_will_ensure_that_none_values_return_empty_string_when_converted_to_python(self):
+        f = String()
+        f += None
+        f.data_type = 'python'
+
+        self.assertEqual(f.values[0], '')
+
+    def test_will_ensure_that_none_values_return_empty_string_when_converted_to_graph(self):
+        f = String()
+        f += None
+        f.data_type = 'graph'
+
+        self.assertEqual(f.values[0], '')
+
 
 class IntegerTests(unittest.TestCase):
 

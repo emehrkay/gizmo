@@ -6,7 +6,7 @@ from gremlinpy.gremlin import Gremlin, Param, AS
 
 from .entity import (_Entity, Vertex, Edge, GenericVertex, GenericEdge,
     ENTITY_MAP)
-from .exception import (AstronomerQueryException)
+from .exception import (AstronomerQueryException, AstronomerMapperException)
 from .util import (camel_to_underscore, GIZMO_ID, GIZMO_LABEL, GIZMO_TYPE,
     GIZMO_ENTITY, GIZMO_VARIABLE, entity_name)
 

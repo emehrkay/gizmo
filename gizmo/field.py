@@ -607,6 +607,9 @@ class String(Field):
 
     def to_python(self, value):
         try:
+            if not value._value:
+                return ''
+
             return str(value._value)
         except:
             return ''
