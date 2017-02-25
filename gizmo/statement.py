@@ -34,6 +34,11 @@ class MapperUniqueVertex(MapperStatement):
         save_query = self.query.queries[0]
         name = str(self.entity)
 
+        if not isinstance(self.mapper.unique_fields, (list, set, tuple)):
+            msg = ('The entity: {} must have a list as the'
+                ' unique fields'.format(name))
+            raise TypeError(msg)
+
         for field in self.mapper.unique_fields:
             holder = '{}_{}'.format(name, field)
             g_field = next_param(holder, field)
