@@ -155,16 +155,19 @@ class Response:
         for arg in data:
             if not hasattr(arg, '__iter__'):
                 response = [{'response': arg}]
-            elif has_update(arg.keys()):
-                for k, v in arg.items():
-                    if k in self.update_entities:
-                        entity = self.update_entities[k]
-                        props = fix_properties(v)
+            elif isinstance(arg, dict):
+                if has_update(arg.keys()):
+                    for k, v in arg.items():
+                        if k in self.update_entities:
+                            entity = self.update_entities[k]
+                            props = fix_properties(v)
 
-                        response.append(props)
-                        entity.empty().hydrate(props, reset_initial=True)
+                            response.append(props)
+                            entity.empty().hydrate(props, reset_initial=True)
+                else:
+                    response.append(fix_properties(arg))
             else:
-                response.append(fix_properties(arg))
+                response.append(arg)
 
         return response
 
