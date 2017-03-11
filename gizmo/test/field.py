@@ -966,8 +966,8 @@ class BooleanTests(unittest.TestCase):
     def test_can_create_boolean_without_value_and_get_false_for_graph(self):
         f = Boolean(data_type='graph')
 
-        self.assertIsInstance(f.values[0], str)
-        self.assertEqual('false', f.values[0])
+        self.assertIsInstance(f.values[0], bool)
+        self.assertFalse(f.values[0])
 
     def test_can_get_boolean_from_non_bool_val(self):
         f = Boolean(values='ooo')
@@ -979,27 +979,38 @@ class BooleanTests(unittest.TestCase):
         f = Boolean()
         f.data_type = 'graph'
 
-        self.assertEqual(f.values[0], 'false')
+        self.assertFalse(f.values[0])
+
+    def test_can_get_boolean_value_from_boolean_strings(self):
+        f = Boolean(values='true')
+
+        self.assertIsInstance(f.values[0], bool)
+        self.assertTrue(f.values[0])
+
+        f = Boolean(values='false')
+
+        self.assertIsInstance(f.values[0], bool)
+        self.assertFalse(f.values[0])
 
     def test_can_get_graph_boolean_from_non_bool_val(self):
         f = Boolean(values='ooo')
         f.data_type = 'graph'
 
-        self.assertEqual(f.values[0], 'true')
+        self.assertTrue(f.values[0])
 
     def test_will_ensure_that_none_values_return_false_when_converted_to_python(self):
         f = Boolean()
         f += None
         f.data_type = 'python'
 
-        self.assertEqual(f.values[0], False)
+        self.assertFalse(f.values[0])
 
     def test_will_ensure_that_none_values_return_false_when_converted_to_graph(self):
         f = Boolean()
         f += None
         f.data_type = 'graph'
 
-        self.assertEqual(f.values[0], 'false')
+        self.assertFalse(f.values[0])
 
 
 class MapTests(unittest.TestCase):

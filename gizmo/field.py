@@ -669,9 +669,7 @@ class Boolean(Field):
             return False
 
     def to_graph(self, value):
-        val = self._convert(value._value)
-
-        return 'true' if val else 'false'
+        return self.to_python(value=value)
 
 
 class Map(Field):
