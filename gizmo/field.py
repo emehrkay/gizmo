@@ -661,10 +661,7 @@ class Boolean(Field):
 
     def to_python(self, value):
         try:
-            val = self._convert(value._value)
-            val = str(val).lower().strip()
-
-            return bool(json.loads(val))
+            return self._convert(value._value)
         except:
             return False
 
