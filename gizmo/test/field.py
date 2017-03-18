@@ -24,6 +24,7 @@ class FieldTests(unittest.TestCase):
         self.assertEqual(type(f), Field)
         self.assertEqual(1, len(f.values))
 
+
     def test_can_create_field_with_one_value(self):
         v = str(random())
         f = Field(values=v)
@@ -742,6 +743,7 @@ class FieldTests(unittest.TestCase):
 
             self.assertIn(pk, properties)
             self.assertEqual(pv, properties[pk])
+
 
 
 class StringTests(unittest.TestCase):

@@ -360,6 +360,9 @@ class ValueManager:
         for value in self._values:
             value.converter = converter
 
+        if self.default:
+            self.default.converter = converter
+
     def _get_data_type(self):
         return self._data_type
 
@@ -743,14 +746,14 @@ class TimeStamp(DateTime):
         def default():
             return datetime.now()
 
-        if 'default' in kwargs:
-            del kwargs['default']
-
-        values = values or default
+        kwargs['default'] = default
 
         super().__init__(name=name, values=values, data_type=data_type,
                          max_values=1, overwrite_last_value=False, *args,
                          **kwargs)
+
+    def can_set(self, value):
+        return False
 
 
 class GremlinID(_ImmutableField, String):
