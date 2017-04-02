@@ -553,7 +553,7 @@ class EntityMapper(metaclass=_RootMapper):
         if self.save_statements and len(self.save_statements):
             statement_query = self._build_save_statements(entity, query,
                 out_v_id=out_v_id, in_v_id=in_v_id,
-                label=entity[GIZMO_LABEL].value, direction=self.unique)
+                label=entity[GIZMO_LABEL[0]], direction=self.unique)
 
             return self.enqueue(statement_query, False)
         else:
@@ -922,8 +922,13 @@ class Query:
 
 class Collection(object):
 
-    def __init__(self, mapper, response):
+    def __init__(self, mapper, response=None):
         self.mapper = mapper
+
+        if not response:
+            response = lambda: None
+            response.data = []
+
         self.response = response
         self._entities = {}
         self._index = 0
