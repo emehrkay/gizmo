@@ -81,6 +81,17 @@ class _EntityType(type):
 
         return cls
 
+    def __call__(cls, *args, **kwargs):
+        entity = super(_EntityType, cls).__call__(*args, **kwargs)
+
+        for k, v in entity.fields.fields.items():
+            setattr(entity, k, v)
+
+        return entity
+
+    def __str__(cls):
+        return camel_to_underscore(cls.__name__)
+
 
 class _Entity(metaclass=_EntityType):
 

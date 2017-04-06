@@ -304,6 +304,11 @@ class Mapper:
 
         return self
 
+    def get(self, entity):
+        mapper = self.get_mapper(entity)
+
+        return mapper.get(entity)
+
     def apply_statement(self, statement):
         self.gremlin.apply_statement(statement)
 
@@ -373,6 +378,22 @@ class _RootMapper(type):
 
         return cls
 
+    def __call__(cls, *args, **kwargs):
+        mapper = super(_RootMapper, cls).__call__(*args, **kwargs)
+
+        for field in dir(mapper):
+            if field.startswith('_'):
+                continue
+
+            val = getattr(mapper, field)
+
+            if isinstance(val, EntityMapper):
+                val.mapper = mapper.mapper
+                val.gremlin = val.mapper.gremlin
+                setattr(mapper, field, val)
+
+        return mapper
+
 
 class EntityMapper(metaclass=_RootMapper):
     VARIABLE = GIZMO_VARIABLE
@@ -382,7 +403,10 @@ class EntityMapper(metaclass=_RootMapper):
 
     def __init__(self, mapper=None):
         self.mapper = mapper
-        self.gremlin = mapper.gremlin
+        self.gremlin = None
+
+        if self.mapper:
+            self.gremlin = mapper.gremlin
 
         self.reset()
 
@@ -395,6 +419,20 @@ class EntityMapper(metaclass=_RootMapper):
 
     async def data(self, entity):
         return entity.data
+
+    def get(self, entity):
+        trav = self.start(entity)
+        vertex = issubclass(self.entity, Vertex)
+        param_value = str(self.entity)
+        param_name = 'out_{}_{}'.format(entity.__class__.__name__, param_value)
+        entity_param = next_param(param_name, param_value)
+
+        if vertex:
+            trav.out().hasLabel(entity_param)
+        else:
+            trav.outE(entity_param)
+
+        return trav
 
     def enqueue(self, query, bind_return=True):
         for entry in query.queries:
@@ -456,7 +494,7 @@ class EntityMapper(metaclass=_RootMapper):
         return statement_query
 
     def start(self, entity=None):
-        return Traversal(self, entity or self.entity)
+        return Traversal(self.mapper, entity or self.entity)
 
     def save(self, entity, bind_return=True, callback=None, *args, **kwargs):
         """callback and be a single callback or a list of them"""
@@ -998,6 +1036,24 @@ class Collection(object):
         if key in self._entities:
             del self._entities[key]
 
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return self.__next__()
+        except:
+            raise StopAsyncIteration()
+
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        entity = self[self._index]
+        self._index += 1
+
+        return entity
+
 
 class Traversal(Gremlin):
     """
@@ -1014,6 +1070,7 @@ class Traversal(Gremlin):
 
         self._mapper = mapper
         self._entity = entity
+        self._collection = None
         _id = None
         _base = isinstance(entity, _Entity)
 
@@ -1036,13 +1093,16 @@ class Traversal(Gremlin):
 
             getattr(self, ev)().hasLabel(bound_type[0])
 
-    def define_traversal(self, traversal):
-        if hasattr(traversal, '__call__'):
-            self.traversal = traversal
-
+    async def __aiter__(self):
         return self
 
+    async def __anext__(self):
+        if not self._collection:
+            self._collection = await self.to_collection()
+
+        return await self._collection.__anext__()
+
     async def to_collection(self):
-        collection = await self._mapper.send(gremlin=self)
+        collection = await self._mapper.query(gremlin=self)
 
         return collection
