@@ -1036,15 +1036,6 @@ class Collection(object):
         if key in self._entities:
             del self._entities[key]
 
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return self.__next__()
-        except:
-            raise StopAsyncIteration()
-
     def __iter__(self):
         return self
     
@@ -1097,12 +1088,17 @@ class Traversal(Gremlin):
         return self
 
     async def __anext__(self):
-        if not self._collection:
-            self._collection = await self.to_collection()
+        await self.to_collection()
 
-        return await self._collection.__anext__()
+        try:
+            return next(self._collection)
+        except:
+            self._collection = None
+
+            raise StopAsyncIteration()
 
     async def to_collection(self):
-        collection = await self._mapper.query(gremlin=self)
+        if not self._collection:
+            self._collection = await self._mapper.query(gremlin=self)
 
-        return collection
+        return self._collection
