@@ -1,12 +1,16 @@
 import asyncio
 import copy
 import json
+import logging
 import uuid
 
 import websockets
 
 from .exception import AstronomerConnectionException
 from .util import _query_debug
+
+
+logger = logging.getLogger(__name__)
 
 
 class Request:
@@ -53,7 +57,10 @@ class Request:
         params = params  or {}
         update_entities = update_entities or {}
 
-        print(_query_debug(script, params))
+        logger.debug('RUNNING QUERY WITH PARAMS')
+        logger.debug(script)
+        logger.debug(params)
+        logger.debug(_query_debug(script, params) + '\n')
 
         try:
             self.connect()

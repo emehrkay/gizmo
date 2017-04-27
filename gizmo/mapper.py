@@ -1,3 +1,4 @@
+import logging
 import re
 
 from collections import OrderedDict
@@ -11,6 +12,7 @@ from .util import (camel_to_underscore, GIZMO_ID, GIZMO_LABEL, GIZMO_TYPE,
     GIZMO_ENTITY, GIZMO_VARIABLE, entity_name)
 
 
+logger = logging.getLogger(__name__)
 ENTITY_MAPPER_MAP = {}
 GENERIC_MAPPER = 'generic.mapper'
 _count = -1
@@ -77,6 +79,7 @@ class Mapper:
         if not self.auto_commit and not self.graph_instance_name:
             error = ('If auto_commit is set, we need to know the'
                      ' graph instance name')
+            logger.exception(error)
             raise ArgumentError(error)
 
         self.reset()
@@ -214,6 +217,8 @@ class Mapper:
         if mapper is None:
             mapper = self.get_mapper(entity)
 
+        logger.debug(('Saving entity: {} with mapper:'
+            ' {}').format(entity.__repr__, mapper))
         mapper.save(entity, bind_return, callback, **kwargs)
 
         return self._enqueue_mapper(mapper)
@@ -222,6 +227,9 @@ class Mapper:
         if mapper is None:
             mapper = self.get_mapper(entity)
 
+
+        logger.debug(('Deleting entity: {} with mapper:'
+            ' {}').format(entity.__repr__, mapper))
         mapper.delete(entity, callback=callback)
 
         # manually add the deleted entity to the self.entities
@@ -263,12 +271,16 @@ class Mapper:
         """
         if not isinstance(out_v, Vertex):
             if not isinstance(out_v, (str, int)):
-                err = ['The out_v needs to be either a Vertex or an id']
+                err = 'The out_v needs to be either a Vertex or an id'
+
+                logger.exception(err)
                 raise AstronomerMapperException(err)
 
         if not isinstance(in_v, Vertex):
             if not isinstance(in_v, (str, int)):
                 err = 'The in_v needs to be either a Vertex or an id'
+
+                logger.exception(err)
                 raise AstronomerMapperException(err)
 
         if data is None:
@@ -287,11 +299,6 @@ class Mapper:
         return mapper.start(entity)
 
     def _build_queries(self):
-        # if not self.auto_commit:
-        #     commit = '.'.join([self.graph_instance_name, 'tx()', 'commit()'])
-        #
-        #     self.queries.append(commit)
-
         if len(self.return_vars) > 0:
             returns = []
 
@@ -330,7 +337,7 @@ class Mapper:
         return res
 
     async def query(self, script=None, params=None, gremlin=None,
-                    update_entities=None, callbacks=None):
+                    update_entities=None, callbacks=None, collection=None):
         if gremlin is not None:
             script = str(gremlin)
             params = gremlin.bound_params
@@ -346,6 +353,8 @@ class Mapper:
         if update_entities is None:
             update_entities = {}
 
+        self.reset()
+
         response = await self.request.send(script, params, update_entities)
 
         for k, entity in update_entities.items():
@@ -353,7 +362,10 @@ class Mapper:
             for c in cbs:
                 c(entity)
 
-        return Collection(self, response)
+        if not collection:
+            collection = Collection
+
+        return collection(self, response)
 
 
 class _RootMapper(type):
@@ -796,6 +808,9 @@ class Query:
         entity_type, entity_id = entity.get_rep()
 
         if not entity_id:
+            error = (('The entity {} scheduled to be updated does not have'
+                ' an id').format(str(entity)))
+            logger.exception(error)
             raise Exception()
 
         _id = next_param('{}_ID'.format(str(entity)), entity_id)
@@ -816,6 +831,7 @@ class Query:
     def _add_edge(self, entity, set_variable=None):
         if not entity[GIZMO_LABEL[0]]:
             msg = 'A label is required in order to create an edge'
+            logger.exception(msg)
             raise AstronomerQueryException(msg)
 
         def get_or_create_ends():
@@ -832,6 +848,7 @@ class Query:
             if out_v is None or in_v is None:
                 error = ('Both out and in vertices must be set before'
                          ' saving the edge')
+                logger.exception(error)
                 raise AstronomerQueryException(error)
 
             if isinstance(out_v, _Entity):
@@ -927,6 +944,7 @@ class Query:
     def save(self, entity, set_variable=None):
         if not entity[GIZMO_TYPE]:
             msg = 'The entity does not have a type defined'
+            logger.exception(msg)
             raise AstronomerQueryException(msg)
 
         entity_type = entity[GIZMO_TYPE]
@@ -945,10 +963,12 @@ class Query:
         if not _id:
             msg = ('The entity does not have an id defined and'
                    ' connot be deleted')
+            logger.exception(msg)
             raise AstronomerQueryException(msg)
 
         if not entity[GIZMO_TYPE]:
             msg = 'The entity does not have a type defined'
+            logger.exception(msg)
             raise AstronomerQueryException(msg)
 
         delete = next_param('{}_ID'.format(str(entity)), _id)
@@ -1036,15 +1056,6 @@ class Collection(object):
         if key in self._entities:
             del self._entities[key]
 
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return self.__next__()
-        except:
-            raise StopAsyncIteration()
-
     def __iter__(self):
         return self
     
@@ -1097,12 +1108,17 @@ class Traversal(Gremlin):
         return self
 
     async def __anext__(self):
-        if not self._collection:
-            self._collection = await self.to_collection()
+        await self.to_collection()
 
-        return await self._collection.__anext__()
+        try:
+            return next(self._collection)
+        except:
+            self._collection = None
+
+            raise StopAsyncIteration()
 
     async def to_collection(self):
-        collection = await self._mapper.query(gremlin=self)
+        if not self._collection:
+            self._collection = await self._mapper.query(gremlin=self)
 
-        return collection
+        return self._collection
