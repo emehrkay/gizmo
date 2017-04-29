@@ -1,6 +1,8 @@
 import re
 import time
 
+from timeit import default_timer
+
 
 GIZMO_ID = 'id'
 GIZMO_LABEL = ('label', 'T.label')
@@ -58,3 +60,19 @@ def _query_debug(script, params): # pragma: no cover
 
 def current_date_time(offset=0): # pragma: no cover
     return (int(time.time()) + offset)
+
+
+class Timer(object):
+    elapsed = 0
+
+    def __str__(self):
+        return self.elapsed
+
+    def __enter__(self):
+        self.start = default_timer()
+        return self
+
+    def __exit__(self, *args):
+        end = default_timer()
+        self.elapsed_secs = end - self.start
+        self.elapsed = self.elapsed_secs * 1000

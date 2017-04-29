@@ -7,16 +7,41 @@ import uuid
 import websockets
 
 from .exception import AstronomerConnectionException
-from .util import _query_debug
+from .util import _query_debug, Timer
 
 
 logger = logging.getLogger(__name__)
 
 
+class RequestQueryLogger:
+
+    def __init__(self):
+        self.queries = []
+
+    def add(self, script, params, query, execution_time):
+        self.queries.append({
+            'query': query,
+            'script': script,
+            'params': params,
+            'query': query,
+            'execution_time': execution_time,
+        })
+
+    def reset(self):
+        self.queries = []
+
+    @property
+    def total_time(self):
+        return sum(q['execution_time'] for q in self.queries)
+
+    def __len__(self):
+        return len(self.queries)
+
+
 class Request:
 
     def __init__(self, uri, port=8182, three_two=True, username=None,
-                 password=None):
+                 password=None, log_requests=None):
         gremlin = '/gremlin' if three_two else ''
         self.uri = uri
         self.port = port
@@ -25,6 +50,11 @@ class Request:
         self.username = username
         self.password = password
         self.connection = None
+
+        if log_requests:
+            log_requests = RequestQueryLogger()
+
+        self.request_logger = log_requests
 
     def connect(self):
         self.connection = websockets.connect(self._ws_uri)
@@ -56,34 +86,41 @@ class Request:
         result = None
         params = params  or {}
         update_entities = update_entities or {}
+        query = _query_debug(script, params)
+        request_logger = self.request_logger
 
         logger.debug('RUNNING QUERY WITH PARAMS')
         logger.debug(script)
         logger.debug(params)
-        logger.debug(_query_debug(script, params) + '\n')
+        logger.debug(query)
 
         try:
-            self.connect()
+            with Timer() as timer:
+                self.connect()
 
-            async with self.connection as ws:
-                message = self.message(script=script, params=params,
-                                       rebindings=rebindings, op=op,
-                                       processor=processor, language=language,
-                                       session=session)
+                async with self.connection as ws:
+                    message = self.message(script=script, params=params,
+                        rebindings=rebindings, op=op, processor=processor,
+                            language=language, session=session)
 
-                await ws.send(message)
+                    await ws.send(message)
 
-                response = await ws.recv()
-                data = json.loads(response)
+                    response = await ws.recv()
+                    data = json.loads(response)
 
-                if data.get('request_id'):
-                    request_id = data['request_id']
+                    if data.get('request_id'):
+                        request_id = data['request_id']
 
-                if data.get('result'):
-                    result = data['result']
+                    if data.get('result'):
+                        result = data['result']
 
-                if data.get('status'):
-                    status = ResponseStatus(**data['status'])
+                    if data.get('status'):
+                        status = ResponseStatus(**data['status'])
+
+            logger.debug('runtime: {} miliseconds\n'.format(timer.elapsed))
+
+            if request_logger is not None:
+                request_logger.add(script, params, query, timer.elapsed)
 
             return Response(request_id=request_id, result=result,
                             update_entities=update_entities, script=script,
