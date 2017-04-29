@@ -37,6 +37,10 @@ class RequestQueryLogger:
     def __len__(self):
         return len(self.queries)
 
+    def __add__(self, other):
+        if isinstance(other, RequestQueryLogger):
+            self.queries += copy.deepcopy(other.queries)
+
 
 class Request:
 
