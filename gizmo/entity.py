@@ -2,7 +2,7 @@ import copy
 import uuid
 
 from .field import (Field, FieldManager, GremlinID, Integer, String,
-                    GremlinLabel, GremlinType, GIZMOEntity)
+    GremlinLabel, GremlinType, GIZMOEntity, _ImmutableField, Relationship)
 from .util import (camel_to_underscore, entity_name, GIZMO_ID, GIZMO_LABEL,
     GIZMO_TYPE, GIZMO_ENTITY)
 
@@ -35,11 +35,16 @@ class _EntityType(type):
             fields = {}
             _all_attrs = {}
             self._data_type = data_type
+            self._relationships = {}
 
             def def_fields(obj_attrs):
                 keys = obj_attrs.keys()
 
                 for key, val in obj_attrs.items():
+
+                    if isinstance(val, Relationship):
+                        self._relationships[key] = val
+
                     if isinstance(val, Field):
                         fields[key] = copy.deepcopy(val)
 
@@ -66,8 +71,7 @@ class _EntityType(type):
             fields[GIZMO_TYPE] = GremlinType(GIZMO_TYPE, values=_type)
             fields[GIZMO_ENTITY] = GIZMOEntity(GIZMO_ENTITY, values=ast_entity)
             self.fields = FieldManager(fields=fields,
-                                       allow_undefined=allow_undefined,
-                                       data_type=data_type)
+                allow_undefined=allow_undefined, data_type=data_type)
 
             if GIZMO_LABEL[0] in data:
                 del data[GIZMO_LABEL[0]]
@@ -85,7 +89,8 @@ class _EntityType(type):
         entity = super(_EntityType, cls).__call__(*args, **kwargs)
 
         for k, v in entity.fields.fields.items():
-            setattr(entity, k, v)
+            if not isinstance(v, _ImmutableField):
+                setattr(entity, k, v)
 
         return entity
 
@@ -126,6 +131,9 @@ class _Entity(metaclass=_EntityType):
         self.fields.data_type = data_type
 
     data_type = property(_get_data_type, _set_data_type)
+
+    def __getattr__(self, attr):
+        return self.__getitem__(attr)
 
     @property
     def data(self):

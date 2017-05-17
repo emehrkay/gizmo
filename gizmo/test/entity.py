@@ -41,6 +41,14 @@ class EntityTests(unittest.TestCase):
         self.assertTrue(isinstance(v, Vertex))
         self.assertEqual(v['type'], 'vertex')
 
+    def test_can_access_fields_as_items_or_attributes(self):
+        v = TestVertex({'id': 7})
+        i_id = v.id
+        a_id = v['id']
+
+        self.assertEqual(i_id, a_id)
+        self.assertEqual(v.some_field, v['some_field'])
+
     def test_can_create_vertex_with_data(self):
         d = {'some_field': '1'}
         v = TestVertex(d)

@@ -1,4 +1,5 @@
 import logging
+import inspect
 import re
 
 from collections import OrderedDict
@@ -8,6 +9,7 @@ from gremlinpy.gremlin import Gremlin, Param, AS
 from .entity import (_Entity, Vertex, Edge, GenericVertex, GenericEdge,
     ENTITY_MAP)
 from .exception import (AstronomerQueryException, AstronomerMapperException)
+from .traversal import Traversal
 from .util import (camel_to_underscore, GIZMO_ID, GIZMO_LABEL, GIZMO_TYPE,
     GIZMO_ENTITY, GIZMO_VARIABLE, entity_name)
 
@@ -399,10 +401,10 @@ class _RootMapper(type):
 
             val = getattr(mapper, field)
 
-            if isinstance(val, EntityMapper):
-                val.mapper = mapper.mapper
-                val.gremlin = val.mapper.gremlin
-                setattr(mapper, field, val)
+            if inspect.isclass(val) and issubclass(val, EntityMapper):
+                if mapper.mapper:
+                    instance = val(mapper.mapper)
+                    setattr(mapper, field, instance)
 
         return mapper
 
@@ -641,6 +643,10 @@ class EntityMapper(metaclass=_RootMapper):
                 label = data.get(GIZMO_LABEL[0], None)
                 entity = entity(data=data, data_type=data_type)
                 check = False
+
+                for f, r in entity._relationships.items():
+                    r._mapper = self.mapper
+                    r._entity = entity
             except Exception as e:
                 pass
 
@@ -653,6 +659,10 @@ class EntityMapper(metaclass=_RootMapper):
                         name = name[0]['value']
 
                     entity = ENTITY_MAP[name](data=data, data_type=data_type)
+
+                    for f, r in entity._relationships.items():
+                        r._mapper = self.mapper
+                        r._entity = entity
                 else:
                     raise
             except Exception as e:
@@ -1065,60 +1075,3 @@ class Collection(object):
 
         return entity
 
-
-class Traversal(Gremlin):
-    """
-    class used to start a traversal query based on a given entity
-    when the class is created, the entity's _id and type are are
-    set on the Gremlin object
-    example:
-    """
-
-    def __init__(self, mapper, entity):
-        graph_variable = mapper.gremlin.gv
-
-        super(Traversal, self).__init__(graph_variable)
-
-        self._mapper = mapper
-        self._entity = entity
-        self._collection = None
-        _id = None
-        _base = isinstance(entity, _Entity)
-
-        if _base:
-            ev, _id = entity.get_rep()
-
-        if _id:
-            bound_id = next_param('{}_EYE_DEE'.format(str(entity)), _id)
-
-            getattr(self, ev)(bound_id)
-        else:
-            if _base:
-                _type = entity.__class__.__name__
-            else:
-                _type = entity.__name__
-                ev, _ = entity().get_rep()
-
-            _type = camel_to_underscore(_type)
-            bound_type = self.bind_param(_type, 'BOUND_TYPE')
-
-            getattr(self, ev)().hasLabel(bound_type[0])
-
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        await self.to_collection()
-
-        try:
-            return next(self._collection)
-        except:
-            self._collection = None
-
-            raise StopAsyncIteration()
-
-    async def to_collection(self):
-        if not self._collection:
-            self._collection = await self._mapper.query(gremlin=self)
-
-        return self._collection

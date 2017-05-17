@@ -4,6 +4,9 @@ import json
 from collections import OrderedDict
 from datetime import datetime
 
+from gremlinpy import Param
+
+from .traversal import Traversal
 from .util import is_gremlin_entity
 
 
@@ -770,3 +773,50 @@ class GremlinType(GremlinLabel):
 
 class GIZMOEntity(GremlinID):
     pass
+
+
+class Relationship(Traversal):
+
+    def __init__(self, edge_entity, mapper=None, entity=None):
+        self._edge_entity = edge_entity
+
+        super().__init__(entity=entity, mapper=mapper)
+
+    def _build_initial_query(self):
+        from .mapper import next_entity_param
+
+        built = super()._build_initial_query()
+
+        if built and self._edge_entity:
+            label = next_entity_param(self._edge_entity, 'label',
+                str(self._edge_entity))
+
+            self.out(label)
+
+    def _add(self, entity, data=None):
+        if self._entity:
+            edge = self._mapper.connect(self._entity, entity,
+                edge_entity=self._edge_entity, data=data)
+            self._mapper.save(edge)
+
+            return edge
+
+        return None
+
+    def __add__(self, entity):
+        return self.add(entity)
+
+    def _remove(self, entity, direction='both'):
+        from gremlinpy.statement import GetEdge
+
+        try:
+            edge = GetEdge(entity.id, self._entity.id,
+                label=str(self._edge_entity), direction=direction)
+            self.mapper.delete(edge)
+
+            return edge
+        except:
+            return None
+
+    def __sub__(self, entity):
+        return self._remove(entity=entity)
