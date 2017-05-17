@@ -782,7 +782,7 @@ class Relationship(Traversal):
 
         super().__init__(entity=entity, mapper=mapper)
 
-    def _build_initial_query(self):
+    def _build_initial_query(self, edge_only=False):
         from .mapper import next_entity_param
 
         built = super()._build_initial_query()
@@ -791,7 +791,12 @@ class Relationship(Traversal):
             label = next_entity_param(self._edge_entity, 'label',
                 str(self._edge_entity))
 
-            self.out(label)
+            if edge_only:
+                self.outE(label)
+            else:
+                self.out(label)
+
+        return self
 
     def _add(self, entity, data=None):
         if self._entity:
@@ -820,3 +825,7 @@ class Relationship(Traversal):
 
     def __sub__(self, entity):
         return self._remove(entity=entity)
+
+    @property
+    def edges(self):
+        return self._build_initial_query(edge_only=True)
