@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import unittest
 import json
 import copy
@@ -16,6 +17,8 @@ from gizmo.util import camel_to_underscore, entity_name, _query_debug
 
 
 DEFAULT_PROPRTIES = sorted([GIZMO_LABEL[0], GIZMO_TYPE, GIZMO_ENTITY])
+
+logging.disable(logging.CRITICAL)
 
 
 class TestVertex(GenericVertex):

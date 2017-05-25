@@ -186,6 +186,9 @@ class Field:
         self._data_type = data_type
         self.deleted = False
 
+    def __repr__(self):
+        return '%s(%r)'.format(self.__class__, self.__dict__)
+
     def __getitem__(self, value):
         return self._values[value]
 
@@ -776,9 +779,21 @@ class GIZMOEntity(GremlinID):
 
 
 class Relationship(Traversal):
+    _relationship_edges = {
+        'out': 'outE',
+        'in': 'inE',
+    }
+    _relationship_opposites = {
+        'in': 'out',
+        'out': 'in',
+        'both': 'both',
+    }
 
-    def __init__(self, edge_entity, mapper=None, entity=None):
+    def __init__(self, edge_entity, mapper=None, entity=None,
+        relationship_direction='out', allow_multiple=True):
         self._edge_entity = edge_entity
+        self._allow_multiple = allow_multiple
+        self._relationship_direction = relationship_direction
 
         super().__init__(entity=entity, mapper=mapper)
 
@@ -792,16 +807,44 @@ class Relationship(Traversal):
                 str(self._edge_entity))
 
             if edge_only:
-                self.outE(label)
+                func = self._relationship_edges[self._relationship_direction]
+                self.func(func, label)
             else:
-                self.out(label)
+                self.func(self._relationship_direction, label)
+
+        return self
+
+    def _clear(self):
+        """method used to clear existing relationships. This will not remove
+        any vertices. This method does not execute the query, but will
+        enqueue it with the mapper"""
+        self.edges
+        self.drop().iterate()
+        self._mapper.enqueue_script(gremlin=self)
 
         return self
 
     def _add(self, entity, data=None):
+        """method used to add an entity to an entity as a connection to the
+        parent entity. This method does not execute the query, but will
+        enqueue it with the mapper"""
         if self._entity:
-            edge = self._mapper.connect(self._entity, entity,
-                edge_entity=self._edge_entity, data=data)
+            if not self._allow_multiple:
+                self._clear()
+
+            kwargs = {
+                'data': data,
+                'edge_entity': self._edge_entity,
+            }
+
+            if self._relationship_direction is 'out':
+                kwargs['out_v'] = self._entity
+                kwargs['in_v'] = entity
+            else:
+                kwargs['out_v'] = entity
+                kwargs['in_v'] = self._entity
+
+            edge = self._mapper.connect(**kwargs)
             self._mapper.save(edge)
 
             return edge
@@ -812,10 +855,12 @@ class Relationship(Traversal):
         return self.add(entity)
 
     def _remove(self, entity, direction='both'):
+        """method used to remove a connection between vertices. This method
+        does not execute the query, but will enqueue it with the mapper"""
         from gremlinpy.statement import GetEdge
 
         try:
-            edge = GetEdge(entity.id, self._entity.id,
+            edge = GetEdge(entity['id'], self._entity['id'],
                 label=str(self._edge_entity), direction=direction)
             self.mapper.delete(edge)
 
@@ -828,4 +873,8 @@ class Relationship(Traversal):
 
     @property
     def edges(self):
+        """utility property that will return all of the existing edges based
+        on the _edge_entity attribute"""
+        self.reset()
+
         return self._build_initial_query(edge_only=True)

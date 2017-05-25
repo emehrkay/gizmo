@@ -46,7 +46,7 @@ class EventSourceMixin(object):
         super(EventSourceMixin, self).save(entity=entity,
                                            bind_return=bind_return,
                                            callback=callback, *args, **kwargs)
-        self.mapper._enqueue_mapper(self)
+        self.mapper.enqueue_mapper(self)
 
         if source is not None:
             fields_changed = len(entity.changed) > 0

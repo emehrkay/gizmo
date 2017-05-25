@@ -85,7 +85,7 @@ class Traversal(Gremlin):
             raise StopAsyncIteration()
 
     async def to_collection(self):
-        if not self._collection:
-            self._collection = await self._mapper.query(gremlin=self)
+        # if not self._collection:
+        self._collection = await self._mapper.query(gremlin=self)
 
         return self._collection

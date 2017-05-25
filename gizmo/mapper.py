@@ -121,7 +121,7 @@ class Mapper:
 
         return ENTITY_MAPPER_MAP[name](self)
 
-    def _enqueue_mapper(self, mapper):
+    def enqueue_mapper(self, mapper):
         self.queries += mapper.queries
         self.return_vars += mapper.return_vars
         self.entities.update(mapper.entities)
@@ -133,6 +133,21 @@ class Mapper:
             self.callbacks[entity] = exisiting + callbacks
 
         mapper.reset()
+
+        return self
+
+    def enqueue_script(self, gremlin=None, script=None, params=None):
+        if gremlin is not None:
+            script = [str(gremlin),]
+            params = gremlin.bound_params
+
+            gremlin.reset()
+
+        if script:
+            self.queries += script
+
+        if params:
+            self.params.update(params)
 
         return self
 
@@ -223,7 +238,7 @@ class Mapper:
             ' {}').format(entity.__repr__, mapper))
         mapper.save(entity, bind_return, callback, **kwargs)
 
-        return self._enqueue_mapper(mapper)
+        return self.enqueue_mapper(mapper)
 
     def delete(self, entity, mapper=None, callback=None):
         if mapper is None:
@@ -240,7 +255,7 @@ class Mapper:
         key = 'DELETED_%s_entity' % str(randrange(0, 999999999))
         self.del_entities[key] = entity
 
-        return self._enqueue_mapper(mapper)
+        return self.enqueue_mapper(mapper)
 
     def create(self, data=None, entity=None, data_type='python'):
         if data is None:
